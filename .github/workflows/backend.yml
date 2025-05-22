@@ -52,7 +52,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ca-erp
+          ECR_REPOSITORY: xyvin-erp
           IMAGE_TAG: latest
           LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_HOST }}
           SSH_KEY: ${{ secrets.LIGHTSAIL_KEY }}
