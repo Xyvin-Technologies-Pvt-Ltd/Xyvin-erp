@@ -1,4 +1,4 @@
-name: Deploy xyvin-erp frontend to aws lightsail
+name: Deploy xyvin-erp frontend to aws lightsail-server
 
 on:
   push:
