@@ -1,0 +1,207 @@
+paths:
+  /hrm/employees:
+    get:
+      tags: [Employees]
+      summary: Get all employees
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: department
+          schema:
+            type: string
+          description: Filter by department ID
+        - in: query
+          name: position
+          schema:
+            type: string
+          description: Filter by position ID
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter by employee status
+      responses:
+        200:
+          description: List of employees retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          description: Not authorized to view employees
+    post:
+      tags: [Employees]
+      summary: Create new employee
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+      responses:
+        201:
+          description: Employee created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Employee'
+        400:
+          description: Invalid input data
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          description: Not authorized to create employees
+
+  /hrm/employees/{id}:
+    get:
+      tags: [Employees]
+      summary: Get employee by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Employee ID
+      responses:
+        200:
+          description: Employee retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Employee'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Employees]
+      summary: Update employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Employee ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Employee'
+      responses:
+        200:
+          description: Employee updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Employee'
+        400:
+          description: Invalid input data
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Employees]
+      summary: Delete employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Employee ID
+      responses:
+        200:
+          description: Employee deleted successfully
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+
+  /hrm/employees/{id}/documents:
+    post:
+      tags: [Employees]
+      summary: Upload employee document
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Employee ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeDocument'
+      responses:
+        200:
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                      type:
+                        type: string
+                      title:
+                        type: string
+                      url:
+                        type: string
+        400:
+          description: Invalid input data
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError' 

@@ -1,0 +1,64 @@
+components:
+  schemas:
+    Department:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        id:
+          type: string
+          description: Department's unique identifier
+        name:
+          type: string
+          description: Department name
+        code:
+          type: string
+          description: Unique department code
+        description:
+          type: string
+          description: Department description
+        manager:
+          type: string
+          description: ID of the employee managing this department
+        parentDepartment:
+          type: string
+          description: ID of the parent department (if any)
+        budget:
+          type: number
+          description: Department's annual budget
+        location:
+          type: string
+          description: Physical location of the department
+        isActive:
+          type: boolean
+          default: true
+          description: Whether the department is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Department creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    DepartmentResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/Department'
+
+    DepartmentListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department' 

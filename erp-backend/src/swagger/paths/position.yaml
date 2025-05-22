@@ -1,0 +1,135 @@
+paths:
+  /hrm/positions:
+    get:
+      tags: [Positions]
+      summary: Get all positions
+      description: Retrieve a list of all positions in the organization
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of positions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          description: Not authorized to view positions
+    post:
+      tags: [Positions]
+      summary: Create a new position
+      description: Create a new job position in the organization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Position'
+      responses:
+        201:
+          description: Position created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionResponse'
+        400:
+          description: Invalid input data
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          description: Not authorized to create positions
+
+  /hrm/positions/{id}:
+    get:
+      tags: [Positions]
+      summary: Get position by ID
+      description: Retrieve detailed information about a specific position
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Position ID
+      responses:
+        200:
+          description: Position retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Positions]
+      summary: Update position
+      description: Update an existing position's information
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Position ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Position'
+      responses:
+        200:
+          description: Position updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionResponse'
+        400:
+          description: Invalid input data
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Positions]
+      summary: Delete position
+      description: Delete a position (only if no active employees are assigned)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Position ID
+      responses:
+        204:
+          description: Position deleted successfully
+        400:
+          description: Cannot delete position with active employees
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Cannot delete position with active employees
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        404:
+          $ref: '#/components/responses/NotFoundError' 

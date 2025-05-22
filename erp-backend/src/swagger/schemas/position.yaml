@@ -1,0 +1,79 @@
+components:
+  schemas:
+    Position:
+      type: object
+      required:
+        - title
+        - code
+        - department
+        - salaryRange
+      properties:
+        id:
+          type: string
+          description: Position's unique identifier
+        title:
+          type: string
+          description: Position title/name
+        code:
+          type: string
+          description: Unique position code
+        department:
+          type: string
+          description: ID of the department this position belongs to
+        description:
+          type: string
+          description: Detailed description of the position
+        responsibilities:
+          type: array
+          items:
+            type: string
+          description: List of job responsibilities
+        requirements:
+          type: array
+          items:
+            type: string
+          description: List of job requirements/qualifications
+        salaryRange:
+          type: object
+          required:
+            - min
+            - max
+          properties:
+            min:
+              type: number
+              description: Minimum salary for this position
+            max:
+              type: number
+              description: Maximum salary for this position
+        isActive:
+          type: boolean
+          default: true
+          description: Whether the position is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Position creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    PositionResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/Position'
+
+    PositionListResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position' 

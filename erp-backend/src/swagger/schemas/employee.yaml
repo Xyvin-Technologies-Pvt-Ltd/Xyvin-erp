@@ -1,0 +1,88 @@
+components:
+  schemas:
+    Employee:
+      type: object
+      required:
+        - employeeId
+        - firstName
+        - lastName
+        - email
+        - phone
+        - department
+        - position
+        - salary
+        - joiningDate
+      properties:
+        employeeId:
+          type: string
+          description: Unique employee identifier
+        firstName:
+          type: string
+          description: Employee's first name
+        lastName:
+          type: string
+          description: Employee's last name
+        email:
+          type: string
+          format: email
+          description: Employee's email address
+        phone:
+          type: string
+          description: Employee's contact number
+        department:
+          type: string
+          description: ID of the department employee belongs to
+        position:
+          type: string
+          description: ID of the employee's position
+        salary:
+          type: number
+          description: Employee's current salary
+        joiningDate:
+          type: string
+          format: date
+          description: Date when employee joined
+        status:
+          type: string
+          enum: [active, inactive, on_leave, terminated]
+          default: active
+          description: Current employment status
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            country:
+              type: string
+            postalCode:
+              type: string
+        emergencyContact:
+          type: object
+          properties:
+            name:
+              type: string
+            relationship:
+              type: string
+            phone:
+              type: string
+    EmployeeDocument:
+      type: object
+      required:
+        - type
+        - file
+      properties:
+        type:
+          type: string
+          enum: [resume, id_proof, address_proof, education, experience]
+          description: Type of document
+        title:
+          type: string
+          description: Title/name of the document
+        file:
+          type: string
+          format: binary
+          description: The document file 
