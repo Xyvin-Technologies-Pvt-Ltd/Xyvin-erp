@@ -120,6 +120,8 @@ jobs:
             fi
 
             # Run the new container with the .env.production file
+            echo "PORT used in deployment: ${{ env.PORT }}"
+
             echo "Starting new container..."
             sudo docker run -d \
               -p ${{ env.PORT }}:${{ env.PORT }} \
