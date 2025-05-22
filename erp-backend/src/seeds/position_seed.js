@@ -38,7 +38,7 @@ const seedPositions = async () => {
             // Human Resources Department Positions
             {
                 title: 'HR Manager',
-                code: 'HRM',
+                code: 'POS001',
                 department: departmentMap['Human Resources'],
                 description: 'Manages HR operations and personnel matters',
                 responsibilities: [

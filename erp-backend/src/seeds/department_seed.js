@@ -19,18 +19,10 @@ const seedDepartments = async () => {
 
         // Sample department data
         const departmentsData = [
-            {
-                name: 'Administration',
-                code: 'ADMIN',
-                description: 'Responsible for overall management and administration of the organization',
-                location: 'Headquarters - Floor 5',
-                budget: 500000,
-                employeeCount: 0,
-                isActive: true
-            },
+            
             {
                 name: 'Human Resources',
-                code: 'HR',
+                code: 'DEP001',
                 description: 'Manages recruitment, employee relations, benefits, and organizational development',
                 location: 'Headquarters - Floor 4',
                 budget: 350000,
