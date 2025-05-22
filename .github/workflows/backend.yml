@@ -57,7 +57,7 @@ jobs:
           LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_HOST }}
           SSH_KEY: ${{ secrets.LIGHTSAIL_KEY }}
           USERNAME: ${{ secrets.LIGHTSAIL_USER }}
-          PORT: 5001
+          PORT: 5000
           CONTAINER_NAME: XYVIN_ERP_BACKEND
           ENV_FILE_PATH: /home/ubuntu/xyvin-erp/.env/.env.production
 
