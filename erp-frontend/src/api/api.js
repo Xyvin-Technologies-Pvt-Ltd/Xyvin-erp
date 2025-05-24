@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // baseURL: 'http://localhost:3001/api/v1',
-  baseURL: 'https://erp-backend-189792861103.us-central1.run.app/api/v1',
+  baseURL: 'http://localhost:8080/api/v1',
+  // baseURL: 'https://erp-backend-189792861103.us-central1.run.app/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000, // Increased timeout to 30 seconds
   retryDelay: 1000, // Wait 1 second between retries

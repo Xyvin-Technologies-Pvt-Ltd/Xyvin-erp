@@ -84,8 +84,8 @@ const Profile = () => {
       if (picturePath.startsWith("http")) {
         setProfilePicUrl(picturePath);
       } else {
-        const cleanPath = picturePath.replace(/^\/+/, "");
-        setProfilePicUrl(`${import.meta.env.VITE_API_URL}/public/${cleanPath}`);
+        const cleanPath = picturePath.replace(/^\/+/, ""); // Remove leading slashes
+        setProfilePicUrl(`${import.meta.env.VITE_API_URL}/${cleanPath}`); // Append directly to VITE_API_URL
       }
     } else {
       setProfilePicUrl("/assets/images/default-avatar.png");
@@ -240,13 +240,13 @@ const Profile = () => {
       // Log the entire response for debugging
       console.log("Full response:", response);
       console.log("Response data:", response.data);
-      console.log("Employee data:", response.data?.data?.employee);
+      console.log("Employee data:", response.data?.employee);
 
-      if (!response.data?.data?.employee) {
+      if (!response.data?.employee) {
         throw new Error("No employee data received");
       }
 
-      const updatedUser = response.data.data.employee;
+      const updatedUser = response.data?.employee;
       updateUser(updatedUser);
       setCurrentUser(updatedUser);
 
@@ -254,12 +254,27 @@ const Profile = () => {
         throw new Error("No profile picture URL received");
       }
 
-      const cleanPath = updatedUser.profilePicture.replace(/^\/+/, "");
-      const fullUrl = `${import.meta.env.VITE_API_URL}/${cleanPath}`;
+      const picturePath = updatedUser.profilePicture;
+    if (picturePath) {
+      let newProfilePicUrl;
+      if (picturePath.startsWith("http")) {
+        newProfilePicUrl = picturePath;
+      } else {
+        const cleanPath = picturePath.replace(/^\/+/, "");
+        newProfilePicUrl = `${import.meta.env.VITE_API_URL}/${cleanPath}`;
+      }
+      console.log("Setting Profile Picture URL:", newProfilePicUrl);
+      setProfilePicUrl(newProfilePicUrl);
+    } else {
+      console.warn("No profile picture path returned, using default avatar");
+      setProfilePicUrl("/assets/images/default-avatar.png");
+      toast.warn("Profile picture uploaded, but no URL returned. Using default avatar.");
+    }
 
-      console.log("Setting profile URL:", fullUrl);
-      setProfilePicUrl(fullUrl);
-      toast.success("Profile picture updated successfully");
+    toast.success("Profile picture updated successfully");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     } catch (error) {
       console.error("Error updating profile picture:", error);
       toast.error(error.message || "Failed to update profile picture");

@@ -48,6 +48,16 @@ export const updateCurrentEmployee = async (data) => {
     return response.data;
 };
 
+export const updateProfilePicture = async (formData) => {
+  const response = await api.post(`hrm/employees/me/profile-picture`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  return response.data;
+};
+
 // Departments
 export const getDepartments = async () => {
     const response = await api.get('hrm/departments');

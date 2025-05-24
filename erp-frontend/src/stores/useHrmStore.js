@@ -200,10 +200,18 @@ const useHrmStore = create(
       // Update current employee profile
       updateProfile: async (data) => {
         try {
-          const response = await hrmService.updateCurrentEmployee(data);
+          console.log('updateProfile called with data:', data);
+          const isFormData = data instanceof FormData;
+          console.log('Is FormData:', isFormData);
+
+          const response = isFormData
+            ? await hrmService.updateProfilePicture(data)
+            : await hrmService.updateCurrentEmployee(data);
+
+          console.log('updateProfile response:', response);
           return response;
         } catch (error) {
-          console.error('Error updating profile:', error);
+          console.error('Error updating profile:', error.response?.data || error);
           throw error;
         }
       },
