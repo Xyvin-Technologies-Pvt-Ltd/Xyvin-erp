@@ -36,26 +36,26 @@ const seedPositions = async () => {
            
 
             // Human Resources Department Positions
-            {
-                title: 'HR Manager',
-                code: 'POS001',
-                department: departmentMap['Human Resources'],
-                description: 'Manages HR operations and personnel matters',
-                responsibilities: [
-                    'Oversee recruitment and hiring processes',
-                    'Manage employee relations and benefits',
-                    'Develop HR policies and procedures'
-                ],
-                requirements: [
-                    'Bachelor\'s degree in HR or related field',
-                    '5+ years of HR experience',
-                    'Knowledge of labor laws and regulations'
-                ],
-                employmentType: 'Full-time',
-                level: 3,
-                maxPositions: 1,
-                isActive: true
-            },
+            // {
+            //     title: 'HR Manager',
+            //     code: 'POS001',
+            //     department: departmentMap['Human Resources'],
+            //     description: 'Manages HR operations and personnel matters',
+            //     responsibilities: [
+            //         'Oversee recruitment and hiring processes',
+            //         'Manage employee relations and benefits',
+            //         'Develop HR policies and procedures'
+            //     ],
+            //     requirements: [
+            //         'Bachelor\'s degree in HR or related field',
+            //         '5+ years of HR experience',
+            //         'Knowledge of labor laws and regulations'
+            //     ],
+            //     employmentType: 'Full-time',
+            //     level: 3,
+            //     maxPositions: 1,
+            //     isActive: true
+            // },
 
            
         ];
