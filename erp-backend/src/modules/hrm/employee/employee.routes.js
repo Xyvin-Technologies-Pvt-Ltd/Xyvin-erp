@@ -16,7 +16,7 @@ const {
 const { protect, authorize } = require('../../../middleware/authMiddleware');
 
 router.use(protect);
-router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager'));
+// router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager'));
 
 // Get next employee ID - Move this route to the top
 router.get('/next-id',  getNextEmployeeId);
