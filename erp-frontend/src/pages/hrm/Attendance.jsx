@@ -835,6 +835,7 @@ const Attendance = () => {
           </div>
 
           {/* Pagination */}
+           {page.length > 0 && (
           <div className="flex justify-center gap-2 mt-4">
             <button
               onClick={() => previousPage()}
@@ -858,6 +859,7 @@ const Attendance = () => {
               <ChevronRightIcon className="h-5 w-5" />
             </button>
           </div>
+           )}
         </div>
       </div>
 
