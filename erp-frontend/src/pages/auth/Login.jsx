@@ -110,39 +110,42 @@ const Login = () => {
             </div>
 
             {/* Password Field */}
-            <div className="relative">
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiLock className="h-5 w-5 text-gray-400" />
+            <div>
+              <div className="relative">
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiLock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters",
+                    },
+                  })}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  className={`appearance-none rounded-lg relative block w-full pl-10 pr-10 px-3 py-2 border ${
+                    errors.password ? "border-red-300" : "border-gray-300"
+                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
+                  placeholder="Password"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <FiEye className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </div>
-              <input
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
-                id="password"
-                type={showPassword ? "text" : "password"}
-                className={`appearance-none rounded-lg relative block w-full pl-10 pr-10 px-3 py-2 border ${
-                  errors.password ? "border-red-300" : "border-gray-300"
-                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
-                placeholder="Password"
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <FiEyeOff className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <FiEye className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.password.message}
