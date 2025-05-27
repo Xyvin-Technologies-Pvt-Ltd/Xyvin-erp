@@ -41,7 +41,8 @@ async function startServer() {
 
     // Add CORS middleware with proper configuration
     app.use(cors({
-      origin: ['http://localhost:5173', 'http://localhost:8080', 'https://api-erp.xyvin.com/api/v1'],
+      // origin: ['http://localhost:5173', 'http://localhost:8080', 'https://api-erp.xyvin.com/api/v1'],
+      origin: '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true
