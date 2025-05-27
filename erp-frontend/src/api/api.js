@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   // baseURL: 'http://localhost:8080/api/v1',
-  baseURL: 'api-erp.xyvin.com/api/v1',
+  // baseURL: 'api-erp.xyvin.com/api/v1',
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000, // Increased timeout to 30 seconds
   retryDelay: 1000, // Wait 1 second between retries
