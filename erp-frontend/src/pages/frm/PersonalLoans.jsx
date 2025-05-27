@@ -8,7 +8,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import {
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -120,9 +120,9 @@ const PersonalLoanList = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -247,7 +247,7 @@ const PersonalLoanList = () => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="rounded-sm bg-blue-100 p-3">
-                  <CurrencyDollarIcon
+                  <CurrencyRupeeIcon
                     className="h-6 w-6 text-blue-600"
                     aria-hidden="true"
                   />

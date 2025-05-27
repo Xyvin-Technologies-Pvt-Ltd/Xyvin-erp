@@ -105,11 +105,11 @@ const getUniqueAssigneesCount = (project) => {
 
   const getClientName = (clientId) => {
     if (!clientId) return 'N/A';
+    // Handle both string ID and ObjectId formats
+    const normalizedClientId = clientId?.$oid || clientId;
     const client = clients.find(c => 
-      c._id === clientId || 
-      c.id === clientId || 
-      c._id === clientId?.$oid || 
-      c.id === clientId?.$oid
+      (c._id?.$oid || c._id) === normalizedClientId || 
+      (c.id?.$oid || c.id) === normalizedClientId
     );
     return client ? client.name : 'N/A';
   };

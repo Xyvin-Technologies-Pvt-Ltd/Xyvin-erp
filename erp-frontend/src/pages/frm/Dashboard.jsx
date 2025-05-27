@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
 import {
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
   BanknotesIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
@@ -96,9 +96,9 @@ const FRMDashboard = () => {
   }, []);
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount || 0);
   };
 
@@ -121,7 +121,7 @@ const FRMDashboard = () => {
             <CardTitle className="text-sm font-medium">
               Total Expenses
             </CardTitle>
-            <CurrencyDollarIcon className="h-4 w-4 text-gray-500" />
+            <CurrencyRupeeIcon className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

@@ -68,14 +68,28 @@ const useProjectStore = create((set, get) => ({
       console.log('New project created:', newProject);
 
       if (newProject) {
+        // Format the new project data consistently
+        const formattedProject = {
+          ...newProject,
+          id: newProject._id || newProject.id,
+          _id: newProject._id || newProject.id,
+          client: newProject.client?.$oid || newProject.client?._id || newProject.client?.id || newProject.client || newProject.clientId,
+          team: (newProject.team || newProject.assignedEmployees || []).map(member =>
+            typeof member === 'object' ? (member.$oid || member._id || member.id) : member
+          ),
+          status: (newProject.status || 'planning').toLowerCase()
+        };
+
         set((state) => {
-          const updatedProjects = [...state.projects, newProject];
+          const updatedProjects = [...state.projects, formattedProject];
           console.log('Updated projects list:', updatedProjects);
           return {
             projects: updatedProjects,
             loading: false
           };
         });
+
+        return formattedProject;
       }
 
       return newProject;
@@ -193,4 +207,4 @@ const useProjectStore = create((set, get) => ({
   }
 }));
 
-export { useProjectStore }; 
+export { useProjectStore };

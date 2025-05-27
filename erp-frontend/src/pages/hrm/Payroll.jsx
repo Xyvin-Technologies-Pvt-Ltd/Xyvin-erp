@@ -8,7 +8,7 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   UserGroupIcon,
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
   ExclamationCircleIcon,
   PaperAirplaneIcon,
   ClockIcon,
@@ -295,7 +295,7 @@ const Payroll = () => {
           isIncrease={stats.changes.employees.startsWith("+")}
         />
         <SummaryCard
-          icon={CurrencyDollarIcon}
+          icon={CurrencyRupeeIcon}
           title="Total Paid"
           value={stats.totalPaid}
           change={stats.changes.paid}

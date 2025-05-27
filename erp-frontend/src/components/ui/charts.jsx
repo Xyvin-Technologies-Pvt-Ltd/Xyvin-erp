@@ -32,7 +32,7 @@ export function LineChart({ data, categories, colors, height = 400, yAxisWidth =
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) => `₹${value}`}
         />
         <Tooltip />
         <Legend />
@@ -83,7 +83,7 @@ export function BarChart({ data, categories, colors, height = 400, yAxisWidth = 
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) => `₹${value}`}
         />
         <Tooltip />
         <Legend />
@@ -124,4 +124,4 @@ export function PieChart({ data, colors, height = 400 }) {
       </RePieChart>
     </ResponsiveContainer>
   );
-} 
+}

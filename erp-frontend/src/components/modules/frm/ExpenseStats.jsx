@@ -1,10 +1,10 @@
-import { CurrencyDollarIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { CurrencyRupeeIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 const ExpenseStats = ({ stats }) => {
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount || 0);
@@ -15,7 +15,7 @@ const ExpenseStats = ({ stats }) => {
       title: 'Total Expenses',
       value: formatCurrency(stats.totalAmount),
       description: `${stats.totalCount || 0} total expenses`,
-      icon: CurrencyDollarIcon,
+      icon: CurrencyRupeeIcon,
       color: 'bg-blue-500'
     },
     {
@@ -63,4 +63,4 @@ const ExpenseStats = ({ stats }) => {
   );
 };
 
-export default ExpenseStats; 
+export default ExpenseStats;

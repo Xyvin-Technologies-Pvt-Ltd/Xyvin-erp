@@ -8,7 +8,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import {
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
   DocumentTextIcon,
   ClockIcon,
   CheckCircleIcon,
@@ -101,9 +101,9 @@ const OfficeLoanList = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -227,7 +227,7 @@ const OfficeLoanList = () => {
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                    <CurrencyDollarIcon
+                    <CurrencyRupeeIcon
                       className="h-6 w-6 text-blue-600"
                       aria-hidden="true"
                     />
@@ -239,9 +239,9 @@ const OfficeLoanList = () => {
                       Total Loan Amount
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {new Intl.NumberFormat("en-US", {
+                      {new Intl.NumberFormat("en-IN", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "INR",
                       }).format(stats.totalAmount || 0)}
                     </dd>
                   </dl>
@@ -298,9 +298,9 @@ const OfficeLoanList = () => {
                       Total Outstanding
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {new Intl.NumberFormat("en-US", {
+                      {new Intl.NumberFormat("en-IN", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "INR",
                       }).format(stats.totalRemaining || 0)}
                     </dd>
                   </dl>

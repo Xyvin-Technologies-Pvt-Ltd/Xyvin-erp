@@ -18,7 +18,7 @@ import {
   DocumentTextIcon,
   UserGroupIcon,
   FolderIcon,
-  CurrencyDollarIcon,
+  CurrencyRupeeIcon,
   CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import useAuthStore from "@/stores/auth.store";
@@ -28,7 +28,7 @@ const frmNavigation = {
   icon: BanknotesIcon,
   children: [
     { name: "Dashboard", href: "/frm/dashboard", icon: ChartBarIcon },
-    { name: "Expenses", href: "/frm/expenses", icon: CurrencyDollarIcon },
+    { name: "Expenses", href: "/frm/expenses", icon: CurrencyRupeeIcon },
     {
       name: "Personal Loans",
       href: "/frm/personal-loans",
