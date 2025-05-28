@@ -14,6 +14,7 @@ const { logger } = require("./middleware/logger");
 const { registerErrorHandlers } = require("./config/registerErrorHandlers");
 const cors = require('cors');
 const express = require('express');
+const websocketService = require('./utils/websocket');
 
 /**
  * Initialize and start the server
@@ -76,9 +77,19 @@ async function startServer() {
       // Run database seeds in development mode
       runDatabaseSeeds(NODE_ENV);
     });
+  
+    websocketService.init(server);
 
     // Setup graceful shutdown
     setupGracefulShutdown(server);
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (err) => {
+      logger.error(`Error: ${err.message}`);
+      // Close server & exit process
+      server.close(() => process.exit(1));
+    });
+
 
     return server;
   } catch (error) {

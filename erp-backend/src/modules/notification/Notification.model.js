@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Employee',  // Changed from 'User' to 'Employee'
     required: true
   },
   title: {
@@ -25,7 +25,7 @@ const notificationSchema = new mongoose.Schema({
   },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'Employee'  // Changed from 'User' to 'Employee'
   },
   createdAt: {
     type: Date,
