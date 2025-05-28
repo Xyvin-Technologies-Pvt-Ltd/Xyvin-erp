@@ -14,17 +14,39 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { Moon, Sun } from "lucide-react";
 
-import { toast } from "react-hot-toast";
+// Mock stores for demo
+const useHrmStore = () => ({
+  getMyAttendance: async () => ({ data: { attendance: [] } }),
+  getMyLeave: async () => ({ data: { leaves: [] } }),
+  getMyPayroll: async () => ({ data: { payroll: [] } }),
+});
 
-import useHrmStore from "@/stores/useHrmStore";
-import useAuthStore from "@/stores/auth.store";
+const useAuthStore = () => ({
+  user: { name: "John Doe", email: "john@example.com" }
+});
 
-const COLORS = ["#22C55E", "#EAB308", "#EF4444"]; // Green for Present, Yellow for Late, Red for Absent
+const toast = {
+  error: (message) => console.error(message)
+};
+
+const COLORS = {
+  light: ["#22C55E", "#EAB308", "#EF4444"], // Green, Yellow, Red
+  dark: ["#10B981", "#F59E0B", "#F87171"]   // Darker variants for dark theme
+};
 
 function EmployeeDashboard() {
   const { getMyAttendance, getMyLeave, getMyPayroll } = useHrmStore();
   const { user } = useAuthStore();
+  
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('darkMode') === 'true' || 
+             window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
 
   const [attendanceStats, setAttendanceStats] = useState({
     present: 0,
@@ -45,6 +67,21 @@ function EmployeeDashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkMode', darkMode.toString());
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -69,8 +106,6 @@ function EmployeeDashboard() {
 
       const response = await getMyAttendance(startDate, endDate);
 
-      console.log("Attendance response:", response); // Debug log
-
       if (response?.data?.attendance) {
         const attendance = response.data.attendance;
         const presentDays = attendance.filter(
@@ -82,7 +117,7 @@ function EmployeeDashboard() {
         const absentDays = attendance.filter(
           (a) => a.status.toLowerCase() === "absent"
         ).length;
-        const workingDays = attendance.length || 22; // Default to 22 working days if length is 0
+        const workingDays = attendance.length || 22;
 
         setAttendanceStats({
           present: presentDays,
@@ -91,17 +126,9 @@ function EmployeeDashboard() {
           total: workingDays,
           percentage: Math.round((presentDays / workingDays) * 100) || 0,
         });
-
-        console.log("Processed attendance stats:", {
-          present: presentDays,
-          absent: absentDays,
-          late: lateDays,
-          total: workingDays,
-        }); // Debug log
       }
     } catch (error) {
       console.error("Error fetching attendance stats:", error);
-      // Set default values if API fails
       setAttendanceStats({
         present: 18,
         absent: 2,
@@ -146,10 +173,7 @@ function EmployeeDashboard() {
 
   const fetchRecentPayslips = async () => {
     try {
-      // First try to get data from the API
       const response = await getMyPayroll();
-      console.log("Payroll API Response:", response);
-
       let payrollData = [];
 
       if (response?.data?.payroll && Array.isArray(response.data.payroll)) {
@@ -159,13 +183,11 @@ function EmployeeDashboard() {
       }
 
       if (payrollData.length === 0) {
-        console.log("No payroll data found, using default values");
         const defaultData = generateDefaultPayslips();
         setRecentPayslips(defaultData);
         return;
       }
 
-      // Sort by date and get last 6 months
       const sortedPayroll = payrollData
         .sort(
           (a, b) => new Date(a.period || a.date) - new Date(b.period || b.date)
@@ -180,7 +202,6 @@ function EmployeeDashboard() {
           parseFloat(payroll.deductions || payroll.totalDeductions) || 0,
       }));
 
-      console.log("Formatted Payslips:", formattedPayslips);
       setRecentPayslips(formattedPayslips);
     } catch (error) {
       console.error("Error fetching payslips:", error);
@@ -196,9 +217,9 @@ function EmployeeDashboard() {
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const randomVariation = Math.random() * 2000 - 1000; // Random variation between -1000 and +1000
+      const randomVariation = Math.random() * 2000 - 1000;
       const netSalary = Math.round(baseAmount + randomVariation);
-      const grossSalary = Math.round(netSalary * 1.3); // Gross is 30% more than net
+      const grossSalary = Math.round(netSalary * 1.3);
       const deductions = grossSalary - netSalary;
 
       months.push({
@@ -209,53 +230,106 @@ function EmployeeDashboard() {
       });
     }
 
-    console.log("Generated Default Payslips:", months);
     return months;
   };
 
   const renderStatisticCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card className="p-4">
-        <h3 className="text-sm font-medium text-gray-500">Attendance Rate</h3>
-        <p className="mt-2 text-3xl font-semibold text-primary-600">
+      <Card className={`p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
+          : 'bg-white border-gray-200 hover:bg-gray-50'
+      }`}>
+        <h3 className={`text-sm font-medium ${
+          darkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          Attendance Rate
+        </h3>
+        <p className={`mt-2 text-3xl font-semibold ${
+          darkMode ? 'text-emerald-400' : 'text-emerald-600'
+        }`}>
           {attendanceStats.percentage}%
         </p>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className={`mt-1 text-sm ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           {attendanceStats.present} days present
         </p>
       </Card>
-      <Card className="p-4">
-        <h3 className="text-sm font-medium text-gray-500">Leave Balance</h3>
-        <p className="mt-2 text-3xl font-semibold text-primary-600">
+      
+      <Card className={`p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
+          : 'bg-white border-gray-200 hover:bg-gray-50'
+      }`}>
+        <h3 className={`text-sm font-medium ${
+          darkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          Leave Balance
+        </h3>
+        <p className={`mt-2 text-3xl font-semibold ${
+          darkMode ? 'text-blue-400' : 'text-blue-600'
+        }`}>
           {leaveStats.annual.total - leaveStats.annual.used}
         </p>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className={`mt-1 text-sm ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
           Annual leave days remaining
         </p>
       </Card>
-      <Card className="p-4">
-        <h3 className="text-sm font-medium text-gray-500">Late Arrivals</h3>
-        <p className="mt-2 text-3xl font-semibold text-primary-600">
+      
+      <Card className={`p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
+          : 'bg-white border-gray-200 hover:bg-gray-50'
+      }`}>
+        <h3 className={`text-sm font-medium ${
+          darkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          Late Arrivals
+        </h3>
+        <p className={`mt-2 text-3xl font-semibold ${
+          darkMode ? 'text-amber-400' : 'text-amber-600'
+        }`}>
           {attendanceStats.late}
         </p>
-        <p className="mt-1 text-sm text-gray-600">Days this month</p>
+        <p className={`mt-1 text-sm ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
+          Days this month
+        </p>
       </Card>
-      <Card className="p-4">
-        <h3 className="text-sm font-medium text-gray-500">Sick Leave</h3>
-        <p className="mt-2 text-3xl font-semibold text-primary-600">
+      
+      <Card className={`p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
+          : 'bg-white border-gray-200 hover:bg-gray-50'
+      }`}>
+        <h3 className={`text-sm font-medium ${
+          darkMode ? 'text-gray-400' : 'text-gray-500'
+        }`}>
+          Sick Leave
+        </h3>
+        <p className={`mt-2 text-3xl font-semibold ${
+          darkMode ? 'text-purple-400' : 'text-purple-600'
+        }`}>
           {leaveStats.sick.total - leaveStats.sick.used}
         </p>
-        <p className="mt-1 text-sm text-gray-600">Days remaining</p>
+        <p className={`mt-1 text-sm ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
+          Days remaining
+        </p>
       </Card>
     </div>
   );
 
   const renderAttendanceChart = () => {
-    // Ensure we have non-zero values for the pie chart
     const present = attendanceStats.present || 0;
     const late = attendanceStats.late || 0;
     const absent = attendanceStats.absent || 0;
-    const total = present + late + absent || 1; // Prevent division by zero
+    const total = present + late + absent || 1;
 
     const data = [
       {
@@ -275,11 +349,17 @@ function EmployeeDashboard() {
       },
     ];
 
-    console.log("Attendance chart data:", data); // Debug log
+    const colors = darkMode ? COLORS.dark : COLORS.light;
 
     return (
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">
+      <Card className={`p-6 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <h2 className={`text-lg font-semibold mb-4 ${
+          darkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>
           Monthly Attendance Distribution
         </h2>
         <div className="h-80">
@@ -290,7 +370,9 @@ function EmployeeDashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percentage }) => `${name} ${percentage}%`}
+                label={({ name, percentage }) => 
+                  `${name} ${percentage}%`
+                }
                 outerRadius={120}
                 fill="#8884d8"
                 dataKey="value"
@@ -298,8 +380,9 @@ function EmployeeDashboard() {
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                    strokeWidth={1}
+                    fill={colors[index % colors.length]}
+                    strokeWidth={darkMode ? 2 : 1}
+                    stroke={darkMode ? '#374151' : '#ffffff'}
                   />
                 ))}
               </Pie>
@@ -308,11 +391,21 @@ function EmployeeDashboard() {
                   `${value} days (${Math.round((value / total) * 100)}%)`,
                   name,
                 ]}
+                contentStyle={{
+                  backgroundColor: darkMode ? '#1F2937' : '#ffffff',
+                  border: `1px solid ${darkMode ? '#374151' : '#E5E7EB'}`,
+                  borderRadius: '6px',
+                  color: darkMode ? '#F3F4F6' : '#111827',
+                }}
               />
               <Legend
                 formatter={(value, entry) => {
                   const { payload } = entry;
-                  return `${value} - ${payload.value} days (${payload.percentage}%)`;
+                  return (
+                    <span style={{ color: darkMode ? '#F3F4F6' : '#111827' }}>
+                      {value} - {payload.value} days ({payload.percentage}%)
+                    </span>
+                  );
                 }}
               />
             </PieChart>
@@ -330,26 +423,53 @@ function EmployeeDashboard() {
     }));
 
     return (
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Leave Balance Overview</h2>
+      <Card className={`p-6 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <h2 className={`text-lg font-semibold mb-4 ${
+          darkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>
+          Leave Balance Overview
+        </h2>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#E5E7EB'}
+              />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: darkMode ? '#9CA3AF' : '#6B7280' }}
+                tickLine={{ stroke: darkMode ? '#4B5563' : '#6B7280' }}
+              />
+              <YAxis 
+                tick={{ fill: darkMode ? '#9CA3AF' : '#6B7280' }}
+                tickLine={{ stroke: darkMode ? '#4B5563' : '#6B7280' }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: darkMode ? '#1F2937' : '#ffffff',
+                  border: `1px solid ${darkMode ? '#374151' : '#E5E7EB'}`,
+                  borderRadius: '6px',
+                  color: darkMode ? '#F3F4F6' : '#111827',
+                }}
+              />
               <Legend />
               <Line
                 type="monotone"
                 dataKey="used"
-                stroke="#8884d8"
+                stroke={darkMode ? '#60A5FA' : '#3B82F6'}
+                strokeWidth={2}
                 name="Used Days"
               />
               <Line
                 type="monotone"
                 dataKey="remaining"
-                stroke="#82ca9d"
+                stroke={darkMode ? '#34D399' : '#10B981'}
+                strokeWidth={2}
                 name="Remaining Days"
               />
             </LineChart>
@@ -364,32 +484,43 @@ function EmployeeDashboard() {
       recentPayslips.length > 0 ? recentPayslips : generateDefaultPayslips();
 
     return (
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Salary Trend</h2>
+      <Card className={`p-6 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <h2 className={`text-lg font-semibold mb-4 ${
+          darkMode ? 'text-gray-100' : 'text-gray-900'
+        }`}>
+          Salary Trend
+        </h2>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#E5E7EB'} 
+              />
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#6B7280" }}
-                tickLine={{ stroke: "#6B7280" }}
+                tick={{ fill: darkMode ? '#9CA3AF' : '#6B7280' }}
+                tickLine={{ stroke: darkMode ? '#4B5563' : '#6B7280' }}
               />
               <YAxis
-                tick={{ fill: "#6B7280" }}
-                tickLine={{ stroke: "#6B7280" }}
+                tick={{ fill: darkMode ? '#9CA3AF' : '#6B7280' }}
+                tickLine={{ stroke: darkMode ? '#4B5563' : '#6B7280' }}
                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
               />
               <Tooltip
                 formatter={(value) => [`₹${value.toLocaleString()}`, "Amount"]}
                 contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "6px",
-                  padding: "8px",
+                  backgroundColor: darkMode ? '#1F2937' : '#ffffff',
+                  border: `1px solid ${darkMode ? '#374151' : '#E5E7EB'}`,
+                  borderRadius: '6px',
+                  color: darkMode ? '#F3F4F6' : '#111827',
                 }}
               />
               <Legend
@@ -397,33 +528,34 @@ function EmployeeDashboard() {
                 height={36}
                 wrapperStyle={{
                   paddingBottom: "20px",
+                  color: darkMode ? '#F3F4F6' : '#111827',
                 }}
               />
               <Line
                 type="monotone"
                 dataKey="grossSalary"
                 name="Gross Salary"
-                stroke="#22C55E"
+                stroke={darkMode ? '#34D399' : '#22C55E'}
                 strokeWidth={2}
-                dot={{ fill: "#22C55E", strokeWidth: 2 }}
+                dot={{ fill: darkMode ? '#34D399' : '#22C55E', strokeWidth: 2 }}
                 activeDot={{ r: 8 }}
               />
               <Line
                 type="monotone"
                 dataKey="amount"
                 name="Net Salary"
-                stroke="#3B82F6"
+                stroke={darkMode ? '#60A5FA' : '#3B82F6'}
                 strokeWidth={2}
-                dot={{ fill: "#3B82F6", strokeWidth: 2 }}
+                dot={{ fill: darkMode ? '#60A5FA' : '#3B82F6', strokeWidth: 2 }}
                 activeDot={{ r: 8 }}
               />
               <Line
                 type="monotone"
                 dataKey="deductions"
                 name="Deductions"
-                stroke="#EF4444"
+                stroke={darkMode ? '#F87171' : '#EF4444'}
                 strokeWidth={2}
-                dot={{ fill: "#EF4444", strokeWidth: 2 }}
+                dot={{ fill: darkMode ? '#F87171' : '#EF4444', strokeWidth: 2 }}
                 activeDot={{ r: 8 }}
               />
             </LineChart>
@@ -435,26 +567,46 @@ function EmployeeDashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className={`min-h-screen transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${
+              darkMode ? 'border-blue-400' : 'border-blue-600'
+            }`}></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+    <div className={`min-h-screen transition-colors duration-200 ${
+      darkMode ? 'bg-gray-900' : 'bg-gray-50'
+    }`}>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header with Theme Toggle */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className={`text-2xl font-bold ${
+            darkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>
+            Dashboard Overview
+          </h1>
+        
+        </div>
 
-      {renderStatisticCards()}
+        {renderStatisticCards()}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {renderAttendanceChart()}
-        {renderLeaveBalanceChart()}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {renderAttendanceChart()}
+          {renderLeaveBalanceChart()}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          {renderPayrollChart()}
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 gap-6">{renderPayrollChart()}</div>
     </div>
   );
 }

@@ -13,8 +13,12 @@ const DashboardLayout = () => {
       <div className="lg:pl-72">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
-        <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8">
+        <main 
+        // className="py-10"
+        >
+          <div 
+          // className="px-4 sm:px-6 lg:px-8"
+          >
             <Outlet />
           </div>
         </main>

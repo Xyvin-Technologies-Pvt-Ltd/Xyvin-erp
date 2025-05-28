@@ -2,6 +2,7 @@ const Leave = require('./leave.model');
 const Employee = require('../employee/employee.model');
 const Attendance = require('../attendance/attendance.model');
 const catchAsync = require('../../../utils/catchAsync');
+const { createError } = require('../../../utils/errors');
 
 // Get all leave requests
 exports.getAllLeaves = catchAsync(async (req, res) => {
