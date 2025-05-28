@@ -7,7 +7,8 @@ const {
   updateLeave, 
   deleteLeave, 
   reviewLeave,
-  getLeaveStats 
+  getLeaveStats, 
+  getAllMyLeaves
 } = require('./leave.controller');
 const { protect } = require('../../../middleware/authMiddleware');
 
@@ -24,7 +25,7 @@ router.route('/')
 
 // Route for getting current user's leaves
 router.route('/my')
-  .get(getAllLeaves);
+  .get(getAllMyLeaves);
 
 router.route('/:id')
   .get(getLeave)
