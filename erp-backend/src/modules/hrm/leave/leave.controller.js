@@ -4,6 +4,7 @@ const Attendance = require('../attendance/attendance.model');
 const catchAsync = require('../../../utils/catchAsync');
 const websocketService = require('../../../utils/websocket');
 const Notification = require('../../notification/Notification.model');
+const { createError } = require('../../../utils/errors');
 
 
 // Get all leave requests
