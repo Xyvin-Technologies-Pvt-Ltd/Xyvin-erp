@@ -2,6 +2,7 @@
 const Event = require('./event.model');
 const Notification = require('../../notification/Notification.model');
 const websocketService = require('../../../utils/websocket');
+const Employee = require('../../hrm/employee/employee.model');
 
 
 // @desc    Create a new event
@@ -20,6 +21,43 @@ const createEvent = async (req, res, next) => {
     });
 
     const createdEvent = await event.save();
+
+
+    //notification
+    const allEmployees = await Employee.find({}, '_id');
+
+
+    for (const emp of allEmployees) {
+      const notification = await Notification.create({
+        user: emp._id,
+        sender: req.user._id,
+        title: `New Event: ${title}`,
+        message: `An event "${title}" has been scheduled.`,
+        type: 'EVENT_CREATED'
+      });
+
+      // Send real-time notification
+      websocketService.sendToUser(emp._id.toString(), {
+        type: 'notification',
+        data: {
+          _id: notification._id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          read: notification.read,
+          createdAt: notification.createdAt,
+          sender: {
+            _id: req.user._id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            email: req.user.email
+          },
+          eventId: event._id
+        }
+      });
+
+    }
+
     
     res.status(201).json({
       success: true,
@@ -112,6 +150,38 @@ const updateEvent = async (req, res, next) => {
       },
       { new: true, runValidators: true }
     ).populate('createdBy', 'name email');
+
+    const allEmployees = await Employee.find({}, '_id');
+
+    for (const emp of allEmployees) {
+      const notification = await Notification.create({
+        user: emp._id,
+        sender: req.user._id,
+        title: `Event Updated: ${updatedEvent.title}`,
+        message: `The event "${updatedEvent.title}" has been updated.`,
+        type: 'EVENT_UPDATED'
+      });
+
+      // Real-time WebSocket push
+      websocketService.sendToUser(emp._id.toString(), {
+        type: 'notification',
+        data: {
+          _id: notification._id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          read: notification.read,
+          createdAt: notification.createdAt,
+          sender: {
+            _id: req.user._id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            email: req.user.email
+          },
+          eventId: updatedEvent._id
+        }
+      });
+    }
 
     res.status(200).json({
       success: true,
