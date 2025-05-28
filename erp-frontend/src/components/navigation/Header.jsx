@@ -8,6 +8,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/stores/auth.store";
 import { useEffect, useState } from "react";
+import NotificationDropdown from "@/pages/notification/NotificationDropdown";
 
 const userNavigation = [
   { name: "Your Profile", href: "/employee/profile" },
@@ -56,13 +57,14 @@ const Header = ({ onMenuClick }) => {
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         <div className="flex flex-1" />
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <button
+          <NotificationDropdown />
+          {/* <button
             type="button"
             className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
           >
             <span className="sr-only">View notifications</span>
             <BellIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+          </button> */}
 
           {/* Separator */}
           <div

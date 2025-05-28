@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import useNotificationStore from '../hooks/useNotificationsStore';
-import { NOTIFICATION_TYPES } from '../config/constants';
+import useNotificationStore from '../../stores/useNotificationsStore';
 import { FaTrash, FaCheck, FaCheckDouble } from 'react-icons/fa'; 
 
 const Notification = () => {
@@ -73,6 +72,8 @@ const Notification = () => {
     return true;
   });
 
+  console.log(filteredNotifications,"notification filters");
+
   if (isLoading) {
     return (
       <div className='flex justify-center items-center min-h-screen'>
@@ -83,17 +84,17 @@ const Notification = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case NOTIFICATION_TYPES.TASK_ASSIGNED:
+      case 'task_assigned':
         return '📋';
-      case NOTIFICATION_TYPES.TASK_UPDATED:
+      case 'task_updated':
         return '✏️';
-      case NOTIFICATION_TYPES.TASK_COMPLETED:
+      case 'task_completed':
         return '✅';
-      case NOTIFICATION_TYPES.DOCUMENT_REQUIRED:
+      case 'document_required':
         return '📄';
-      case NOTIFICATION_TYPES.COMPLIANCE_DUE:
+      case 'compliance_due':
         return '⚠️';
-      case NOTIFICATION_TYPES.INVOICE_REQUIRED:
+      case 'invoice_required':
         return '💰';
       default:
         return '📢';

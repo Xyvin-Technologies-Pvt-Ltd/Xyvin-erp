@@ -1,7 +1,7 @@
-const Notification = require('../models/Notification');
-const { ErrorResponse } = require('../../middleware/errorHandler');
+const Notification = require('../notification/Notification.model');
+// const { ErrorResponse } = require('../../middleware/errorHandler');
 // const { logger } = require('../utils/logger');
-const { wss } = require('../server');
+const { wss } = require('../../../server');
 const WebSocket = require('ws');
 
 /**
@@ -87,13 +87,27 @@ exports.getNotification = async (req, res, next) => {
                 select: 'name email avatar'
             });
 
+        // if (!notification) {
+        //     return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+        // }
         if (!notification) {
-            return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+            console.error(`Notification not found with id of ${req.params.id}`);
+            return res.status(404).json({
+                success: false,
+                error: 'Notification not found'
+            });
         }
 
         // Check if notification belongs to user
+        // if (notification.user.toString() !== req.user.id) {
+        //     return next(new ErrorResponse(`Not authorized to access this notification`, 403));
+        // }
         if (notification.user.toString() !== req.user.id) {
-            return next(new ErrorResponse(`Not authorized to access this notification`, 403));
+            console.error(`User ${req.user.id} not authorized to access notification ${req.params.id}`);
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to access this notification'
+            });
         }
 
         res.status(200).json({
@@ -148,13 +162,28 @@ exports.markAsRead = async (req, res, next) => {
     try {
         let notification = await Notification.findById(req.params.id);
 
+        // if (!notification) {
+        //     return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+        // }
+
         if (!notification) {
-            return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+            console.error(`Notification not found with id of ${req.params.id}`);
+            return res.status(404).json({
+                success: false,
+                error: 'Notification not found'
+            });
         }
 
         // Check if notification belongs to user
+        // if (notification.user.toString() !== req.user.id) {
+        //     return next(new ErrorResponse(`Not authorized to update this notification`, 403));
+        // }
         if (notification.user.toString() !== req.user.id) {
-            return next(new ErrorResponse(`Not authorized to update this notification`, 403));
+            console.error(`User ${req.user.id} not authorized to update notification ${req.params.id}`);
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to update this notification'
+            });
         }
 
         notification = await Notification.findByIdAndUpdate(
@@ -205,13 +234,28 @@ exports.deleteNotification = async (req, res, next) => {
     try {
         const notification = await Notification.findById(req.params.id);
 
+        // if (!notification) {
+        //     return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+        // }
+
+        // // Check if notification belongs to user
+        // if (notification.user.toString() !== req.user.id) {
+        //     return next(new ErrorResponse(`Not authorized to delete this notification`, 403));
+        // } 
         if (!notification) {
-            return next(new ErrorResponse(`Notification not found with id of ${req.params.id}`, 404));
+            console.error(`Notification not found with id of ${req.params.id}`);
+            return res.status(404).json({
+                success: false,
+                error: 'Notification not found'
+            });
         }
 
-        // Check if notification belongs to user
         if (notification.user.toString() !== req.user.id) {
-            return next(new ErrorResponse(`Not authorized to delete this notification`, 403));
+            console.error(`User ${req.user.id} not authorized to delete notification ${req.params.id}`);
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized to delete this notification'
+            });
         }
 
         await notification.deleteOne();

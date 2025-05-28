@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { BellIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
-import useNotificationStore from "../hooks/useNotificationsStore"
+import useNotificationStore from "../../stores/useNotificationsStore"
 import { Link } from 'react-router-dom';
 
 const NotificationDropdown = () => {
@@ -30,6 +30,7 @@ const NotificationDropdown = () => {
       return 'Unknown date';
     }
   };
+  // console.log(notifications,"notification");
 
   return (
     <Menu as="div" className="relative inline-block text-left">

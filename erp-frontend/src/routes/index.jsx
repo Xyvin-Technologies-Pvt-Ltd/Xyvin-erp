@@ -48,6 +48,7 @@ import PersonalLoans from "@/pages/frm/PersonalLoans";
 import OfficeLoans from "@/pages/frm/OfficeLoans";
 import Profits from "@/pages/frm/Profits";
 import Events from "@/pages/hrm/Events";
+import Notification from "@/pages/notification/Notification";
 
 const router = createBrowserRouter(
   [
@@ -65,6 +66,10 @@ const router = createBrowserRouter(
             {
               path: "dashboard",
               element: <Dashboard />,
+            },
+            {
+              path: "notifications",              
+              element: <Notification />,
             },
             // Employee Routes
             {

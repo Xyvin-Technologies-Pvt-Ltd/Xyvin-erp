@@ -7,9 +7,9 @@ const {
     markAsRead,
     markAllAsRead,
     deleteNotification
-} = require('../controllers/notification.controller');
+} = require('../notification/notification.controller');
 
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize } = require('../../middleware/authMiddleware');
 
 /**
  * @swagger

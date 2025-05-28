@@ -2,6 +2,8 @@ const Task = require('./task.model');
 const Employee = require('../../hrm/employee/employee.model');
 const Project = require('../project.model');
 const createError = require('http-errors');
+const Notification = require('../../notification/Notification.model');
+const websocketService = require('../../../utils/websocket');
 
 // Create a new task
 exports.createTask = async (req, res) => {
@@ -46,6 +48,47 @@ exports.createTask = async (req, res) => {
       { path: 'assignee', select: 'firstName lastName email' },
       { path: 'createdBy', select: 'firstName lastName' }
     ]);
+
+    // Notification
+    if (task.assignee) {
+      try {
+        const notification = await Notification.create({
+          user: task.assignee,
+          sender: req.user._id,
+          title: `New Task Assigned: ${task.title}`,
+          message: `You have been assigned a new task "${task.title}"`,
+          type: 'TASK_ASSIGNED'
+        });
+
+        console.log(`Notification created for employee ${task.assignee} for task ${task._id}`);
+
+        // Send WebSocket notification
+        websocketService.sendToUser(task.assignee.toString(), {
+          type: 'notification',
+          data: {
+            _id: notification._id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            read: notification.read,
+            createdAt: notification.createdAt,
+            sender: {
+              _id: req.user._id,
+              firstName: req.user.firstName,
+              lastName: req.user.lastName,
+              email: req.user.email
+            },
+            taskId: task._id,
+            priority: task.priority,
+            status: task.status,
+            projectId: task.project
+          }
+        });
+      } catch (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+        // Continue with task creation even if notification fails
+      }
+    }
 
     res.status(201).json(task);
   } catch (error) {
@@ -137,6 +180,7 @@ exports.updateTaskStatus = async (req, res) => {
       throw createError(404, 'Task not found');
     }
 
+    // const oldStatus = task.status;
     task.status = status;
     await task.save();
 
@@ -144,6 +188,59 @@ exports.updateTaskStatus = async (req, res) => {
       { path: 'assignee', select: 'firstName lastName email' },
       { path: 'createdBy', select: 'firstName lastName' }
     ]);
+
+    // Notification
+    // const sendTaskNotification = async (userId, sender, task, notificationType, title, message) => {
+    //   try {
+    //     const notification = await Notification.create({
+    //       user: userId,
+    //       sender: sender._id, // Changed from sender.id to sender._id
+    //       title,
+    //       message,
+    //       type: notificationType
+    //     });
+
+    //     websocketService.sendToUser(userId.toString(), {
+    //       type: 'notification',
+    //       data: {
+    //         _id: notification._id,
+    //         title: notification.title,
+    //         message: notification.message,
+    //         type: notification.type,
+    //         read: notification.read,
+    //         createdAt: notification.createdAt,
+    //         sender: {
+    //           _id: sender._id,
+    //           firstName: sender.firstName,
+    //           lastName: sender.lastName,
+    //           email: sender.email
+    //         },
+    //         taskId: task._id,
+    //         priority: task.priority,
+    //         status: task.status,
+    //         projectId: task.project?._id || task.project
+
+    //       }
+    //     });
+    //   } catch (error) {
+    //     console.error(`Notification error: ${error.message}`); // Changed from logger to console
+    //   }
+    // };
+
+    // if (task.assignee) {
+    //   const userId = task.assignee._id || task.assignee;
+    //   const changedFields = ['status'];
+    //   const changesSummary = `status: ${oldStatus} → ${status}`;
+
+    //   await sendTaskNotification(
+    //     userId,
+    //     req.user,
+    //     task,
+    //     'TASK_UPDATED',
+    //     `Task Updated: ${task.title}`,
+    //     `The task "${task.title}" has been updated. Changes: ${changesSummary}`
+    //   );
+    // }
 
     res.json(task);
   } catch (error) {
@@ -334,4 +431,4 @@ exports.deleteTask = async (req, res) => {
   } catch (error) {
     res.status(error.status || 500).json({ message: error.message });
   }
-}; 
+};
