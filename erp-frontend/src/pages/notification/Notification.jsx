@@ -82,24 +82,25 @@ const Notification = () => {
     );
   }
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'task_assigned':
-        return '📋';
-      case 'task_updated':
-        return '✏️';
-      case 'task_completed':
-        return '✅';
-      case 'document_required':
-        return '📄';
-      case 'compliance_due':
-        return '⚠️';
-      case 'invoice_required':
-        return '💰';
-      default:
-        return '📢';
-    }
-  };
+ const getNotificationIcon = (type) => {
+  switch (type) {
+    case 'TASK_ASSIGNED':
+      return '📋';
+    case 'TASK_UPDATED':
+      return '✏️';
+    case 'LEAVE_REQUEST':
+      return '📝';
+    case 'LEAVE_REVIEW':
+      return '🔍';
+    case 'EVENT_CREATED':
+      return '📅';
+    case 'EVENT_UPDATED':
+      return '🗓️';
+    default:
+      return '📢';
+  }
+};
+
 
   const handleDelete = async (id) => {
     try {

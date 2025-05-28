@@ -67,10 +67,6 @@ const router = createBrowserRouter(
               path: "dashboard",
               element: <Dashboard />,
             },
-            {
-              path: "notifications",              
-              element: <Notification />,
-            },
             // Employee Routes
             {
               path: "employee",
@@ -212,6 +208,10 @@ const router = createBrowserRouter(
     {
       path: "login",
       element: <Login />,
+    },
+    {
+      path: "notifications",              
+      element: <Notification />,
     },
   ],
   {

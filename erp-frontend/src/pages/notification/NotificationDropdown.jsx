@@ -96,7 +96,11 @@ const NotificationDropdown = () => {
                             >
                               {notification.title}
                             </Link>
-                            <p className="text-sm text-gray-600 mt-0.5">{notification.message}</p>
+                            <p className="text-sm text-gray-600 mt-0.5">
+                              {notification.type === 'TASK_UPDATED' 
+                                ? notification.message.split('Changes:')[0] + '...'
+                                : notification.message}
+                            </p>
                             <p className="text-xs text-gray-400 mt-1">
                               {formatDate(notification.createdAt)}
                             </p>

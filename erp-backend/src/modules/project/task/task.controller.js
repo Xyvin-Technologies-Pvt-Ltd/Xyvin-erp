@@ -180,7 +180,6 @@ exports.updateTaskStatus = async (req, res) => {
       throw createError(404, 'Task not found');
     }
 
-    // const oldStatus = task.status;
     task.status = status;
     await task.save();
 
@@ -188,59 +187,6 @@ exports.updateTaskStatus = async (req, res) => {
       { path: 'assignee', select: 'firstName lastName email' },
       { path: 'createdBy', select: 'firstName lastName' }
     ]);
-
-    // Notification
-    // const sendTaskNotification = async (userId, sender, task, notificationType, title, message) => {
-    //   try {
-    //     const notification = await Notification.create({
-    //       user: userId,
-    //       sender: sender._id, // Changed from sender.id to sender._id
-    //       title,
-    //       message,
-    //       type: notificationType
-    //     });
-
-    //     websocketService.sendToUser(userId.toString(), {
-    //       type: 'notification',
-    //       data: {
-    //         _id: notification._id,
-    //         title: notification.title,
-    //         message: notification.message,
-    //         type: notification.type,
-    //         read: notification.read,
-    //         createdAt: notification.createdAt,
-    //         sender: {
-    //           _id: sender._id,
-    //           firstName: sender.firstName,
-    //           lastName: sender.lastName,
-    //           email: sender.email
-    //         },
-    //         taskId: task._id,
-    //         priority: task.priority,
-    //         status: task.status,
-    //         projectId: task.project?._id || task.project
-
-    //       }
-    //     });
-    //   } catch (error) {
-    //     console.error(`Notification error: ${error.message}`); // Changed from logger to console
-    //   }
-    // };
-
-    // if (task.assignee) {
-    //   const userId = task.assignee._id || task.assignee;
-    //   const changedFields = ['status'];
-    //   const changesSummary = `status: ${oldStatus} → ${status}`;
-
-    //   await sendTaskNotification(
-    //     userId,
-    //     req.user,
-    //     task,
-    //     'TASK_UPDATED',
-    //     `Task Updated: ${task.title}`,
-    //     `The task "${task.title}" has been updated. Changes: ${changesSummary}`
-    //   );
-    // }
 
     res.json(task);
   } catch (error) {
@@ -397,6 +343,71 @@ exports.updateTask = async (req, res) => {
       project: updatedTask.project || null
     };
 
+    // Notification logic after task update
+    const isReassigned = updates.assignee !== undefined && updates.assignee !== oldTask.assignee?.toString();
+    const updatedFields = Object.keys(updates).filter(key => key !== 'assignee');
+
+    
+    if (transformedTask.assignee) {
+      try {
+        let title = '';
+        let message = '';
+        let type = '';
+
+        if (isReassigned) {
+          title = `Task Reassigned: ${transformedTask.title}`;
+          message = `You have been assigned to the task "${transformedTask.title}"`;
+          type = 'TASK_REASSIGNED';
+        } else if (updatedFields.length > 0) {
+          const changesSummary = updatedFields.map(field => {
+            const oldVal = oldTask[field] ? oldTask[field].toString() : 'none';
+            const newVal = updates[field] ? updates[field].toString() : 'none';
+            return `${field}: ${oldVal} → ${newVal}`;
+          }).join(', ');
+
+          title = `Task Updated: ${transformedTask.title}`;
+          message = `The task "${transformedTask.title}" has been updated. Changes: ${changesSummary}`;
+          type = 'TASK_UPDATED';
+        }
+
+        if (type) {
+          const notification = await Notification.create({
+            user: transformedTask.assignee._id,
+            sender: req.user._id,
+            title,
+            message,
+            type
+          });
+
+          websocketService.sendToUser(transformedTask.assignee._id.toString(), {
+            type: 'notification',
+            data: {
+              _id: notification._id,
+              title: notification.title,
+              message: notification.message,
+              type: notification.type,
+              read: notification.read,
+              createdAt: notification.createdAt,
+              sender: {
+                _id: req.user._id,
+                firstName: req.user.firstName,
+                lastName: req.user.lastName,
+                email: req.user.email
+              },
+              taskId: transformedTask._id,
+              taskNumber: transformedTask.taskNumber,
+              priority: transformedTask.priority,
+              status: transformedTask.status,
+              projectId: transformedTask.project?._id
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error('Notification error:', notificationError.message);
+      }
+    }
+
+    
     console.log('Updated task:', JSON.stringify(transformedTask, null, 2));
     res.json(transformedTask);
   } catch (error) {
