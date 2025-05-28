@@ -13,34 +13,34 @@ const useProjectStore = create((set, get) => ({
     try {
       const response = await projectService.getProjects();
       console.log('fetchProjects raw response:', response);
-
+  
       // Ensure we have an array of projects
       const projectsArray = Array.isArray(response) ? response :
         Array.isArray(response?.projects) ? response.projects :
           Array.isArray(response?.data) ? response.data : [];
-
-      // Format each project
+  
+      // Format each project - PRESERVE the populated data from backend
       const formattedProjects = projectsArray.map(project => ({
         ...project,
         id: project._id || project.id,
         _id: project._id || project.id,
-        // Handle client reference which can be either an ObjectId string or an object with $oid
-        client: project.client?.$oid || project.client?._id || project.client?.id || project.client || project.clientId,
-        // Handle team members array which contains ObjectId references
-        team: (project.team || project.assignedEmployees || []).map(member =>
-          typeof member === 'object' ? (member.$oid || member._id || member.id) : member
-        ),
+        // Keep the populated client object (don't convert back to ID)
+        client: project.client,
+        // Keep the populated team array (don't convert back to IDs)
+        team: project.team || project.assignedEmployees || [],
+        // Keep the populated tasks with assignee data
+        tasks: project.tasks || [],
         // Keep status as-is, just ensure lowercase
         status: (project.status || 'planning').toLowerCase()
       }));
-
+  
       console.log('Setting formatted projects in store:', formattedProjects);
-
+  
       set({
         projects: formattedProjects,
         loading: false
       });
-
+  
       return formattedProjects;
     } catch (error) {
       console.error('Error in fetchProjects:', error);

@@ -14,7 +14,7 @@ export const projectService = {
 
   getProjects: async () => {
     try {
-      const response = await api.get(`${BASE_URL}?populate=client,team,tasks,tasks.assignee,tasks.comments,tasks.attachments&sort=-createdAt`);
+      const response = await api.get(`${BASE_URL}`);
       const data = response.data;
       return Array.isArray(data) ? data : data.projects || [];
     } catch (error) {

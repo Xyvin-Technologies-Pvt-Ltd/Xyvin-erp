@@ -502,6 +502,7 @@ const ExpenseList = () => {
           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
         >
           <option value="">All Categories</option>
+          <option value="salary">Salary</option>
           <option value="travel">Travel</option>
           <option value="office">Office Supplies</option>
           <option value="meals">Meals & Entertainment</option>

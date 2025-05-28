@@ -37,7 +37,7 @@ const expenseSchema = Joi.object({
 
   category: Joi.string()
     .required()
-    .valid('travel', 'office', 'meals', 'utilities', 'other')
+    .valid('salary', 'travel', 'office', 'meals', 'utilities', 'other')
     .messages({
       'any.only': 'Category must be one of: travel, office, meals, utilities, other',
       'any.required': 'Category is required'

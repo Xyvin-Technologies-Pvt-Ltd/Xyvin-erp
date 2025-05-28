@@ -178,7 +178,7 @@ const getExpenses = async (req, res, next) => {
     if (status && ['Pending', 'Approved', 'Rejected'].includes(status)) {
       filter.status = status;
     }
-    if (category && ['travel', 'office', 'meals', 'utilities', 'other'].includes(category)) {
+    if (category && ['salary', 'travel', 'office', 'meals', 'utilities', 'other'].includes(category)) {
       filter.category = category;
     }
     if (startDate || endDate) {
@@ -267,7 +267,7 @@ const updateExpense = async (req, res) => {
       description: Joi.string(),
       amount: Joi.number().min(0),
       date: Joi.date(),
-      category: Joi.string().valid('travel', 'office', 'meals', 'utilities', 'other'),
+      category: Joi.string().valid('salary', 'travel', 'office', 'meals', 'utilities', 'other'),
       notes: Joi.string().allow(''),
       status: Joi.string().valid('Pending', 'Approved', 'Rejected'),
       documents: Joi.array()
