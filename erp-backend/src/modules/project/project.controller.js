@@ -257,7 +257,17 @@ exports.getProjects = async (req, res) => {
       console.log(`First project (${firstProject._id}) tasks:`, 
         firstProject.tasks ? `${firstProject.tasks.length} tasks found` : 'No tasks array');
     }
-
+projects.forEach(project => {
+      console.log(`Project ${project.name} (${project._id}):`, {
+        client: project.client ? {
+          id: project.client._id,
+          name: project.client.name,
+          company: project.client.company, // Check if company exists
+          email: project.client.email,
+          phone: project.client.phone
+        } : 'No client'
+      });
+    });
     // Transform team data for all projects
     const transformedProjects = projects.map(project => {
       // Create project object with transformed data
