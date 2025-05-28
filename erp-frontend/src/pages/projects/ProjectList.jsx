@@ -18,6 +18,7 @@ const ProjectList = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null); 
+const [tableData, setTableData] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -25,6 +26,19 @@ const ProjectList = () => {
         const [projectsData, clientsData] = await Promise.all([fetchProjects(), fetchClients()]);
         console.log('Loaded projects:', projectsData);
         console.log('Loaded clients:', clientsData);
+        console.log('Projects with client details:', projectsData.map(p => ({
+        id: p._id,
+        name: p.name,
+        client: p.client,
+        company: p.client?.company // Check if company exists
+      })));
+      console.log('Current projects state:', projects.map(p => ({
+        id: p._id,
+        name: p.name,
+        client: p.client,
+        company: p.client?.company
+      })));
+      setTableData(projectsData);
       } catch (error) {
         console.error('Error loading data:', error);
         toast.error('Failed to load data');
@@ -126,6 +140,13 @@ const getUniqueAssigneesCount = (project) => {
           >
             {value}
           </button>
+        )
+      },
+      {
+        Header: 'Company',
+        accessor: row => row.client?.company || 'N/A',
+        Cell: ({ value }) => (
+          <span className="text-sm text-gray-500">{value || 'N/A'}</span>
         )
       },
       {

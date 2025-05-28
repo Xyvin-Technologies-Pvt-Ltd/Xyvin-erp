@@ -213,7 +213,9 @@ const createEmployee = catchAsync(async (req, res) => {
     salary,
     joiningDate,
     address,
-    emergencyContact
+    emergencyContact,
+    bankDetails,
+    documents
   } = req.body;
 
   // Check if email already exists
@@ -248,6 +250,8 @@ const createEmployee = catchAsync(async (req, res) => {
     joiningDate,
     address,
     emergencyContact,
+    bankDetails,
+    documents,
     createdBy: req.user.id
   });
   console.log(Department);
@@ -284,7 +288,8 @@ const updateEmployee = catchAsync(async (req, res) => {
     address,
     emergencyContact,
     bankDetails,
-    personalInfo
+    personalInfo,
+    documents,
   } = req.body;
 
   // Check if employee exists
@@ -338,7 +343,7 @@ const updateEmployee = catchAsync(async (req, res) => {
   if (emergencyContact) updateData.emergencyContact = emergencyContact;
   if (bankDetails) updateData.bankDetails = bankDetails;
   if (personalInfo) updateData.personalInfo = personalInfo;
-
+  if (documents) updateData.documents = documents;
   const updatedEmployee = await Employee.findByIdAndUpdate(
     req.params.id,
     updateData,

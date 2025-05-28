@@ -203,8 +203,18 @@ exports.getProjects = async (req, res) => {
           ]
         };
       } else {
-        // Regular employees can only see projects they are part of
-        query = { team: userId };
+        // For regular employees, we need to find projects where they have assigned tasks
+        // First, find all tasks assigned to this user
+        const userTasks = await Task.find({ assignee: userId }).select('project');
+        const projectIds = userTasks.map(task => task.project);
+        
+        // Include projects where user is in team OR has assigned tasks
+        query = {
+          $or: [
+            { team: userId },
+            { _id: { $in: projectIds } }
+          ]
+        };
       }
     }
 
@@ -235,32 +245,18 @@ exports.getProjects = async (req, res) => {
             select: 'firstName lastName email position'
           },
           {
-            path: 'comments',
-            populate: {
-              path: 'author',
-              select: 'firstName lastName email'
-            }
-          },
-          {
-            path: 'attachments'
+            path: 'comments.author',
+            select: 'firstName lastName email'
           }
         ]
       })
       .sort({ createdAt: -1 });
 
-    // Debug: Log number of projects found
+    // Rest of your transformation code remains the same...
     console.log(`Found ${projects.length} projects`);
     
-    // Debug: Check tasks on first project if available
-    if (projects.length > 0) {
-      const firstProject = projects[0];
-      console.log(`First project (${firstProject._id}) tasks:`, 
-        firstProject.tasks ? `${firstProject.tasks.length} tasks found` : 'No tasks array');
-    }
-
     // Transform team data for all projects
     const transformedProjects = projects.map(project => {
-      // Create project object with transformed data
       const transformedProject = {
         ...project.toObject(),
         team: project.team.map(member => ({
@@ -285,56 +281,37 @@ exports.getProjects = async (req, res) => {
         }))
       };
       
-      // Handle tasks separately with proper null/undefined checks
       if (project.tasks && Array.isArray(project.tasks)) {
         transformedProject.tasks = project.tasks.map(task => {
           if (!task) return null;
           
-          const transformedTask = {
+          return {
             ...task.toObject(),
             assignee: task.assignee ? {
-              id: task.assignee._id,
+              id: task.assignee._id.toString(),
+              _id: task.assignee._id,
               name: `${task.assignee.firstName} ${task.assignee.lastName}`,
               firstName: task.assignee.firstName,
               lastName: task.assignee.lastName,
               email: task.assignee.email,
               position: task.assignee.position
-            } : null
+            } : null,
+            comments: (task.comments || []).map(comment => ({
+              ...comment.toObject(),
+              author: comment.author ? {
+                id: comment.author._id,
+                name: `${comment.author.firstName} ${comment.author.lastName}`,
+                email: comment.author.email
+              } : null
+            }))
           };
-          
-          // Handle comments separately with proper null/undefined checks
-          if (task.comments && Array.isArray(task.comments)) {
-            transformedTask.comments = task.comments.map(comment => {
-              if (!comment) return null;
-              
-              return {
-                ...comment,
-                author: comment.author ? {
-                  id: comment.author._id,
-                  name: `${comment.author.firstName} ${comment.author.lastName}`,
-                  email: comment.author.email
-                } : null
-              };
-            }).filter(Boolean); // Remove any null comments
-          } else {
-            transformedTask.comments = [];
-          }
-          
-          return transformedTask;
-        }).filter(Boolean); // Remove any null tasks
+        }).filter(Boolean);
       } else {
         transformedProject.tasks = [];
       }
       
       return transformedProject;
     });
-
-    // Debug: Log transformed project details
-    console.log(`Transformed ${transformedProjects.length} projects`);
-    if (transformedProjects.length > 0) {
-      const firstTransformed = transformedProjects[0];
-      console.log(`First transformed project tasks: ${firstTransformed.tasks ? firstTransformed.tasks.length : 'none'}`);
-    }
 
     res.json(transformedProjects);
   } catch (error) {

@@ -50,13 +50,20 @@ const MyProjects = () => {
 
   useEffect(() => {
     if (projects.length > 0 && currentUser) {
+      console.log('Debug - First project structure:', projects[0]);
+      console.log('Debug - First project tasks:', projects[0].tasks);
+      if (projects[0].tasks && projects[0].tasks.length > 0) {
+        console.log('Debug - First task assignee:', projects[0].tasks[0].assignee);
+      }
+      
       // Filter projects where the current user is assigned to at least one task
       const myProjects = projects.filter(project => {
-        // Check if project has tasks array and if any task has current user as assignee
         return project.tasks && project.tasks.some(task => 
           task.assignee && task.assignee.id === currentUser.id
         );
       });
+      
+      console.log('Debug - Filtered my projects:', myProjects.length);
       setFilteredProjects(myProjects);
     } else {
       setFilteredProjects([]);
