@@ -2,6 +2,9 @@ const Leave = require('./leave.model');
 const Employee = require('../employee/employee.model');
 const Attendance = require('../attendance/attendance.model');
 const catchAsync = require('../../../utils/catchAsync');
+const websocketService = require('../../../utils/websocket');
+const Notification = require('../../notification/Notification.model');
+
 
 // Get all leave requests
 exports.getAllLeaves = catchAsync(async (req, res) => {
@@ -184,6 +187,46 @@ exports.createLeave = catchAsync(async (req, res) => {
     status,
     createdBy: req.user.id
   });
+
+
+
+  try {
+    const hrUsers = await Employee.find({ role: { $regex: 'hr', $options: 'i' } }).select('_id firstName lastName');
+    console.log('HR Users:', hrUsers);
+
+    for (const hr of hrUsers) {
+      const notification = await Notification.create({
+        user: hr._id,
+        sender: req.user._id,
+        title: `New Leave Request Submitted`,
+        message: `A leave request has been submitted by ${req.user.firstName} ${req.user.lastName}`,
+        type: 'LEAVE_REQUEST'
+      });
+
+      // Send real-time notification (if WebSocket connected)
+      websocketService.sendToUser(hr._id.toString(), {
+        type: 'notification',
+        data: {
+          _id: notification._id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          read: notification.read,
+          createdAt: notification.createdAt,
+          sender: {
+            _id: req.user._id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            email: req.user.email
+          },
+          leaveId: leave._id
+        }
+      });
+    }
+  } catch (notificationError) {
+    console.error('Failed to send HR leave request notification:', notificationError);
+  }
+
 
   res.status(201).json({
     status: 'success',
@@ -460,11 +503,29 @@ exports.reviewLeave = catchAsync(async (req, res) => {
       }
     }
 
+
+     await Notification.create({
+      user: leave.employee._id,
+      sender: req.user._id,
+      title: `Leave ${normalizedStatus}`,
+      message: `Your leave request from ${leave.startDate.toDateString()} to ${leave.endDate.toDateString()} has been ${normalizedStatus.toLowerCase()} by Admin.`,
+      type: 'LEAVE_REVIEW', 
+      isRead: false
+    });
+
+    console.log('Notification sent to employee about leave review');
+
     // Save the updated leave
     await leave.save();
     console.log('Leave request updated successfully');
 
     console.log('=== LEAVE REVIEW PROCESS COMPLETED ===\n');
+
+
+    // Send Notification to the employee
+   
+
+   
 
     res.status(200).json({
       status: 'success',

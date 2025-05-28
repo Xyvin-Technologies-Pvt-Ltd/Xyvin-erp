@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['TASK_ASSIGNED', 'TASK_UPDATED', 'TASK_COMPLETED', 'DOCUMENT_REQUIRED', 'COMPLIANCE_DUE', 'INVOICE_REQUIRED']
+    enum: ['TASK_ASSIGNED', 'TASK_UPDATED', 'TASK_COMPLETED', 'LEAVE_REQUEST', 'LEAVE_REVIEW', 'INVOICE_REQUIRED']
   },
   read: {
     type: Boolean,

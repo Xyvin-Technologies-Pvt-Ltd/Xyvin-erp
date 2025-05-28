@@ -1,5 +1,8 @@
 // controllers/eventController.js
 const Event = require('./event.model');
+const Notification = require('../../notification/Notification.model');
+const websocketService = require('../../../utils/websocket');
+
 
 // @desc    Create a new event
 // @route   POST /api/hrm/events
