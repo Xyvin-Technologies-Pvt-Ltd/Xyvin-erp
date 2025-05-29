@@ -7,6 +7,7 @@ const Notification = require('../../notification/Notification.model');
 const { createError } = require('../../../utils/errors');
 
 
+
 // Get all leave requests
 exports.getAllLeaves = catchAsync(async (req, res) => {
   const { status, employeeId, departmentId, startDate, endDate , userId} = req.query;
