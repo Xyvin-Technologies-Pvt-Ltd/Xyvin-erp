@@ -111,7 +111,8 @@ const createPosition = catchAsync(async (req, res) => {
     responsibilities,
     requirements,
     maxPositions,
-    isActive
+    isActive,
+    employmentType
   } = req.body;
 
   // Generate the position code
@@ -125,7 +126,8 @@ const createPosition = catchAsync(async (req, res) => {
     responsibilities,
     requirements,
     maxPositions,
-    isActive
+    isActive,
+    employmentType
   });
 
   res.status(201).json({
@@ -145,6 +147,7 @@ const updatePosition = catchAsync(async (req, res) => {
     responsibilities,
     requirements,
     maxPositions,
+    employmentType,
     isActive
   } = req.body;
 
@@ -157,6 +160,7 @@ const updatePosition = catchAsync(async (req, res) => {
       responsibilities,
       requirements,
       maxPositions,
+      employmentType,
       isActive
     },
     { new: true, runValidators: true }
