@@ -27,30 +27,36 @@ import DeleteConfirmationModal from "../../components/common/DeleteConfirmationM
 
 const AttendanceTypeIcons = () => {
   const icons = [
-    { icon: SunIcon, label: "Present", color: "text-green-500" },
-    { icon: ClockIcon, label: "Late", color: "text-yellow-500" },
+    { icon: SunIcon, label: "Present", color: "text-emerald-500", bg: "bg-emerald-50" },
+    { icon: ClockIcon, label: "Late", color: "text-amber-500", bg: "bg-amber-50" },
     {
       icon: ArrowRightOnRectangleIcon,
       label: "Early-Leave",
       color: "text-orange-500",
+      bg: "bg-orange-50"
     },
-    { icon: CalendarDaysIcon, label: "Half-Day", color: "text-blue-500" },
-    { icon: PaperAirplaneIcon, label: "On-Leave", color: "text-purple-500" },
-    { icon: XMarkIcon, label: "Absent", color: "text-red-500" },
-    { icon: CalendarDaysIcon, label: "Holiday", color: "text-green-500" },
-    { icon: MoonIcon, label: "Day-Off", color: "text-gray-500" },
+    { icon: CalendarDaysIcon, label: "Half-Day", color: "text-blue-500", bg: "bg-blue-50" },
+    { icon: PaperAirplaneIcon, label: "On-Leave", color: "text-purple-500", bg: "bg-purple-50" },
+    { icon: XMarkIcon, label: "Absent", color: "text-red-500", bg: "bg-red-50" },
+    { icon: CalendarDaysIcon, label: "Holiday", color: "text-emerald-500", bg: "bg-emerald-50" },
+    { icon: MoonIcon, label: "Day-Off", color: "text-gray-500", bg: "bg-gray-50" },
   ];
 
   return (
-    <div className="mb-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <span className="font-medium text-gray-700">Note:</span>
-        {icons.map(({ icon: Icon, label, color }) => (
-          <div key={label} className="flex items-center space-x-2">
-            <Icon className={`h-5 w-5 ${color}`} />
-            <span className="text-sm text-gray-600">{label}</span>
-          </div>
-        ))}
+    <div className="mb-8">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center">
+          <ExclamationCircleIcon className="h-4 w-4 mr-2 text-blue-500" />
+          Status Legend
+        </h3>
+        <div className="flex flex-wrap items-center gap-4">
+          {icons.map(({ icon: Icon, label, color, bg }) => (
+            <div key={label} className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${bg} transition-all duration-200 hover:scale-105`}>
+              <Icon className={`h-4 w-4 ${color}`} />
+              <span className="text-sm font-medium text-gray-700">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -58,33 +64,40 @@ const AttendanceTypeIcons = () => {
 
 const SummaryCard = ({ icon: Icon, title, value, change, isIncrease }) => {
   return (
-    <div className="rounded-lg bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-105">
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+            <p className="text-3xl font-bold text-gray-900 tracking-tight">{value}</p>
+          </div>
+          <div
+            className={`rounded-2xl p-4 ${
+              isIncrease 
+                ? "bg-gradient-to-br from-emerald-50 to-emerald-100" 
+                : "bg-gradient-to-br from-red-50 to-red-100"
+            } transition-all duration-300 group-hover:scale-110`}
+          >
+            <Icon
+              className={`h-6 w-6 ${
+                isIncrease ? "text-emerald-600" : "text-red-600"
+              }`}
+            />
+          </div>
         </div>
-        <div
-          className={`rounded-full p-3 ${
-            isIncrease ? "bg-green-100" : "bg-red-100"
-          }`}
-        >
-          <Icon
-            className={`h-6 w-6 ${
-              isIncrease ? "text-green-600" : "text-red-600"
+        <div className="mt-4 flex items-center">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+              isIncrease 
+                ? "bg-emerald-100 text-emerald-800" 
+                : "bg-red-100 text-red-800"
             }`}
-          />
+          >
+            {change}
+          </span>
+          <span className="text-sm text-gray-500 ml-2">vs last month</span>
         </div>
-      </div>
-      <div className="mt-4">
-        <span
-          className={`text-sm font-medium ${
-            isIncrease ? "text-green-600" : "text-red-600"
-          }`}
-        >
-          {change}
-        </span>
-        <span className="text-sm text-gray-500"> vs last month</span>
       </div>
     </div>
   );
@@ -116,23 +129,23 @@ const getStatusIcon = (status) => {
 const getStatusColor = (status) => {
   switch (status) {
     case "Present":
-      return "bg-green-100 text-green-500";
+      return "bg-emerald-100 text-emerald-700 ring-emerald-200";
     case "Late":
-      return "bg-yellow-100 text-yellow-500";
+      return "bg-amber-100 text-amber-700 ring-amber-200";
     case "Early-Leave":
-      return "bg-orange-100 text-orange-500";
+      return "bg-orange-100 text-orange-700 ring-orange-200";
     case "Half-Day":
-      return "bg-blue-100 text-blue-500";
+      return "bg-blue-100 text-blue-700 ring-blue-200";
     case "On-Leave":
-      return "bg-purple-100 text-purple-500";
+      return "bg-purple-100 text-purple-700 ring-purple-200";
     case "Absent":
-      return "bg-red-100 text-red-500";
+      return "bg-red-100 text-red-700 ring-red-200";
     case "Holiday":
-      return "bg-pink-100 text-pink-500";
+      return "bg-pink-100 text-pink-700 ring-pink-200";
     case "Day-Off":
-      return "bg-gray-100 text-gray-500";
+      return "bg-gray-100 text-gray-700 ring-gray-200";
     default:
-      return "bg-gray-100 text-gray-500";
+      return "bg-gray-100 text-gray-700 ring-gray-200";
   }
 };
 
@@ -159,6 +172,53 @@ const formatTime = (dateObj, status, isHoliday) => {
     return null;
   }
 };
+const statConfigs = [
+  {
+    key: "totalEmployees",
+    title: "Total Employees",
+    icon: UserGroupIcon,
+  },
+  {
+    key: "present",
+    title: (monthYear) => `Present (${monthYear})`,
+    icon: CheckIcon,
+  },
+  {
+    key: "late",
+    title: (monthYear) => `Late (${monthYear})`,
+    icon: ClockIcon,
+  },
+  {
+    key: "absent",
+    title: (monthYear) => `Absent (${monthYear})`,
+    icon: XMarkIcon,
+  },
+  {
+    key: "halfDay",
+    title: (monthYear) => `Half-Day (${monthYear})`,
+    icon: CalendarDaysIcon,
+  },
+  {
+    key: "earlyLeave",
+    title: (monthYear) => `Early-Leave (${monthYear})`,
+    icon: ArrowRightOnRectangleIcon,
+  },
+  {
+    key: "onLeave",
+    title: (monthYear) => `On-Leave (${monthYear})`,
+    icon: PaperAirplaneIcon,
+  },
+  {
+    key: "holiday",
+    title: (monthYear) => `Holiday (${monthYear})`,
+    icon: CalendarDaysIcon,
+  },
+  {
+    key: "dayOff",
+    title: (monthYear) => `Day-Off (${monthYear})`,
+    icon: MoonIcon,
+  },
+];
 
 const Attendance = () => {
   const [selectedDate] = useState(new Date().toISOString().split("T")[0]);
@@ -192,7 +252,7 @@ const Attendance = () => {
 
   const [stats, setStats] = useState({
     totalEmployees: 0,
-    presentCount: 0,
+    present: 0,
     halfDay: 0,
     onLeave: 0,
     absent: 0,
@@ -245,67 +305,65 @@ const Attendance = () => {
   }, [currentDate]); // Run when currentDate changes
 
   // Load attendance stats
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const startDate = startOfMonth(currentDate);
-        const endDate = endOfMonth(currentDate);
+useEffect(() => {
+  const loadStats = async () => {
+    try {
+      const startDate = startOfMonth(currentDate);
+      const endDate = endOfMonth(currentDate);
 
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          console.error('Invalid date range');
-          toast.error('Invalid date range for statistics');
-          return;
-        }
-
-        const response = await getAttendanceStats({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        });
-
-        if (response?.data) {
-          const { stats: apiStats, totalEmployees, changes } = response.data;
-          
-          setStats({
-            totalEmployees: totalEmployees || 0,
-            presentCount: apiStats?.present || 0,
-            halfDay: apiStats?.halfDay || 0,
-            onLeave: apiStats?.onLeave || 0,
-            absent: apiStats?.absent || 0,
-            late: apiStats?.late || 0,
-            earlyLeave: apiStats?.earlyLeave || 0,
-            holiday: apiStats?.holiday || 0,
-            dayOff: apiStats?.dayOff || 0,
-            totalWorkHours: Number(apiStats?.totalWorkHours?.toFixed(2)) || 0,
-            changes: {
-              employees: changes?.employees || '0%',
-              present: changes?.present || '0%',
-              halfDay: changes?.halfDay || '0%',
-              onLeave: changes?.onLeave || '0%',
-              absent: changes?.absent || '0%',
-              late: changes?.late || '0%',
-              earlyLeave: changes?.earlyLeave || '0%',
-              holiday: changes?.holiday || '0%',
-              dayOff: changes?.dayOff || '0%',
-              totalWorkHours: changes?.totalWorkHours || '0%'
-            }
-          });
-
-          if (Array.isArray(apiStats?.records)) {
-            useHrmStore.setState({ 
-              attendance: apiStats.records,
-              attendanceStats: apiStats,
-              totalEmployees: totalEmployees
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error loading attendance stats:', error);
-        toast.error('Failed to load attendance statistics');
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.error("Invalid date range for stats");
+        toast.error("Invalid date range for statistics");
+        return;
       }
-    };
 
-    loadStats();
-  }, [currentDate, getAttendanceStats]);
+      const response = await getAttendanceStats({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      console.log("API response:", response);
+
+      // Handle both response.data.data and response.data
+      const data = response.data.data || response.data;
+      const { stats: apiStats, totalEmployees, changes } = data;
+
+      setStats({
+        totalEmployees: totalEmployees || 0,
+        present: apiStats?.present || 0,
+        halfDay: apiStats?.halfDay || 0,
+        onLeave: apiStats?.onLeave || 0,
+        absent: apiStats?.absent || 0,
+        late: apiStats?.late || 0,
+        earlyLeave: apiStats?.earlyLeave || 0,
+        holiday: apiStats?.holiday || 0,
+        dayOff: apiStats?.dayOff || 0,
+        totalWorkHours: Number(apiStats?.totalWorkHours?.toFixed(2)) || 0,
+        changes: {
+          employees: changes?.employees || "0%",
+          present: changes?.present || "0%",
+          halfDay: changes?.halfDay || "0%",
+          onLeave: changes?.onLeave || "0%",
+          absent: changes?.absent || "0%",
+          late: changes?.late || "0%",
+          earlyLeave: changes?.earlyLeave || "0%",
+          holiday: changes?.holiday || "0%",
+          dayOff: changes?.dayOff || "0%",
+          totalWorkHours: changes?.totalWorkHours || "0%",
+        },
+      });
+    } catch (error) {
+      console.error("Error loading attendance stats:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+      });
+      toast.error(error.response?.data?.message || "Failed to load attendance statistics");
+    }
+  };
+
+  loadStats();
+}, [currentDate, getAttendanceStats]);
 
   const handleCheckIn = async () => {
     try {
@@ -442,14 +500,21 @@ const Attendance = () => {
         accessor: (row) => `${row.employee.firstName} ${row.employee.lastName}`,
         Cell: ({ row }) => (
           <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0 h-12 w-12">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                {row.original.employee
+                  ? `${row.original.employee.firstName.charAt(0)}${row.original.employee.lastName.charAt(0)}`
+                  : "UN"}
+              </div>
+            </div>
             <div>
-            <p className="font-medium text-gray-900">
-          {row.original.employee
-            ? `${row.original.employee.firstName} ${row.original.employee.lastName}`
-            : "Unknown Employee"}
-        </p>
-              <p className="text-sm text-gray-500">
-                {row.original.employee.employeeId}
+              <p className="font-semibold text-gray-900">
+                {row.original.employee
+                  ? `${row.original.employee.firstName} ${row.original.employee.lastName}`
+                  : "Unknown Employee"}
+              </p>
+              <p className="text-sm text-gray-500 font-medium">
+                ID: {row.original.employee.employeeId}
               </p>
             </div>
           </div>
@@ -458,15 +523,39 @@ const Attendance = () => {
       {
         Header: "Department",
         accessor: "employee.department.name",
+        Cell: ({ value }) => (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+            {value}
+          </span>
+        ),
       },
       {
         Header: "Position",
         accessor: "employee.position.title",
+        Cell: ({ value }) => (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 ring-1 ring-purple-200">
+            {value}
+          </span>
+        ),
       },
       {
         Header: "Date",
         accessor: "date",
-        Cell: ({ value }) => new Date(value).toLocaleDateString(),
+        Cell: ({ value }) => (
+          <div className="text-sm">
+            <div className="font-semibold text-gray-900">
+              {new Date(value).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </div>
+            <div className="text-gray-500 text-xs">
+              {new Date(value).toLocaleDateString('en-US', { 
+                weekday: 'short' 
+              })}
+            </div>
+          </div>
+        ),
         sortType: "datetime",
       },
       {
@@ -480,27 +569,29 @@ const Attendance = () => {
           );
           if (row.original.status === "Holiday" || row.original.isHoliday) {
             return (
-              <div className="inline-flex items-center rounded-full bg-pink-100 px-2.5 py-0.5 text-xs font-medium text-pink-500">
-                <CalendarDaysIcon className="mr-1 h-4 w-4" />
-                {time}
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-pink-50 text-pink-700 ring-1 ring-pink-200">
+                <CalendarDaysIcon className="mr-2 h-4 w-4" />
+                Holiday
               </div>
             );
           }
           if (row.original.status === "On-Leave") {
             return (
-              <div className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-500">
-                <PaperAirplaneIcon className="mr-1 h-4 w-4" />
-                {time}
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
+                <PaperAirplaneIcon className="mr-2 h-4 w-4" />
+                On Leave
               </div>
             );
           }
           return (
             <div
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                !time ? "bg-yellow-100 text-yellow-500" : "text-gray-500"
+              className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold ${
+                !time 
+                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" 
+                  : "bg-gray-50 text-gray-700 ring-1 ring-gray-200"
               }`}
             >
-              {!time && <ClockIcon className="mr-1 h-4 w-4" />}
+              {!time && <ClockIcon className="mr-2 h-4 w-4" />}
               {time || "Not checked in"}
             </div>
           );
@@ -522,27 +613,29 @@ const Attendance = () => {
           );
           if (row.original.status === "Holiday" || row.original.isHoliday) {
             return (
-              <div className="inline-flex items-center rounded-full bg-pink-100 px-2.5 py-0.5 text-xs font-medium text-pink-500">
-                <CalendarDaysIcon className="mr-1 h-4 w-4" />
-                {time}
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-pink-50 text-pink-700 ring-1 ring-pink-200">
+                <CalendarDaysIcon className="mr-2 h-4 w-4" />
+                Holiday
               </div>
             );
           }
           if (row.original.status === "On-Leave") {
             return (
-              <div className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-500">
-                <PaperAirplaneIcon className="mr-1 h-4 w-4" />
-                {time}
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
+                <PaperAirplaneIcon className="mr-2 h-4 w-4" />
+                On Leave
               </div>
             );
           }
           return (
             <div
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                !time ? "bg-yellow-100 text-yellow-500" : "text-gray-500"
+              className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold ${
+                !time 
+                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200" 
+                  : "bg-gray-50 text-gray-700 ring-1 ring-gray-200"
               }`}
             >
-              {!time && <ClockIcon className="mr-1 h-4 w-4" />}
+              {!time && <ClockIcon className="mr-2 h-4 w-4" />}
               {time || "Not checked out"}
             </div>
           );
@@ -564,9 +657,9 @@ const Attendance = () => {
           const colorClass = getStatusColor(value);
           return (
             <div
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+              className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold ring-1 ${colorClass}`}
             >
-              <StatusIcon className="mr-1 h-4 w-4" aria-hidden="true" />
+              <StatusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{value}</span>
             </div>
           );
@@ -576,20 +669,20 @@ const Attendance = () => {
         Header: "Actions",
         id: "actions",
         Cell: ({ row }) => (
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => handleEdit(row.original)}
-              className="text-blue-600 hover:text-blue-900 transition-colors duration-200"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200 hover:scale-110"
               title="Edit Attendance"
             >
-              <PencilIcon className="h-5 w-5" />
+              <PencilIcon className="h-4 w-4" />
             </button>
             <button
               onClick={() => handleDelete(row.original)}
-              className="text-red-600 hover:text-red-900 transition-colors duration-200"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 hover:scale-110"
               title="Delete Attendance"
             >
-              <TrashIcon className="h-5 w-5" />
+              <TrashIcon className="h-4 w-4" />
             </button>
           </div>
         ),
@@ -597,7 +690,6 @@ const Attendance = () => {
     ],
     []
   );
-
   const data = useMemo(() => {
     return Array.isArray(attendance)
       ? attendance.filter((record) => record.employee != null)
@@ -637,22 +729,35 @@ const Attendance = () => {
 
   if (attendanceLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="spinner" />
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading attendance data...</p>
+        </div>
       </div>
     );
   }
 
   if (attendanceError) {
     return (
-      <div className="flex h-full items-center justify-center text-red-600">
-        {attendanceError}
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
+          <ExclamationCircleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 font-semibold text-lg">{attendanceError}</p>
+        </div>
       </div>
     );
   }
-
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8">
+      <div className="text-left py-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Attendance Management
+          </h1>
+          <p className="text-gray-600 text-lg">Track and manage employee attendance with ease</p>
+        </div>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
@@ -665,7 +770,7 @@ const Attendance = () => {
         <SummaryCard
           icon={CheckIcon}
           title={`Present (${formatMonthYear(currentDate)})`}
-          value={stats.presentCount}
+          value={stats.present}
           change={stats.changes.present}
           isIncrease={!stats.changes.present.startsWith('-')}
         />
@@ -954,6 +1059,7 @@ const Attendance = () => {
             : ""
         }
       />
+    </div>
     </div>
   );
 };

@@ -113,14 +113,16 @@ export const deletePosition = async (id) => {
 };
 
 // Attendance
-export const getAttendance = async () => {
-    const response = await api.get('hrm/attendance');
-    return response.data;
+export const getAttendance = async (params) => {
+  const response = await api.get("hrm/attendance", { params });
+  return response.data;
 };
 
-export const getAttendanceStats = async () => {
-    const response = await api.get('hrm/attendance/stats');
-    return response.data;
+export const getAttendanceStats= async ({ startDate, endDate }) => {
+  const response = await api.get('hrm/attendance/stats', {
+    params: { startDate, endDate },
+  });
+  return response.data;
 };
 
 export const getMyAttendance = async (params) => {

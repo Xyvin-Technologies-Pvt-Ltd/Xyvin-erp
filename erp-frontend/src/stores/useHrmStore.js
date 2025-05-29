@@ -465,7 +465,7 @@ const useHrmStore = create(
         try {
           const response = await hrmService.getAttendanceStats(params);
           console.log('Store getAttendanceStats response:', response);
-          return { stats: response.stats };
+          return response;
         } catch (error) {
           console.error('Store getAttendanceStats error:', error);
           throw error;
