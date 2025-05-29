@@ -10,24 +10,24 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import useHrmStore from "../stores/useHrmStore";
 
-// Enhanced dark theme color palette
-const darkColorPalette = {
-  primary: "bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700",
-  secondary: "bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600",
-  accent: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
-  completed: "bg-gradient-to-br from-slate-600 via-gray-600 to-zinc-700",
+// Enhanced light theme color palette
+const lightColorPalette = {
+  primary: "bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600",
+  secondary: "bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500",
+  accent: "bg-gradient-to-br from-pink-400 via-rose-500 to-red-500",
+  completed: "bg-gradient-to-br from-gray-400 via-slate-500 to-zinc-600",
   background: {
-    primary: "bg-slate-900",
-    secondary: "bg-slate-800",
-    card: "bg-slate-800/50",
-    hover: "hover:bg-slate-700/50",
+    primary: "bg-gray-50",
+    secondary: "bg-white",
+    card: "bg-white/80",
+    hover: "hover:bg-gray-50",
   },
   text: {
-    primary: "text-slate-100",
-    secondary: "text-slate-300",
-    muted: "text-slate-400",
+    primary: "text-gray-900",
+    secondary: "text-gray-700",
+    muted: "text-gray-500",
   },
-  border: "border-slate-700",
+  border: "border-gray-200",
   accent_colors: {
     upcoming: "bg-blue-500",
     ongoing: "bg-amber-500",
@@ -121,7 +121,7 @@ const Dashboard = () => {
       icon: UsersIcon,
       change: "+4.75%",
       changeType: "positive",
-      gradient: darkColorPalette.primary,
+      gradient: lightColorPalette.primary,
     },
     {
       name: "Upcoming Events",
@@ -129,7 +129,7 @@ const Dashboard = () => {
       icon: BuildingOfficeIcon,
       change: "0%",
       changeType: "neutral",
-      gradient: darkColorPalette.secondary,
+      gradient: lightColorPalette.secondary,
     },
     {
       name: "Ongoing Events",
@@ -137,7 +137,7 @@ const Dashboard = () => {
       icon: BriefcaseIcon,
       change: "+2.5%",
       changeType: "positive",
-      gradient: darkColorPalette.accent,
+      gradient: lightColorPalette.accent,
     },
     {
       name: "Completed Events",
@@ -145,7 +145,7 @@ const Dashboard = () => {
       icon: ClockIcon,
       change: "-3%",
       changeType: "negative",
-      gradient: darkColorPalette.completed,
+      gradient: lightColorPalette.completed,
     },
   ];
 
@@ -155,9 +155,9 @@ const Dashboard = () => {
 
   if (eventsLoading) {
     return (
-      <div className={`min-h-screen ${darkColorPalette.background.primary} flex items-center justify-center`}>
+      <div className={`min-h-screen ${lightColorPalette.background.primary} flex items-center justify-center`}>
         <motion.div
-          className="h-16 w-16 rounded-full border-4 border-t-violet-500 border-slate-700 animate-spin"
+          className="h-16 w-16 rounded-full border-4 border-t-blue-500 border-gray-200 animate-spin"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -168,17 +168,17 @@ const Dashboard = () => {
 
   if (eventsError) {
     return (
-      <div className={`min-h-screen ${darkColorPalette.background.primary} flex items-center justify-center`}>
+      <div className={`min-h-screen ${lightColorPalette.background.primary} flex items-center justify-center`}>
         <div className="text-center">
           <div className="text-6xl mb-4">⚠️</div>
-          <p className="text-red-400 text-lg">Error loading events: {eventsError}</p>
+          <p className="text-red-600 text-lg">Error loading events: {eventsError}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen w-full ${darkColorPalette.background.primary} font-sans m-0 p-0`}>
+    <div className={`min-h-screen w-full ${lightColorPalette.background.primary} font-sans m-0 p-0`}>
       <div className="space-y-8 p-6 w-full">
         {/* Stats Cards */}
         <motion.div
@@ -190,26 +190,26 @@ const Dashboard = () => {
           {cards.map((card, index) => (
             <motion.div
               key={card.name}
-              className={`relative overflow-hidden rounded-2xl p-6 shadow-2xl backdrop-blur-sm border border-white/10 transform transition-all duration-300 hover:scale-105 hover:shadow-violet-500/25 ${card.gradient}`}
+              className={`relative overflow-hidden rounded-2xl p-6 shadow-lg backdrop-blur-sm border border-white/30 transform transition-all duration-300 hover:scale-105 hover:shadow-blue-500/25 ${card.gradient}`}
               whileHover={{ y: -8, scale: 1.02 }}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-50" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="rounded-xl bg-white/20 backdrop-blur-sm p-3 shadow-lg">
+                  <div className="rounded-xl bg-white/30 backdrop-blur-sm p-3 shadow-lg">
                     <card.icon className="h-7 w-7 text-white" />
                   </div>
                   <div className="text-right">
                     <p
                       className={`text-sm font-semibold ${
                         card.changeType === "positive"
-                          ? "text-green-200"
+                          ? "text-green-100"
                           : card.changeType === "negative"
-                          ? "text-red-200"
-                          : "text-gray-200"
+                          ? "text-red-100"
+                          : "text-white/80"
                       }`}
                     >
                       {card.change}
@@ -229,28 +229,28 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Enhanced Calendar */}
           <motion.div
-            className={`rounded-2xl ${darkColorPalette.background.card} backdrop-blur-sm p-6 shadow-2xl border ${darkColorPalette.border}`}
+            className={`rounded-2xl ${lightColorPalette.background.card} backdrop-blur-sm p-6 shadow-lg border ${lightColorPalette.border}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className={`text-2xl font-bold ${darkColorPalette.text.primary}`}>
+              <h3 className={`text-2xl font-bold ${lightColorPalette.text.primary}`}>
                 Event Calendar
               </h3>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => navigateMonth(-1)}
-                  className={`p-2 rounded-lg ${darkColorPalette.background.secondary} ${darkColorPalette.background.hover} ${darkColorPalette.text.primary} transition-colors`}
+                  className={`p-2 rounded-lg ${lightColorPalette.background.secondary} ${lightColorPalette.background.hover} ${lightColorPalette.text.primary} transition-colors border ${lightColorPalette.border}`}
                 >
                   <ChevronLeftIcon className="h-5 w-5" />
                 </button>
-                <span className={`px-4 py-2 rounded-lg ${darkColorPalette.background.secondary} ${darkColorPalette.text.primary} font-semibold`}>
+                <span className={`px-4 py-2 rounded-lg ${lightColorPalette.background.secondary} ${lightColorPalette.text.primary} font-semibold border ${lightColorPalette.border}`}>
                   {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
                 </span>
                 <button
                   onClick={() => navigateMonth(1)}
-                  className={`p-2 rounded-lg ${darkColorPalette.background.secondary} ${darkColorPalette.background.hover} ${darkColorPalette.text.primary} transition-colors`}
+                  className={`p-2 rounded-lg ${lightColorPalette.background.secondary} ${lightColorPalette.background.hover} ${lightColorPalette.text.primary} transition-colors border ${lightColorPalette.border}`}
                 >
                   <ChevronRightIcon className="h-5 w-5" />
                 </button>
@@ -259,7 +259,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-7 gap-2 mb-4">
               {weekDays.map(day => (
-                <div key={day} className={`text-center py-2 ${darkColorPalette.text.secondary} font-semibold text-sm`}>
+                <div key={day} className={`text-center py-2 ${lightColorPalette.text.secondary} font-semibold text-sm`}>
                   {day}
                 </div>
               ))}
@@ -269,20 +269,20 @@ const Dashboard = () => {
               {calendarDays.map((day, index) => (
                 <motion.div
                   key={index}
-                  className={`relative p-2 h-20 rounded-lg transition-all duration-200 ${
+                  className={`relative p-2 h-20 rounded-lg transition-all duration-200 border ${
                     day.isCurrentMonth 
-                      ? `${darkColorPalette.background.secondary} ${darkColorPalette.background.hover}` 
-                      : 'bg-slate-900/20'
+                      ? `${lightColorPalette.background.secondary} ${lightColorPalette.background.hover} ${lightColorPalette.border}` 
+                      : 'bg-gray-100/50 border-gray-100'
                   } ${
-                    day.isToday ? 'ring-2 ring-violet-500 bg-violet-500/20' : ''
+                    day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                   }`}
                   whileHover={{ scale: 1.05 }}
                 >
                   <span className={`text-sm font-medium ${
                     day.isCurrentMonth 
-                      ? darkColorPalette.text.primary 
-                      : darkColorPalette.text.muted
-                  } ${day.isToday ? 'text-violet-200' : ''}`}>
+                      ? lightColorPalette.text.primary 
+                      : lightColorPalette.text.muted
+                  } ${day.isToday ? 'text-blue-600' : ''}`}>
                     {day.date.getDate()}
                   </span>
                   {day.events.length > 0 && (
@@ -294,7 +294,7 @@ const Dashboard = () => {
                         />
                       ))}
                       {day.events.length > 2 && (
-                        <div className="text-xs text-violet-400 font-semibold">
+                        <div className="text-xs text-blue-600 font-semibold">
                           +{day.events.length - 2}
                         </div>
                       )}
@@ -307,12 +307,12 @@ const Dashboard = () => {
 
           {/* Enhanced Monthly Event Listing */}
           <motion.div
-            className={`rounded-2xl ${darkColorPalette.background.card} backdrop-blur-sm p-6 shadow-2xl border ${darkColorPalette.border}`}
+            className={`rounded-2xl ${lightColorPalette.background.card} backdrop-blur-sm p-6 shadow-lg border ${lightColorPalette.border}`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <h3 className={`text-2xl font-bold ${darkColorPalette.text.primary} mb-6`}>
+            <h3 className={`text-2xl font-bold ${lightColorPalette.text.primary} mb-6`}>
               Monthly Events ({currentMonth.toLocaleString("default", { month: "long" })} {currentMonth.getFullYear()})
             </h3>
             <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
@@ -321,7 +321,7 @@ const Dashboard = () => {
                   monthlyEvents.map((event, index) => (
                     <motion.div
                       key={event._id}
-                      className={`rounded-xl p-4 ${darkColorPalette.background.secondary} ${darkColorPalette.background.hover} border ${darkColorPalette.border} transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10`}
+                      className={`rounded-xl p-4 ${lightColorPalette.background.secondary} ${lightColorPalette.background.hover} border ${lightColorPalette.border} transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
@@ -332,13 +332,13 @@ const Dashboard = () => {
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
                             <div
-                              className={`w-3 h-3 rounded-full ${getEventColor(event.status)} shadow-lg`}
+                              className={`w-3 h-3 rounded-full ${getEventColor(event.status)} shadow-sm`}
                             />
-                            <h4 className={`font-bold ${darkColorPalette.text.primary} text-lg`}>
+                            <h4 className={`font-bold ${lightColorPalette.text.primary} text-lg`}>
                               {event.title}
                             </h4>
                           </div>
-                          <p className={`${darkColorPalette.text.secondary} text-sm mb-2`}>
+                          <p className={`${lightColorPalette.text.secondary} text-sm mb-2`}>
                             {new Date(event.startDate).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
@@ -352,15 +352,15 @@ const Dashboard = () => {
                               })}`}
                           </p>
                           {event.description && (
-                            <p className={`${darkColorPalette.text.muted} text-sm leading-relaxed`}>
+                            <p className={`${lightColorPalette.text.muted} text-sm leading-relaxed`}>
                               {event.description}
                             </p>
                           )}
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          event.status === 'upcoming' ? 'bg-blue-500/20 text-blue-300' :
-                          event.status === 'ongoing' ? 'bg-amber-500/20 text-amber-300' :
-                          'bg-emerald-500/20 text-emerald-300'
+                          event.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
+                          event.status === 'ongoing' ? 'bg-amber-100 text-amber-700' :
+                          'bg-emerald-100 text-emerald-700'
                         }`}>
                           {event.status}
                         </div>
@@ -369,9 +369,9 @@ const Dashboard = () => {
                   ))
                 ) : (
                   <div className="text-center py-12">
-                    <div className={`text-6xl ${darkColorPalette.text.muted} mb-4`}>📅</div>
-                    <p className={`${darkColorPalette.text.muted} text-lg`}>No events this month</p>
-                    <p className={`${darkColorPalette.text.muted} text-sm mt-2`}>Check back later for updates</p>
+                    <div className={`text-6xl ${lightColorPalette.text.muted} mb-4`}>📅</div>
+                    <p className={`${lightColorPalette.text.muted} text-lg`}>No events this month</p>
+                    <p className={`${lightColorPalette.text.muted} text-sm mt-2`}>Check back later for updates</p>
                   </div>
                 )}
               </AnimatePresence>
@@ -387,7 +387,7 @@ const Dashboard = () => {
           box-sizing: border-box;
         }
         body {
-          background-color: rgb(15 23 42) !important;
+          background-color: rgb(249 250 251) !important;
           margin: 0 !important;
           padding: 0 !important;
         }
@@ -395,15 +395,15 @@ const Dashboard = () => {
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgb(30 41 59);
+          background: rgb(243 244 246);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgb(100 116 139);
+          background: rgb(209 213 219);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgb(148 163 184);
+          background: rgb(156 163 175);
         }
       `}</style>
     </div>

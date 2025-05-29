@@ -281,8 +281,8 @@ const Sidebar = ({ open, setOpen }) => {
                   <div className="flex h-16 shrink-0 items-center">
                     <img
                       className="h-8 w-auto"
-                      src="public/assets/images/xyvinlogo.svg"
-                      alt="Your Company"
+                      src="/public/assets/images/xyvinlogo.svg"
+                      alt="xyvin"
                     />
                   </div>
                   <nav className="flex flex-1 flex-col">
@@ -309,7 +309,7 @@ const Sidebar = ({ open, setOpen }) => {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#1e2251] px-6 pb-4 shadow-lg border-r border-indigo-900">
           <div className="flex h-16 shrink-0 items-center">
-            <img className="h-10 w-18" src="public/assets/images/xyvinlogo.svg" alt="Your Company" />
+            <img className="h-10 w-18" src="/public/assets/images/xyvinlogo.svg" alt="Your Company" />
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

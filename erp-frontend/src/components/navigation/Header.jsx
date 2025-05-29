@@ -41,10 +41,10 @@ const Header = ({ onMenuClick }) => {
   };
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 bg-[#1e2251] px-4 shadow-md sm:gap-x-6 sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       <button
         type="button"
-        className="-m-2.5 p-2.5 text-gray-200 hover:text-white lg:hidden transition-colors duration-200 ease-in-out"
+        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
         onClick={onMenuClick}
       >
         <span className="sr-only">Open sidebar</span>
@@ -52,56 +52,64 @@ const Header = ({ onMenuClick }) => {
       </button>
 
       {/* Separator */}
-      <div className="h-6 w-px bg-gray-600 lg:hidden" aria-hidden="true" />
+      <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         <div className="flex flex-1" />
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           <NotificationDropdown />
+          {/* <button
+            type="button"
+            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+          >
+            <span className="sr-only">View notifications</span>
+            <BellIcon className="h-6 w-6" aria-hidden="true" />
+          </button> */}
+
           {/* Separator */}
           <div
-            className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-600"
+            className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
             aria-hidden="true"
           />
 
           {/* Profile dropdown */}
           <Menu as="div" className="relative">
-            <Menu.Button className="-m-1.5 flex items-center p-1.5 group hover:bg-indigo-700 rounded-lg transition-all duration-200 ease-in-out">
+            <Menu.Button className="-m-1.5 flex items-center p-1.5">
               <span className="sr-only">Open user menu</span>
               <UserCircleIcon
-                className="h-8 w-8 text-gray-400 group-hover:text-white transition-colors duration-200"
+                className="h-8 w-8 rounded-full text-gray-300"
                 aria-hidden="true"
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
-                  className="ml-4 text-sm font-medium leading-6 text-white group-hover:text-white"
+                  className="ml-4 text-sm font-semibold leading-6 text-gray-900"
                   aria-hidden="true"
                 >
                   {getDisplayName()}
                 </span>
-                <span className="ml-2 text-sm text-gray-400 group-hover:text-white transition-colors duration-200">
+                <span className="ml-2 text-sm text-gray-600">
                   ({user?.role || "user"})
                 </span>
               </span>
             </Menu.Button>
             <Transition
               as={Fragment}
-              enter="transition ease-out duration-150"
+              enter="transition ease-out duration-100"
               enterFrom="transform opacity-0 scale-95"
               enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-100"
+              leave="transition ease-in duration-75"
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-36 origin-top-right rounded-lg bg-[#1e2251] py-2 shadow-lg ring-1 ring-indigo-900/50 focus:outline-none">
+              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
                 {userNavigation.map((item) => (
                   <Menu.Item key={item.name}>
                     {({ active }) => (
                       <a
                         href={item.href}
                         className={classNames(
-                          active ? "bg-indigo-700 text-white" : "text-gray-200",
-                          "block px-4 py-2 text-sm leading-6 hover:bg-indigo-700 hover:text-white transition-all duration-200 ease-in-out"
+                          active ? "bg-gray-50" : "",
+                          "block px-3 py-1 text-sm leading-6 text-gray-900"
                         )}
                       >
                         {item.name}
@@ -114,8 +122,8 @@ const Header = ({ onMenuClick }) => {
                     <button
                       onClick={handleLogout}
                       className={classNames(
-                        active ? "bg-indigo-700 text-white" : "text-gray-200",
-                        "block w-full px-4 py-2 text-left text-sm leading-6 hover:bg-indigo-700 hover:text-white transition-all duration-200 ease-in-out"
+                        active ? "bg-gray-50" : "",
+                        "block w-full px-3 py-1 text-left text-sm leading-6 text-gray-900"
                       )}
                     >
                       Sign out
