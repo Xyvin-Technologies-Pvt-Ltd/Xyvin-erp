@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, UserGroupIcon, CalendarDaysIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { useProjectStore } from '@/stores/projectStore';
 import { useClientStore } from '@/stores/clientStore';
 import { toast } from 'react-hot-toast';
@@ -13,9 +13,13 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset,
+    watch,
   } = useForm();
+
+  // Watch start date to validate end date
+  const watchStartDate = watch('startDate');
 
   useEffect(() => {
     const loadData = async () => {
@@ -30,27 +34,51 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
 
   useEffect(() => {
     if (project) {
+      // Extract client ID properly - handle different client data structures
+      let clientId = '';
+      if (project.client) {
+        if (typeof project.client === 'object') {
+          // If client is an object, get its ID
+          clientId = project.client._id || project.client.id || project.client.$oid || '';
+        } else {
+          // If client is just an ID string
+          clientId = project.client;
+        }
+      }
+
       const formattedProject = {
-        name: project.name,
-        description: project.description,
-        startDate: project.startDate.split('T')[0],
+        name: project.name || '',
+        description: project.description || '',
+        startDate: project.startDate ? project.startDate.split('T')[0] : '',
         endDate: project.endDate ? project.endDate.split('T')[0] : '',
         status: project.status || 'planning',
-        clientId: project.client,
+        clientId: clientId,
         id: project._id || project.id
       };
+      
       console.log('Setting form data:', formattedProject);
+      console.log('Available clients:', clients);
+      console.log('Project client data:', project.client);
+      console.log('Extracted client ID:', clientId);
+      
       reset(formattedProject);
     } else {
-      reset({});
+      reset({
+        name: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+        status: 'planning',
+        clientId: ''
+      });
     }
-  }, [project, reset]);
+  }, [project, reset, clients]);
 
   const onSubmit = async (data) => {
     try {
       const formattedData = {
-        name: data.name,
-        description: data.description,
+        name: data.name.trim(),
+        description: data.description?.trim() || '',
         startDate: new Date(data.startDate).toISOString(),
         endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
         status: data.status || 'planning',
@@ -83,26 +111,44 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm transition-opacity" 
+          onClick={onClose} 
+        />
 
-        <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
-          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between pb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {isEditing ? 'Edit Project' : 'Add New Project'}
-              </h3>
+        {/* Modal */}
+        <div className="inline-block transform overflow-hidden rounded-xl bg-white text-left align-bottom shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
+                  <DocumentTextIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {isEditing ? 'Edit Project' : 'Create Project'}
+                  </h3>
+                </div>
+              </div>
               <button
                 type="button"
-                className="text-gray-400 hover:text-gray-500"
+                className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-all duration-200"
                 onClick={onClose}
               >
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
+          </div>
 
+          {/* Form */}
+          <div className="bg-white px-4 py-4">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              {/* Project Name */}
+              <div className="space-y-1">
+                <label htmlFor="name" className="flex items-center text-sm font-medium text-gray-700">
+                  <DocumentTextIcon className="w-4 h-4 mr-1.5 text-gray-500" />
                   Project Name *
                 </label>
                 <input
@@ -114,48 +160,70 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
                       value: 3,
                       message: 'Project name must be at least 3 characters',
                     },
+                    pattern: {
+                      value: /^[a-zA-Z0-9\s\-_.,()]+$/,
+                      message: 'Project name contains invalid characters'
+                    }
                   })}
-                  className={`mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ${
+                  className={`w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm ${
                     errors.name
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-gray-300 focus:ring-primary-600'
-                  } focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6`}
+                      ? 'border-red-300 focus:border-red-500 bg-red-50'
+                      : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
+                  }`}
+                  placeholder="Enter project name..."
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                  <p className="text-xs text-red-600 flex items-center">
+                    <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                    {errors.name.message}
+                  </p>
                 )}
               </div>
 
-              <div>
-                <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
+              {/* Client Selection */}
+              <div className="space-y-1">
+                <label htmlFor="clientId" className="flex items-center text-sm font-medium text-gray-700">
+                  <UserGroupIcon className="w-4 h-4 mr-1.5 text-gray-500" />
                   Client *
                 </label>
-                <select
-                  id="clientId"
-                  {...register('clientId', {
-                    required: 'Client is required',
-                  })}
-                  className={`mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ${
-                    errors.clientId
-                      ? 'ring-red-300 focus:ring-red-500'
-                      : 'ring-gray-300 focus:ring-primary-600'
-                  } focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6`}
-                >
-                  <option value="">Select a client</option>
-                  {clients.map((client) => (
-                    <option key={client._id || client.id} value={client._id || client.id}>
-                      {client.name} - {client.company}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    id="clientId"
+                    {...register('clientId', {
+                      required: 'Client is required',
+                    })}
+                    className={`w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none appearance-none bg-white text-sm ${
+                      errors.clientId
+                        ? 'border-red-300 focus:border-red-500 bg-red-50'
+                        : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
+                    }`}
+                  >
+                    <option value="">Select a client</option>
+                    {clients.map((client) => (
+                      <option key={client._id || client.id} value={client._id || client.id}>
+                        {client.name} {client.company ? `- ${client.company}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {errors.clientId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.clientId.message}</p>
+                  <p className="text-xs text-red-600 flex items-center">
+                    <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                    {errors.clientId.message}
+                  </p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+              {/* Date Range */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="startDate" className="flex items-center text-sm font-medium text-gray-700">
+                    <CalendarDaysIcon className="w-4 h-4 mr-1.5 text-gray-500" />
                     Start Date *
                   </label>
                   <input
@@ -164,39 +232,63 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
                     {...register('startDate', {
                       required: 'Start date is required',
                     })}
-                    className={`mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ${
+                    className={`w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm ${
                       errors.startDate
-                        ? 'ring-red-300 focus:ring-red-500'
-                        : 'ring-gray-300 focus:ring-primary-600'
-                    } focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6`}
+                        ? 'border-red-300 focus:border-red-500 bg-red-50'
+                        : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
+                    }`}
                   />
                   {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+                    <p className="text-xs text-red-600 flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                      {errors.startDate.message}
+                    </p>
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                <div className="space-y-1">
+                  <label htmlFor="endDate" className="flex items-center text-sm font-medium text-gray-700">
+                    <CalendarDaysIcon className="w-4 h-4 mr-1.5 text-gray-500" />
                     End Date
                   </label>
                   <input
                     type="date"
                     id="endDate"
-                    {...register('endDate')}
-                    className="mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    min={watchStartDate}
+                    {...register('endDate', {
+                      validate: (value) => {
+                        if (value && watchStartDate && new Date(value) < new Date(watchStartDate)) {
+                          return 'End date must be after start date';
+                        }
+                        return true;
+                      }
+                    })}
+                    className={`w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm ${
+                      errors.endDate
+                        ? 'border-red-300 focus:border-red-500 bg-red-50'
+                        : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
+                    }`}
                   />
+                  {errors.endDate && (
+                    <p className="text-xs text-red-600 flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                      {errors.endDate.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {isEditing && (
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                    Status
-                  </label>
+              {/* Status - Show for both add and edit */}
+              <div className="space-y-1">
+                <label htmlFor="status" className="flex items-center text-sm font-medium text-gray-700">
+                  <div className="w-3 h-3 mr-1.5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full"></div>
+                  Status
+                </label>
+                <div className="relative">
                   <select
                     id="status"
                     {...register('status')}
-                    className="mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 hover:border-gray-400 transition-all duration-200 focus:outline-none appearance-none bg-white text-sm"
                   >
                     <option value="planning">Planning</option>
                     <option value="in-progress">In Progress</option>
@@ -204,32 +296,67 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
-              )}
+              </div>
 
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              {/* Description */}
+              <div className="space-y-1">
+                <label htmlFor="description" className="flex items-center text-sm font-medium text-gray-700">
+                  <DocumentTextIcon className="w-4 h-4 mr-1.5 text-gray-500" />
                   Description
                 </label>
                 <textarea
                   id="description"
                   rows={3}
-                  {...register('description')}
-                  className="mt-1 block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  {...register('description', {
+                    maxLength: {
+                      value: 500,
+                      message: 'Description must be less than 500 characters'
+                    }
+                  })}
+                  className={`w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none resize-none text-sm ${
+                    errors.description
+                      ? 'border-red-300 focus:border-red-500 bg-red-50'
+                      : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
+                  }`}
+                  placeholder="Enter project description..."
                 />
+                {errors.description && (
+                  <p className="text-xs text-red-600 flex items-center">
+                    <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                    {errors.description.message}
+                  </p>
+                )}
               </div>
 
-              <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black sm:col-start-2"
+                  disabled={isSubmitting}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg shadow-md hover:shadow-lg disabled:shadow-sm transition-all duration-200 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed text-sm"
                 >
-                  {isEditing ? 'Save Changes' : 'Add Project'}
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      {isEditing ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    <>
+                      {isEditing ? 'Save Changes' : 'Create Project'}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
-                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+                  className="px-4 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:bg-gray-50 text-sm"
                   onClick={onClose}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
@@ -242,4 +369,4 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
   );
 };
 
-export default ProjectModal; 
+export default ProjectModal;
