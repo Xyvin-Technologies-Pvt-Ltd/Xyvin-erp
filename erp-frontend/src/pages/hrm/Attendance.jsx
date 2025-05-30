@@ -513,9 +513,9 @@ useEffect(() => {
                   ? `${row.original.employee.firstName} ${row.original.employee.lastName}`
                   : "Unknown Employee"}
               </p>
-              <p className="text-sm text-gray-500 font-medium">
+              {/* <p className="text-sm text-gray-500 font-medium">
                 ID: {row.original.employee.employeeId}
-              </p>
+              </p> */}
             </div>
           </div>
         ),
