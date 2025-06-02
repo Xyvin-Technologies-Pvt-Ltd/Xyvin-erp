@@ -2,20 +2,29 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure upload directory exists
+// Ensure upload directories exist
 const uploadDir = path.join(__dirname, '../../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const tempDir = path.join(uploadDir, 'temp');
+const documentsDir = path.join(uploadDir, 'documents');
+const profilePicsDir = path.join(uploadDir, 'profile-pictures');
+
+// Create directories if they don't exist
+[uploadDir, tempDir, documentsDir, profilePicsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Configure multer for handling file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../public/uploads/temp'));
+    // Store files in temp directory initially
+    cb(null, tempDir);
   },
   filename: function (req, file, cb) {
-    // Keep original filename temporarily - will be renamed by uploadFile utility
-    cb(null, file.originalname);
+    // Generate a unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 

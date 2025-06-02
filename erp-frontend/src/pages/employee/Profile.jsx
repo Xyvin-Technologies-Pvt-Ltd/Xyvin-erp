@@ -51,6 +51,7 @@ const Profile = () => {
       const response = await getCurrentEmployee();
       if (response?.data?.employee) {
         const userData = response.data.employee;
+
         setCurrentUser(userData);
         updateUser(userData);
         setFormData({
@@ -80,13 +81,17 @@ const Profile = () => {
 
   useEffect(() => {
     const picturePath = currentUser?.profilePicture;
+    
     if (picturePath) {
       if (picturePath.startsWith("http")) {
         setProfilePicUrl(picturePath);
       } else {
         const cleanPath = picturePath.replace(/^\/+/, ""); // Remove leading slashes
-        setProfilePicUrl(`${import.meta.env.VITE_API_URL}/${cleanPath}`); // Append directly to VITE_API_URL
+        setProfilePicUrl(`http://localhost:8080/api/v1/${cleanPath}`); // Append directly to VITE_API_URL
+    console.log(profilePicUrl,"^^^^^^^^^^^^^^^^***************************^^^^^^^^^^^^^");
+
       }
+
     } else {
       setProfilePicUrl("/assets/images/default-avatar.png");
     }
@@ -262,6 +267,7 @@ const Profile = () => {
       } else {
         const cleanPath = picturePath.replace(/^\/+/, "");
         newProfilePicUrl = `${import.meta.env.VITE_API_URL}/${cleanPath}`;
+        newProfilePicUrl = `/${cleanPath}`;
       }
       console.log("Setting Profile Picture URL:", newProfilePicUrl);
       setProfilePicUrl(newProfilePicUrl);
@@ -309,11 +315,14 @@ const Profile = () => {
     );
   }
 
+
+
+
   return (
     <div className="container mx-auto px-4 py-8 animate-fadeIn">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">My Profile</h1>
-        <Button
+        {/* <Button
           onClick={() => (isEditing ? handleSubmit() : setIsEditing(true))}
           variant="outline"
           className="flex items-center gap-2 transition-all hover:scale-105"
@@ -325,7 +334,7 @@ const Profile = () => {
             <PencilIcon className="h-4 w-4" />
           )}
           {isEditing ? "Save Changes" : "Edit Profile"}
-        </Button>
+        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -333,30 +342,29 @@ const Profile = () => {
           <div className="flex flex-col items-center">
             <div className="relative group">
               <div className="w-32 h-32 rounded-full bg-gray-200 mb-4 overflow-hidden ring-4 ring-primary-50">
-                <img
-                  src={profilePicUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    // e.target.src = "/assets/images/default-avatar.png";
-                  }}
-                />
+              <img
+  src={profilePicUrl}
+  alt="Profile"
+  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = "/assets/images/default-avatar.png";
+  }}
+/>
               </div>
-              <button
+              {/* <button
                 onClick={handleImageClick}
                 disabled={isUploading}
                 className="absolute bottom-4 right-0 p-2 bg-primary-600 rounded-full text-black opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
               >
                 <CameraIcon className="h-4 w-4" />
-              </button>
-              <input
+              </button> */}
+              {/* <input
                 type="file"
-                ref={fileInputRef}
+                ref={formData.profilePicture}
                 className="hidden"
                 accept="image/*"
-                onChange={handleImageChange}
-              />
+              /> */}
             </div>
             <h2 className="text-xl font-semibold">{`${
               currentUser?.firstName || ""
