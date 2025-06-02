@@ -87,8 +87,6 @@ const Profile = () => {
         setProfilePicUrl(picturePath);
       } else {
         const cleanPath = picturePath.replace(/^\/+/, ""); // Remove leading slashes
-        setProfilePicUrl(`http://localhost:8080/api/v1/${cleanPath}`); // Append directly to VITE_API_URL
-    console.log(profilePicUrl,"^^^^^^^^^^^^^^^^***************************^^^^^^^^^^^^^");
 
       }
 
