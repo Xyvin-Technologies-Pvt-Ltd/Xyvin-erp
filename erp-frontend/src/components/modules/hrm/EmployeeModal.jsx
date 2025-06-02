@@ -228,35 +228,6 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
       // Create a temporary preview URL
       const previewUrl = URL.createObjectURL(file);
       setProfilePicUrl(previewUrl);
-
-      // Create FormData and upload immediately if editing an employee
-      if (employee?.id || employee?._id) {
-        const formData = new FormData();
-        formData.append('profilePicture', file);
-
-        const employeeId = employee.id || employee._id;
-        console.log('Uploading profile picture for employee:', employeeId);
-        
-        updateEmployeeProfilePicture(employeeId, formData)
-          .then(response => {
-            console.log('Profile picture upload response:', response);
-            if (response?.data?.employee?.profilePicture) {
-              const newProfilePicUrl = `${BACKEND_URL}${response.data.employee.profilePicture}`;
-              setProfilePicUrl(newProfilePicUrl);
-            }
-            toast.success('Profile picture updated successfully');
-          })
-          .catch(error => {
-            console.error('Error uploading profile picture:', error);
-            toast.error('Failed to upload profile picture');
-            // Revert to previous profile picture on error
-            if (employee?.profilePicture) {
-              setProfilePicUrl(`${BACKEND_URL}${employee.profilePicture}`);
-            } else {
-              setProfilePicUrl(DEFAULT_AVATAR);
-            }
-          });
-      }
     }
   };
 

@@ -276,9 +276,9 @@ const Employees = () => {
 
         {/* Table Section */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div>
+          <div className="overflow-x-auto">
             <table
-              className="w-full divide-y divide-gray-200"
+              className="w-full divide-y divide-gray-200 min-w-[800px]"
               {...getTableProps()}
             >
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
