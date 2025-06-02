@@ -72,9 +72,17 @@ const employeeSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      required: [true, "Role is required"],
+      enum: [
+        'ERP System Administrator',
+        'IT Manager',
+        'Project Manager',
+        'HR Manager',
+        'Finance Manager',
+        'Employee',
+        'Sales Manager',
+        'Admin'
+      ],
       default: "Employee",
-      unique: false,
     },
     bankDetails: {
       accountName: String,
@@ -104,26 +112,27 @@ const employeeSchema = new mongoose.Schema(
         type: {
           type: String,
           required: true,
-          enum: [
-            "resume",
-            "id_proof",
-            "address_proof",
-            "education",
-            "experience",
-          ],
+          enum: ['aadhaar','pan','passport']
         },
-        title: String,
-        url: String,
+        title: {
+          type: String,
+          required: true
+        },
+        url: {
+          type: String,
+          required: true
+        },
         uploadedAt: {
           type: Date,
-          default: Date.now,
-        },
+          default: Date.now
+        }
       },
     ],
     emergencyContact: {
       name: String,
       relationship: String,
       phone: String,
+      email: String,
     },
     education: [
       {
@@ -159,6 +168,14 @@ const employeeSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   {
     timestamps: true,
@@ -279,6 +296,7 @@ employeeSchema.pre("save", async function (next) {
     this.isActive = this.status === "active";
   }
 
+  this.updatedAt = Date.now();
   next();
 });
 

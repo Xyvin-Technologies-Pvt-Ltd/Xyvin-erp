@@ -2,7 +2,11 @@ import api from './api';
 
 // Employees
 export const getEmployees = async () => {
-    const response = await api.get('hrm/employees');
+    const response = await api.get('hrm/employees', {
+        params: {
+            include: 'emergencyContact,documents'
+        }
+    });
     // Return the employees array from the nested data structure
     return response.data?.data?.employees || [];
 };
@@ -56,6 +60,51 @@ export const updateProfilePicture = async (formData) => {
     },
   });
   return response.data;
+};
+
+// Add document upload function
+export const uploadEmployeeDocument = async (employeeId, formData) => {
+  try {
+    console.log('Service: Starting document upload...');
+    console.log('Employee ID:', employeeId);
+    console.log('FormData contents:');
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    const response = await api.post(`hrm/employees/${employeeId}/documents`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    console.log('Service: Upload response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Service: Upload error:', error.response || error);
+    throw error;
+  }
+};
+
+// Download document
+export const downloadDocument = async (employeeId, documentId) => {
+  try {
+    console.log('Service: Starting document download...', { employeeId, documentId });
+    
+    const response = await api.get(`hrm/employees/${employeeId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    console.log('Service: Download response received');
+    return response.data;
+  } catch (error) {
+    console.error('Service: Download error:', error.response || error);
+    throw error;
+  }
 };
 
 // Departments
@@ -310,6 +359,8 @@ export const getCurrentEmployee = async () => {
     const response = await api.get('hrm/employees/me');
     return response.data;
 };
+
+
 
 
 

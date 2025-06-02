@@ -1,4 +1,3 @@
-
 const Employee = require('./employee.model');
 const catchAsync = require('../../../utils/catchAsync');
 const { createError } = require('../../../utils/errors');
@@ -6,6 +5,7 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const   Position  = require('../position/position.model');
 const Department = require('../department/department.model')
 
@@ -53,10 +53,19 @@ const getAllEmployees = catchAsync(async (req, res) => {
 
     console.log('Fetching employees with filter:', filter);
 
+    // Parse include parameter
+    const includeFields = req.query.include ? req.query.include.split(',') : [];
+    const excludeFields = ['-password'];
+    
+    // Only exclude documents if not specifically requested
+    if (!includeFields.includes('documents')) {
+      excludeFields.push('-documents');
+    }
+
     const employees = await Employee.find(filter)
       .populate('department', 'name')
       .populate('position', 'title code description')
-      .select('-documents -password');
+      .select(excludeFields.join(' '));
 
     console.log('Found employees:', employees);
 
@@ -67,31 +76,56 @@ const getAllEmployees = catchAsync(async (req, res) => {
     res.status(200).json({
       status: 'success',
       data: {
-        employees: employees.map(emp => ({
-          id: emp._id,
-          employeeId: emp.employeeId,
-          firstName: emp.firstName,
-          lastName: emp.lastName,
-          name: `${emp.firstName} ${emp.lastName}`,
-          fullName: `${emp.firstName} ${emp.lastName}`,
-          email: emp.email,
-          phone: emp.phone,
-          department: emp.department,
-          position: {
-            id: emp.position?._id,
-            title: emp.position?.title,
-            code: emp.position?.code,
-            description: emp.position?.description
-          },
-          role: emp.role || 'Employee',
-          status: emp.status || 'active',
-          isActive: emp.isActive !== false,
-          joiningDate: emp.joiningDate,
-          salary: emp.salary,
-          statusBadgeColor: emp.status === 'inactive' ? 'red' : 
-                           emp.status === 'on_leave' ? 'yellow' : 
-                           emp.status === 'suspended' ? 'orange' : 'green'
-        }))
+        employees: employees.map(emp => {
+          // Clean up profile picture path
+          let profilePicture = emp.profilePicture;
+          if (profilePicture) {
+            profilePicture = profilePicture
+              .replace(/^\/public/, '')  // Remove leading /public
+              .replace(/^public/, '')    // Remove leading public without slash
+              .replace(/\/+/g, '/');     // Replace multiple slashes with single slash
+            
+            // Ensure the path starts with a slash
+            if (!profilePicture.startsWith('/')) {
+              profilePicture = '/' + profilePicture;
+            }
+          }
+
+          // Clean up document URLs
+          const documents = emp.documents ? emp.documents.map(doc => ({
+            ...doc.toObject(),
+            url: doc.url.replace(/^\/public/, '').replace(/^public/, '').replace(/\/+/g, '/')
+          })) : [];
+
+          return {
+            id: emp._id,
+            employeeId: emp.employeeId,
+            firstName: emp.firstName,
+            lastName: emp.lastName,
+            name: `${emp.firstName} ${emp.lastName}`,
+            fullName: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email,
+            phone: emp.phone,
+            department: emp.department,
+            position: {
+              id: emp.position?._id,
+              title: emp.position?.title,
+              code: emp.position?.code,
+              description: emp.position?.description
+            },
+            role: emp.role || 'Employee',
+            status: emp.status || 'active',
+            isActive: emp.isActive !== false,
+            joiningDate: emp.joiningDate,
+            salary: emp.salary,
+            emergencyContact: emp.emergencyContact,
+            documents: documents,
+            profilePicture: profilePicture,
+            statusBadgeColor: emp.status === 'inactive' ? 'red' : 
+                         emp.status === 'on_leave' ? 'yellow' : 
+                         emp.status === 'suspended' ? 'orange' : 'green'
+          };
+        })
       }
     });
   } catch (error) {
@@ -116,9 +150,35 @@ const getEmployeeById = catchAsync(async (req, res) => {
     throw createError(404, 'Employee not found');
   }
 
+  // Clean up profile picture path
+  let profilePicture = employee.profilePicture;
+  if (profilePicture) {
+    profilePicture = profilePicture
+      .replace(/^\/public/, '')  // Remove leading /public
+      .replace(/^public/, '')    // Remove leading public without slash
+      .replace(/\/+/g, '/');     // Replace multiple slashes with single slash
+    
+    // Ensure the path starts with a slash
+    if (!profilePicture.startsWith('/')) {
+      profilePicture = '/' + profilePicture;
+    }
+  }
+
+  // Clean up document URLs
+  const documents = employee.documents ? employee.documents.map(doc => ({
+    ...doc.toObject(),
+    url: doc.url.replace(/^\/public/, '').replace(/^public/, '').replace(/\/+/g, '/')
+  })) : [];
+
+  const employeeData = {
+    ...employee.toObject(),
+    profilePicture: profilePicture,
+    documents: documents
+  };
+
   res.status(200).json({
     status: 'success',
-    data: { employee }
+    data: { employee: employeeData }
   });
 });
 
@@ -275,6 +335,11 @@ const createEmployee = catchAsync(async (req, res) => {
  * Update employee
  */
 const updateEmployee = catchAsync(async (req, res) => {
+  console.log('Update Employee Request Body:', { 
+    ...req.body, 
+    password: req.body.password ? '[FILTERED]' : undefined 
+  });
+  
   const {
     firstName,
     lastName,
@@ -290,71 +355,58 @@ const updateEmployee = catchAsync(async (req, res) => {
     bankDetails,
     personalInfo,
     documents,
+    password,
   } = req.body;
 
   // Check if employee exists
-  const employee = await Employee.findById(req.params.id);
+  const employee = await Employee.findById(req.params.id).select('+password');
   if (!employee) {
     throw createError(404, 'Employee not found');
   }
 
-  // Check if email is being changed and already exists
-  if (email && email !== employee.email) {
-    const emailExists = await Employee.findOne({
-      email,
-      _id: { $ne: req.params.id }
-    });
-    if (emailExists) {
-      throw createError(400, 'Email already exists');
-    }
-  }
-
-  // If position is being changed, validate it exists
-  if (position && position !== employee.position.toString()) {
-    const newPosition = await Position.findById(position);
-    if (!newPosition) {
-      throw createError(404, 'Position not found');
-    }
-  }
-
-  // If department is being changed, validate it exists
-  if (department && department !== employee.department.toString()) {
-    const departmentExists = await Department.findById(department);
-    if (!departmentExists) {
-      throw createError(404, 'Department not found');
-    }
-  }
-
   // Update only provided fields
-  const updateData = {};
-  if (firstName) updateData.firstName = firstName;
-  if (lastName) updateData.lastName = lastName;
-  if (email) updateData.email = email;
-  if (phone) updateData.phone = phone;
-  if (department) updateData.department = department;
-  if (position) updateData.position = position;
-  if (role) updateData.role = role;
-  if (salary) updateData.salary = salary;
+  if (firstName) employee.firstName = firstName;
+  if (lastName) employee.lastName = lastName;
+  if (email) employee.email = email;
+  if (phone) employee.phone = phone;
+  if (department) employee.department = department;
+  if (position) employee.position = position;
+  if (role) employee.role = role;
+  if (salary) employee.salary = salary;
   if (status) {
-    updateData.status = status;
-    updateData.isActive = status === 'active';
+    employee.status = status;
+    employee.isActive = status === 'active';
   }
-  if (address) updateData.address = address;
-  if (emergencyContact) updateData.emergencyContact = emergencyContact;
-  if (bankDetails) updateData.bankDetails = bankDetails;
-  if (personalInfo) updateData.personalInfo = personalInfo;
-  if (documents) updateData.documents = documents;
-  const updatedEmployee = await Employee.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { 
-      new: true, 
-      runValidators: true 
-    }
-  )
-    .populate('department', 'name')
-    .populate('position', 'title')
-    .select('-password');
+  if (address) employee.address = address;
+  if (bankDetails) employee.bankDetails = bankDetails;
+  if (personalInfo) employee.personalInfo = personalInfo;
+  if (documents) employee.documents = documents;
+  
+  // Handle password update
+  if (password) {
+    console.log('Updating password...');
+    employee.password = password;
+  }
+
+  // Handle emergency contact
+  if (emergencyContact) {
+    console.log('Received emergency contact:', emergencyContact);
+    employee.emergencyContact = {
+      name: emergencyContact.name || '',
+      relationship: emergencyContact.relationship || '',
+      phone: emergencyContact.phone || '',
+      email: emergencyContact.email || ''
+    };
+    console.log('Setting emergency contact data:', employee.emergencyContact);
+  }
+
+  // Save employee - this will trigger password hashing if password was updated
+  const updatedEmployee = await employee.save();
+  console.log('Employee updated successfully');
+
+  // Populate necessary fields
+  await updatedEmployee.populate('department', 'name');
+  await updatedEmployee.populate('position', 'title');
 
   res.status(200).json({
     status: 'success',
@@ -389,34 +441,78 @@ const deleteEmployee = catchAsync(async (req, res) => {
  * Upload employee document
  */
 const uploadDocument = catchAsync(async (req, res) => {
-  const { type, title } = req.body;
-  const employee = await Employee.findById(req.params.id);
+  console.log('Starting document upload process');
+  
+  if (!req.file) {
+    console.error('No file in request');
+    throw createError(400, 'Please provide a document file');
+  }
 
+  console.log('File received:', {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+    path: req.file.path
+  });
+
+  const employeeId = req.params.id;
+  console.log('Employee ID:', employeeId);
+
+  const employee = await Employee.findById(employeeId);
   if (!employee) {
+    console.error('Employee not found:', employeeId);
     throw createError(404, 'Employee not found');
   }
 
-  // Here you would typically:
-  // 1. Upload the file to a storage service (e.g., S3)
-  // 2. Get the URL of the uploaded file
-  // For now, we'll just simulate it
-  const documentUrl = `https://storage.example.com/${req.params.id}/${type}/${Date.now()}`;
+  // Create documents directory if it doesn't exist
+  const uploadDir = 'public/uploads/documents';
+  console.log('Creating directory:', uploadDir);
+  await fs.mkdir(uploadDir, { recursive: true });
 
-  employee.documents.push({
-    type,
-    title,
-    url: documentUrl
-  });
+  // Generate unique filename
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const filename = 'document-' + uniqueSuffix + path.extname(req.file.originalname);
+  const finalPath = path.join(uploadDir, filename);
+  console.log('Target file path:', finalPath);
 
-  await employee.save();
+  try {
+    // Move file from temp to documents directory
+    console.log('Moving file from:', req.file.path);
+    console.log('Moving file to:', finalPath);
+    await fs.rename(req.file.path, finalPath);
 
-  res.status(200).json({
-    status: 'success',
-    message: 'Document uploaded successfully',
-    data: {
-      document: employee.documents[employee.documents.length - 1]
+    // Create document record
+    const document = {
+      type: req.body.type,
+      title: req.file.originalname,
+      url: '/uploads/documents/' + filename,
+      uploadedAt: new Date()
+    };
+    console.log('Created document record:', document);
+
+    // Add document to employee's documents array
+    employee.documents = employee.documents || [];
+    employee.documents.push(document);
+    await employee.save();
+    console.log('Document saved to employee record');
+
+    res.status(200).json({
+      status: 'success',
+      data: { document }
+    });
+  } catch (error) {
+    console.error('Error in document upload:', error);
+    // Clean up uploaded file if there was an error
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+        console.log('Cleaned up temporary file:', req.file.path);
+      } catch (unlinkError) {
+        console.error('Error deleting uploaded file:', unlinkError);
+      }
     }
-  });
+    throw error;
+  }
 });
 
 /**
@@ -428,8 +524,8 @@ const updateProfilePicture = catchAsync(async (req, res) => {
       throw createError(400, 'Please provide an image file');
     }
 
-    // Get employee ID from authenticated user
-    const employeeId = req.user.id;
+    // Get employee ID from params or authenticated user
+    const employeeId = req.params.id || req.user.id;
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -439,17 +535,44 @@ const updateProfilePicture = catchAsync(async (req, res) => {
     // Delete old profile picture if exists
     if (employee.profilePicture) {
       try {
-        const oldPath = path.join(process.cwd(), employee.profilePicture.replace(/^\//, ''));
-        if (await fs.access(oldPath).then(() => true).catch(() => false)) {
+        // Clean up the old path by removing any leading /public or public/
+        const oldPath = path.join(
+          process.cwd(),
+          'public',
+          employee.profilePicture
+            .replace(/^\//, '')
+            .replace(/^public\//, '')
+            .replace(/^uploads\//, '')
+        );
+        
+        console.log('Attempting to delete old profile picture:', oldPath);
+        
+        // Check if file exists before trying to delete
+        const fileExists = await fs.access(oldPath).then(() => true).catch(() => false);
+        if (fileExists) {
           await fs.unlink(oldPath);
+          console.log('Successfully deleted old profile picture:', oldPath);
+        } else {
+          console.log('Old profile picture not found at path:', oldPath);
         }
       } catch (error) {
         console.error('Error deleting old profile picture:', error);
+        // Log error but continue with upload
       }
     }
 
-    // Update employee with new profile picture path
-    const profilePicturePath = '/' + req.file.path.replace(/\\/g, '/');
+    // Move file from temp to profile-pictures directory
+    const uploadDir = 'public/uploads/profile-pictures';
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = 'profile-' + uniqueSuffix + path.extname(req.file.originalname);
+    const filePath = path.join(uploadDir, filename);
+
+    await fs.rename(req.file.path, filePath);
+
+    // Update employee with relative profile picture path
+    const profilePicturePath = '/' + filePath.replace(/\\/g, '/');
     employee.profilePicture = profilePicturePath;
     await employee.save();
 
@@ -457,12 +580,18 @@ const updateProfilePicture = catchAsync(async (req, res) => {
     await employee.populate('department', 'name');
     await employee.populate('position', 'title');
 
+    // Clean up profile picture path for response
+    const cleanProfilePicturePath = profilePicturePath
+      .replace(/^\/public/, '')  // Remove leading /public
+      .replace(/^public/, '')    // Remove leading public without slash
+      .replace(/\/+/g, '/');     // Replace multiple slashes with single slash
+
     res.status(200).json({
       status: 'success',
       data: {
         employee: {
           ...employee.toObject(),
-          profilePicture: profilePicturePath,
+          profilePicture: cleanProfilePicturePath,
           fullName: `${employee.firstName} ${employee.lastName}`
         }
       }
@@ -472,6 +601,7 @@ const updateProfilePicture = catchAsync(async (req, res) => {
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
+        console.log('Cleaned up temporary file after error');
       } catch (unlinkError) {
         console.error('Error deleting uploaded file:', unlinkError);
       }
@@ -514,7 +644,8 @@ const updateCurrentEmployee = catchAsync(async (req, res) => {
     email,
     phone,
     emergencyContact,
-    personalInfo
+    personalInfo,
+    password
   } = req.body;
 
   // Check if email is being changed and already exists
@@ -528,37 +659,172 @@ const updateCurrentEmployee = catchAsync(async (req, res) => {
     }
   }
 
-  const employee = await Employee.findByIdAndUpdate(
-    req.user.id,
-    {
-      firstName,
-      lastName,
-      email,
-      phone,
-      emergencyContact,
-      personalInfo
-    },
-    { 
-      new: true, 
-      runValidators: true 
-    }
-  )
-    .populate('department', 'name')
-    .populate('position', 'title')
-    .select('-password');
-
+  // Find employee and include password field
+  const employee = await Employee.findById(req.user.id).select('+password');
   if (!employee) {
     throw createError(404, 'Employee not found');
   }
+
+  // Update fields
+  if (firstName) employee.firstName = firstName;
+  if (lastName) employee.lastName = lastName;
+  if (email) employee.email = email;
+  if (phone) employee.phone = phone;
+  if (password) {
+    console.log('Updating password in updateCurrentEmployee...');
+    employee.password = password;
+  }
+  if (emergencyContact) {
+    employee.emergencyContact = {
+      name: emergencyContact.name || '',
+      relationship: emergencyContact.relationship || '',
+      phone: emergencyContact.phone || '',
+      email: emergencyContact.email || ''
+    };
+  }
+  if (personalInfo) employee.personalInfo = personalInfo;
+
+  // Save employee - this will trigger password hashing if password was updated
+  const updatedEmployee = await employee.save();
+  console.log('Employee profile updated successfully');
+
+  // Populate necessary fields
+  await updatedEmployee.populate('department', 'name');
+  await updatedEmployee.populate('position', 'title');
+
+  // Remove password from response
+  const employeeResponse = updatedEmployee.toObject();
+  delete employeeResponse.password;
 
   res.status(200).json({
     status: 'success',
     data: { 
       employee: {
-        ...employee.toObject(),
-        fullName: `${employee.firstName} ${employee.lastName}`
+        ...employeeResponse,
+        fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`
       }
     }
+  });
+});
+
+// @desc    Get employee documents
+// @route   GET /api/v1/hrm/employees/:id/documents
+// @access  Private
+const getEmployeeDocuments = catchAsync(async (req, res) => {
+  console.log('Getting documents for employee:', req.params.id);
+  
+  const employee = await Employee.findById(req.params.id);
+  if (!employee) {
+    throw createError(404, 'Employee not found');
+  }
+
+  // Return documents array with proper URLs
+  const documents = (employee.documents || []).map(doc => {
+    const docObj = doc.toObject();
+    // Remove /public from the start of the URL if it exists
+    const url = docObj.url.replace(/^\/public/, '');
+    return {
+      ...docObj,
+      url: url // URL without /public prefix
+    };
+  });
+
+  console.log('Found documents:', documents);
+
+  res.status(200).json({
+    success: true,
+    documents: documents
+  });
+});
+
+// @desc    Download employee document
+// @route   GET /api/v1/hrm/employees/:employeeId/documents/:documentId/download
+// @access  Private
+const downloadDocument = catchAsync(async (req, res) => {
+  const { employeeId, documentId } = req.params;
+  console.log('Downloading document:', { employeeId, documentId });
+
+  // Find employee
+  const employee = await Employee.findById(employeeId);
+  if (!employee) {
+    throw createError(404, 'Employee not found');
+  }
+
+  // Find the specific document
+  const document = employee.documents.id(documentId);
+  if (!document) {
+    throw createError(404, 'Document not found');
+  }
+
+  console.log('Document found:', document);
+
+  // Get the file path - handle both cases where url might start with /public or not
+  const relativePath = document.url.replace(/^\/?(public\/)?/, '');
+  const filePath = path.join(process.cwd(), 'public', relativePath);
+  console.log('Attempting to read file from:', filePath);
+
+  // Check if file exists
+  if (!fsSync.existsSync(filePath)) {
+    console.error('File not found at path:', filePath);
+    throw createError(404, 'File not found on server');
+  }
+
+  // Set headers for file download
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${document.title}"`);
+
+  // Stream the file
+  const fileStream = fsSync.createReadStream(filePath);
+  fileStream.pipe(res);
+
+  // Handle errors
+  fileStream.on('error', (error) => {
+    console.error('Error streaming file:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Error downloading file'
+      });
+    }
+  });
+});
+
+/**
+ * Delete employee document
+ */
+const deleteDocument = catchAsync(async (req, res) => {
+  const { employeeId, documentId } = req.params;
+  console.log('Deleting document:', { employeeId, documentId });
+
+  // Find employee
+  const employee = await Employee.findById(employeeId);
+  if (!employee) {
+    throw createError(404, 'Employee not found');
+  }
+
+  // Find the document
+  const document = employee.documents.id(documentId);
+  if (!document) {
+    throw createError(404, 'Document not found');
+  }
+
+  // Get the file path and remove the file
+  const filePath = path.join(process.cwd(), document.url.replace(/^\//, ''));
+  try {
+    await fs.unlink(filePath);
+    console.log('File deleted from filesystem:', filePath);
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    // Continue even if file deletion fails
+  }
+
+  // Remove document from employee's documents array
+  employee.documents = employee.documents.filter(doc => doc._id.toString() !== documentId);
+  await employee.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Document deleted successfully'
   });
 });
 
@@ -573,5 +839,8 @@ module.exports = {
   upload,
   getCurrentEmployee,
   updateCurrentEmployee,
-  getNextEmployeeId
+  getNextEmployeeId,
+  getEmployeeDocuments,
+  downloadDocument,
+  deleteDocument
 }; 

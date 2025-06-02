@@ -9,19 +9,25 @@ import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from "@heroicons/react/24/outline";
 import useHrmStore from "../../stores/useHrmStore";
 import EmployeeModal from "../../components/modules/hrm/EmployeeModal";
 import DeleteConfirmationModal from "../../components/common/DeleteConfirmationModal";
+import ViewDocumentsModal from "../../components/modules/hrm/ViewDocumentsModal";
 
 const Employees = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     employee: null,
   });
-  const { employees, employeesLoading, employeesError, fetchEmployees, deleteEmployee } =
+  const [viewingEmployee, setViewingEmployee] = useState(null);
+  const { employees, employeesLoading, employeesError, fetchEmployees, deleteEmployee, fetchEmployeeDocuments } =
     useHrmStore();
 
   useEffect(() => {
@@ -76,27 +82,43 @@ const Employees = () => {
       },
       {
         Header: "Actions",
-        Cell: ({ row }) => (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleEdit(row.original)}
-              className="text-blue-600 hover:text-blue-900"
-              title="Edit Employee"
-            >
-              <PencilIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(row.original)}
-              className="text-red-600 hover:text-red-900"
-              title="Delete Employee"
-            >
-              <TrashIcon className="h-5 w-5" />
-            </button>
-          </div>
-        ),
+        Cell: ({ row }) => {
+          const employeeId = row.original.id || row.original._id;
+          const isViewing = viewingEmployee === employeeId;
+
+          return (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleViewDocuments(row.original)}
+                className="text-gray-600 hover:text-gray-900"
+                title={isViewing ? "Close Documents" : "View Documents"}
+              >
+                {isViewing ? (
+                  <EyeIcon className="h-5 w-5" />
+                ) : (
+                  <EyeSlashIcon className="h-5 w-5" />
+                )}
+              </button>
+              <button
+                onClick={() => handleEdit(row.original)}
+                className="text-blue-600 hover:text-blue-900"
+                title="Edit Employee"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => handleDeleteClick(row.original)}
+                className="text-red-600 hover:text-red-900"
+                title="Delete Employee"
+              >
+                <TrashIcon className="h-5 w-5" />
+              </button>
+            </div>
+          );
+        },
       },
     ],
-    []
+    [viewingEmployee]
   );
 
   // Memoize data and ensure it's always an array
@@ -132,6 +154,20 @@ const Employees = () => {
   const handleEdit = (employee) => {
     setSelectedEmployee(employee);
     setShowModal(true);
+  };
+
+  const handleViewDocuments = async (employee) => {
+    try {
+      const employeeId = employee.id || employee._id;
+      const documents = await fetchEmployeeDocuments(employeeId);
+      setSelectedEmployee(employee);
+      setSelectedDocuments(documents);
+      setShowDocumentsModal(true);
+      setViewingEmployee(employeeId);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast.error('Failed to fetch documents');
+    }
   };
 
   const handleDeleteClick = (employee) => {
@@ -299,16 +335,6 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, employee: null })}
-        onConfirm={handleDelete}
-        title="Delete Employee"
-        message={`Are you sure you want to delete ${deleteModal.employee?.firstName} ${deleteModal.employee?.lastName}? This action cannot be undone.`}
-        itemName="employee"
-      />
-
       {/* Employee Modal */}
       {showModal && (
         <EmployeeModal
@@ -320,6 +346,29 @@ const Employees = () => {
           }}
         />
       )}
+
+      {/* Documents Modal */}
+      <ViewDocumentsModal
+        isOpen={showDocumentsModal}
+        onClose={() => {
+          setShowDocumentsModal(false);
+          setSelectedEmployee(null);
+          setSelectedDocuments([]);
+          setViewingEmployee(null);
+        }}
+        documents={selectedDocuments}
+        employeeId={selectedEmployee?._id || selectedEmployee?.id}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, employee: null })}
+        onConfirm={handleDelete}
+        title="Delete Employee"
+        message={`Are you sure you want to delete ${deleteModal.employee?.firstName} ${deleteModal.employee?.lastName}? This action cannot be undone.`}
+        itemName="employee"
+      />
     </div>
   );
 };

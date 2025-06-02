@@ -8,12 +8,15 @@ const {
   deleteEmployee,
   uploadDocument,
   updateProfilePicture,
-  upload,
   getCurrentEmployee,
   updateCurrentEmployee,
-  getNextEmployeeId
+  getNextEmployeeId,
+  getEmployeeDocuments,
+  downloadDocument,
+  deleteDocument
 } = require('./employee.controller');
 const { protect, authorize } = require('../../../middleware/authMiddleware');
+const upload = require('../../../middleware/upload');
 
 router.use(protect);
 // router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager'));
@@ -62,19 +65,50 @@ router.route('/:id')
   });
 
 // Update employee profile picture - allow self update or admin
-router.post('/:id/profile-picture',  (req, res, next) => {
-  if (req.user._id.toString() === req.params.id) {
-    return upload.single('profilePicture')(req, res, () => updateProfilePicture(req, res, next));
+router.post('/:id/profile-picture', upload.single('profilePicture'), (req, res, next) => {
+  try {
+    updateProfilePicture(req, res, next);
+  } catch (error) {
+    next(error);
   }
-  return (req, res, () => {
-    upload.single('profilePicture')(req, res, () => updateProfilePicture(req, res, next));
-  });
 });
 
 // Delete employee
 router.delete('/:id', deleteEmployee);
 
+// Get employee documents
+router.get('/:id/documents', (req, res, next) => {
+  console.log('Fetching documents for employee:', req.params.id);
+  getEmployeeDocuments(req, res, next);
+});
+
+// Download employee document
+router.get('/:employeeId/documents/:documentId/download', (req, res, next) => {
+  console.log('Downloading document:', req.params);
+  downloadDocument(req, res, next);
+});
+
+// Delete employee document
+router.delete('/:employeeId/documents/:documentId', (req, res, next) => {
+  console.log('Deleting document:', req.params);
+  deleteDocument(req, res, next);
+});
+
 // Upload document
-router.post('/:id/documents',  uploadDocument);
+router.post('/:id/documents', upload.single('document'), (req, res, next) => {
+  console.log('Document upload request received');
+  console.log('Request file:', req.file);
+  console.log('Request body:', req.body);
+  
+  if (!req.file) {
+    console.error('No file in request');
+    return res.status(400).json({
+      status: 'error',
+      message: 'No file uploaded'
+    });
+  }
+  
+  uploadDocument(req, res, next);
+});
 
 module.exports = router; 

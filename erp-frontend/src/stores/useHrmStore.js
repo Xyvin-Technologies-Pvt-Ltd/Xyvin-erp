@@ -1,6 +1,8 @@
 import * as hrmService from '../api/hrm.service';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { toast } from 'react-hot-toast';
+import api from '../api/api';
 
 
 const useHrmStore = create(
@@ -204,14 +206,196 @@ const useHrmStore = create(
           const isFormData = data instanceof FormData;
           console.log('Is FormData:', isFormData);
 
-          const response = isFormData
-            ? await hrmService.updateProfilePicture(data)
-            : await hrmService.updateCurrentEmployee(data);
+          let response;
+          if (isFormData) {
+            // Handle profile picture upload
+            response = await api.post('hrm/employees/me/profile-picture', data, {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            
+            // Update the employee in the store with new profile picture
+            if (response.data?.employee?.profilePicture) {
+              set(state => ({
+                employees: state.employees.map(emp => {
+                  if (emp._id === response.data.employee._id) {
+                    return {
+                      ...emp,
+                      profilePicture: response.data.employee.profilePicture
+                    };
+                  }
+                  return emp;
+                })
+              }));
+            }
+          } else {
+            // Handle regular profile update
+            response = await api.patch('hrm/employees/me', data);
+          }
 
           console.log('updateProfile response:', response);
-          return response;
+          return response.data;
         } catch (error) {
           console.error('Error updating profile:', error.response?.data || error);
+          throw error;
+        }
+      },
+
+      // Update employee profile picture
+      updateEmployeeProfilePicture: async (employeeId, formData) => {
+        try {
+          console.log('Updating employee profile picture:', employeeId);
+          const response = await api.post(`hrm/employees/${employeeId}/profile-picture`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+
+          // Update the employee in the store with new profile picture
+          if (response.data?.employee?.profilePicture) {
+            set(state => ({
+              employees: state.employees.map(emp => {
+                if (emp._id === employeeId || emp.id === employeeId) {
+                  return {
+                    ...emp,
+                    profilePicture: response.data.employee.profilePicture
+                  };
+                }
+                return emp;
+              })
+            }));
+          }
+
+          return response.data;
+        } catch (error) {
+          console.error('Error updating employee profile picture:', error);
+          throw error;
+        }
+      },
+
+      // Document Management
+      documents: [],
+      documentsLoading: false,
+      documentsError: null,
+
+      // Fetch employee documents
+      fetchEmployeeDocuments: async (employeeId) => {
+        try {
+          set({ documentsLoading: true, documentsError: null });
+          const response = await api.get(`hrm/employees/${employeeId}/documents`);
+          set({ documents: response.data.documents, documentsLoading: false });
+          return response.data.documents;
+        } catch (error) {
+          console.error('Error fetching documents:', error);
+          set({ 
+            documentsError: error.response?.data?.message || 'Failed to fetch documents',
+            documentsLoading: false 
+          });
+          throw error;
+        }
+      },
+
+      // Upload document
+      uploadEmployeeDocument: async (employeeId, formData) => {
+        try {
+          console.log('Store: Starting document upload...');
+          console.log('Employee ID:', employeeId);
+          console.log('FormData contents:');
+          for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);
+          }
+
+          const response = await api.post(`hrm/employees/${employeeId}/documents`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+
+          // Update the employee's documents in the store
+          set(state => {
+            const updatedEmployees = state.employees.map(emp => {
+              if (emp._id === employeeId || emp.id === employeeId) {
+                const updatedDocuments = [...(emp.documents || []), response.data.document];
+                return {
+                  ...emp,
+                  documents: updatedDocuments
+                };
+              }
+              return emp;
+            });
+            return { employees: updatedEmployees };
+          });
+          
+          return response.data;
+        } catch (error) {
+          console.error('Store: Document upload error:', error);
+          throw error;
+        }
+      },
+
+      // Download document
+      downloadDocument: async (documentUrl, fileName, employeeId, documentId) => {
+        try {
+          console.log('Store: Downloading document:', { employeeId, documentId, fileName });
+          
+          const blob = await hrmService.downloadDocument(employeeId, documentId);
+          
+          // Create blob URL and trigger download
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+
+          return true;
+        } catch (error) {
+          console.error('Store: Error downloading document:', error);
+          toast.error('Failed to download document. Please try again.');
+          throw error;
+        }
+      },
+
+      // Delete document
+      deleteDocument: async (employeeId, documentId) => {
+        try {
+          console.log('Deleting document:', { employeeId, documentId });
+          
+          // Store the current state before deletion for rollback
+          const previousState = get().employees;
+          
+          // Optimistically update the UI
+          set(state => ({
+            employees: state.employees.map(emp => {
+              if (emp._id === employeeId || emp.id === employeeId) {
+                return {
+                  ...emp,
+                  documents: emp.documents.filter(doc => doc._id !== documentId)
+                };
+              }
+              return emp;
+            })
+          }));
+
+          // Make the API call
+          const response = await api.delete(`hrm/employees/${employeeId}/documents/${documentId}`);
+          
+          toast.success('Document deleted successfully');
+          return response.data;
+        } catch (error) {
+          console.error('Error deleting document:', error);
+          
+          // Rollback to previous state on error
+          set({ employees: previousState });
+          
+          toast.error('Failed to delete document. Please try again.');
           throw error;
         }
       },
