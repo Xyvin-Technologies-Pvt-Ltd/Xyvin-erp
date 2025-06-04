@@ -73,7 +73,7 @@ const createEvent = async (req, res, next) => {
 // @access  Private
 const getEvents = async (req, res, next) => {
   try {
-    const events = await Event.find({ createdBy: req.user._id })
+    const events = await Event.find()
       .populate('createdBy', 'name email')
       .sort({ startDate: 1 });
 
@@ -101,13 +101,6 @@ const getEvent = async (req, res, next) => {
       });
     }
 
-    if (event.createdBy._id.toString() !== req.user._id.toString()) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized'
-      });
-    }
-
     res.status(200).json({
       success: true,
       event
@@ -130,13 +123,6 @@ const updateEvent = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Event not found'
-      });
-    }
-
-    if (event.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized'
       });
     }
 
@@ -203,13 +189,6 @@ const deleteEvent = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Event not found'
-      });
-    }
-
-    if (event.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(401).json({
-        success: false,
-        message: 'Not authorized'
       });
     }
 
