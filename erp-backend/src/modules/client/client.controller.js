@@ -23,7 +23,7 @@ exports.createClient = async (req, res) => {
 exports.getClients = async (req, res) => {
   try {
     const clients = await Client.find()
-    
+      .populate('projects')
       .sort({ createdAt: -1 });
     res.json(clients);
   } catch (error) {

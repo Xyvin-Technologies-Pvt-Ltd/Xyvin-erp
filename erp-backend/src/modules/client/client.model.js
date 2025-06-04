@@ -39,7 +39,16 @@ const clientSchema = new mongoose.Schema({
     required: true
   },
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual for projects
+clientSchema.virtual('projects', {
+  ref: 'Project',
+  localField: '_id',
+  foreignField: 'client'
 });
 
 module.exports = mongoose.model('Client', clientSchema); 
