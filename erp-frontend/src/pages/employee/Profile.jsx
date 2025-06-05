@@ -9,14 +9,20 @@ import api from "@/api/api";
 
 // Get the backend URL without the API path
 const BACKEND_URL = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:8080';
-const DEFAULT_AVATAR = '/assets/images/default-avatar.png';
+const DUMMY_SVG = `data:image/svg+xml;utf8,
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'  fill='%23CBD5E1'>
+    <circle cx='16' cy='10' r='6'/>
+    <path d='M4 28c0-6.6 8-10 12-10s12 3.4 12 10v2H4v-2z'/>
+  </svg>`;
+
+
 
 const Profile = () => {
   const { user } = useAuthStore();
   const { getMyAttendance, getCurrentEmployee } = useHrmStore();
 
   const [currentUser, setCurrentUser] = useState(user);
-  const [profilePicUrl, setProfilePicUrl] = useState(DEFAULT_AVATAR);
+  const [profilePicUrl, setProfilePicUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [attendanceStats, setAttendanceStats] = useState({
     present: 0,
@@ -60,8 +66,8 @@ const Profile = () => {
             setProfilePicUrl(`${BACKEND_URL}${picturePath}`);
           }
         } else {
-          setProfilePicUrl(DEFAULT_AVATAR);
-        }
+  setProfilePicUrl(DUMMY_SVG); // fallback if no picture
+}
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -194,14 +200,16 @@ const Profile = () => {
             <div className="relative">
               <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
                 <img
-                  src={profilePicUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "/assets/images/default-avatar.png";
-                  }}
-                />
+  src={profilePicUrl || DUMMY_SVG}
+  alt="Profile"
+  className="w-full h-full object-cover"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = DUMMY_SVG;
+  }}
+/>
+
+
               </div>
             </div>
             <h2 className="text-2xl font-bold mt-4 text-gray-900">{`${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`}</h2>
