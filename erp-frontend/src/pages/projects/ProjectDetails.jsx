@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useProjectStore } from "@/stores/projectStore";
 import {
   ClockIcon,
@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   ChatBubbleLeftIcon,
   PaperClipIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -15,32 +16,41 @@ import { projectService } from "@/api/project.service";
 
 const ProjectDetails = () => {
   const navigate = useNavigate();
+  const { projectId } = useParams();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
+      if (!projectId) {
+        toast.error("Project ID is missing");
+        navigate("/projects/list");
+        return;
+      }
+
       try {
         setLoading(true);
-        // Use the getProjects method that includes population of related data
-        const projectsData = await projectService.getProjects();
-        console.log("Fetched projects:", projectsData);
+        // Use getProjectWithDetails to get detailed data for a single project
+        const projectData = await projectService.getProjectWithDetails(projectId);
+        console.log("Fetched project:", projectData);
 
-        if (!projectsData || projectsData.length === 0) {
-          throw new Error("No projects found");
+        if (!projectData) {
+          throw new Error("Project not found");
         }
 
-        setProjects(projectsData);
+        // Set the projects array with just this single project
+        setProjects([projectData]);
       } catch (error) {
-        console.error("Error loading projects:", error);
-        toast.error(error.message || "Failed to load projects");
+        console.error("Error loading project:", error);
+        toast.error(error.message || "Failed to load project");
+        navigate("/projects/list");
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [projectId, navigate]);
 
   const handleViewKanban = (projectId) => {
     navigate(`/projects/kanban/${projectId}`);
@@ -119,10 +129,18 @@ const ProjectDetails = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <button
+        onClick={() => navigate(-1)}
+        className="p-2 hover:bg-gray-100 rounded-full transition-colors mb-4"
+        title="Go back"
+      >
+        <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
+      </button>
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Project Details</h1>
         <p className="mt-2 text-gray-600">
-          Overview of all projects and their details
+          Overview of project and its details
         </p>
       </div>
 
@@ -196,7 +214,7 @@ const ProjectDetails = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
                 {/* Tasks Section */}
-                <div className="p-6">
+                {/* <div className="p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
                     <CheckCircleIcon className="h-6 w-6 mr-2 text-gray-500" />
                     Project Tasks
@@ -277,7 +295,7 @@ const ProjectDetails = () => {
                       </p>
                     )}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Team Members Section */}
                 <div className="p-6">
