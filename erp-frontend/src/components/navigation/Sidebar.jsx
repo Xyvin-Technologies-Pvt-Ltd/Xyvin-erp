@@ -80,7 +80,7 @@ const projectsNavigation = {
   icon: FolderIcon,
   children: [
     { name: "All Projects", href: "/projects/list", icon: FolderIcon },
-    { name: "Project Details", href: "/projects/details", icon: DocumentTextIcon },
+    // { name: "Project Details", href: "/projects/details", icon: DocumentTextIcon },
   ],
 };
 
