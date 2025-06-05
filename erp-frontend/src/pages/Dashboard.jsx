@@ -6,6 +6,7 @@ import {
   ClockIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import useHrmStore from "../stores/useHrmStore";
@@ -35,10 +36,80 @@ const lightColorPalette = {
   }
 };
 
+// Event Modal Component
+const EventModal = ({ isOpen, onClose, date, events }) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 bg-black bg-opacity-25 backdrop-blur-sm flex items-center justify-center z-50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="bg-white rounded-2xl p-6 w-full max-w-md m-4 shadow-xl border border-gray-200"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-900">
+              Events for {date.toLocaleDateString('en-US', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500 transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+            {events.length > 0 ? (
+              events.map((event) => (
+                <div
+                  key={event._id}
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{event.title}</h4>
+                      <p className="text-sm text-gray-500 mt-1">{event.description}</p>
+                      <div className="mt-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          event.status === 'upcoming' ? 'bg-blue-100 text-blue-700' :
+                          event.status === 'ongoing' ? 'bg-amber-100 text-amber-700' :
+                          'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {event.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">📅</div>
+                <p className="text-gray-500">No events scheduled for this date</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
 const Dashboard = () => {
   const { events, eventsLoading, eventsError, fetchEvents } = useHrmStore();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedDateEvents, setSelectedDateEvents] = useState([]);
 
   useEffect(() => {
     fetchEvents().catch((err) => {
@@ -112,6 +183,25 @@ const Dashboard = () => {
       newDate.setMonth(prev.getMonth() + direction);
       return newDate;
     });
+  };
+
+  const handleDateClick = (day) => {
+    const dayEvents = events.filter(event => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+      const clickedDate = new Date(day.date);
+      
+      // Reset hours to compare just the dates
+      clickedDate.setHours(0, 0, 0, 0);
+      const eventStartDate = new Date(eventStart).setHours(0, 0, 0, 0);
+      const eventEndDate = new Date(eventEnd).setHours(0, 0, 0, 0);
+      
+      return eventStartDate <= clickedDate && eventEndDate >= clickedDate;
+    });
+
+    setSelectedDate(day.date);
+    setSelectedDateEvents(dayEvents);
+    setShowEventModal(true);
   };
 
   const cards = [
@@ -269,7 +359,8 @@ const Dashboard = () => {
               {calendarDays.map((day, index) => (
                 <motion.div
                   key={index}
-                  className={`relative p-2 h-20 rounded-lg transition-all duration-200 border ${
+                  onClick={() => handleDateClick(day)}
+                  className={`relative p-2 h-20 rounded-lg transition-all duration-200 border cursor-pointer ${
                     day.isCurrentMonth 
                       ? `${lightColorPalette.background.secondary} ${lightColorPalette.background.hover} ${lightColorPalette.border}` 
                       : 'bg-gray-100/50 border-gray-100'
@@ -379,6 +470,14 @@ const Dashboard = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Event Modal */}
+      <EventModal
+        isOpen={showEventModal}
+        onClose={() => setShowEventModal(false)}
+        date={selectedDate}
+        events={selectedDateEvents}
+      />
 
       <style jsx>{`
         * {

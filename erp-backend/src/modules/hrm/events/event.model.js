@@ -36,28 +36,56 @@ const eventSchema = new mongoose.Schema({
     required: true
   },
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Helper function to get end of day for a date
+const getEndOfDay = (date) => {
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay;
+};
+
+// Helper function to calculate status
+const calculateStatus = (startDate, endDate) => {
+  const currentDate = new Date();
+  const endOfEndDate = getEndOfDay(endDate);
+  
+  if (currentDate < startDate) {
+    return 'upcoming';
+  } else if (currentDate >= startDate && currentDate <= endOfEndDate) {
+    return 'ongoing';
+  } else {
+    return 'completed';
+  }
+};
+
+// Virtual for dynamic status
+eventSchema.virtual('currentStatus').get(function() {
+  return calculateStatus(this.startDate, this.endDate);
+});
+
+// Transform the document when converting to JSON
+eventSchema.set('toJSON', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    ret.status = ret.currentStatus;
+    delete ret.currentStatus;
+    return ret;
+  }
 });
 
 // Middleware to update status before saving
 eventSchema.pre('save', function(next) {
-  const currentDate = new Date();
-  
-  if (currentDate < this.startDate) {
-    this.status = 'upcoming';
-  } else if (currentDate >= this.startDate && currentDate <= this.endDate) {
-    this.status = 'ongoing';
-  } else if (currentDate > this.endDate) {
-    this.status = 'completed';
-  }
-  
+  this.status = calculateStatus(this.startDate, this.endDate);
   next();
 });
 
 // Middleware to update status before updates
 eventSchema.pre('findOneAndUpdate', async function(next) {
   const update = this.getUpdate();
-  const currentDate = new Date();
   
   let startDate = update.startDate || (await this.model.findOne(this.getQuery())).startDate;
   let endDate = update.endDate || (await this.model.findOne(this.getQuery())).endDate;
@@ -65,13 +93,7 @@ eventSchema.pre('findOneAndUpdate', async function(next) {
   if (update.startDate) startDate = new Date(update.startDate);
   if (update.endDate) endDate = new Date(update.endDate);
   
-  if (currentDate < startDate) {
-    update.status = 'upcoming';
-  } else if (currentDate >= startDate && currentDate <= endDate) {
-    update.status = 'ongoing';
-  } else if (currentDate > endDate) {
-    update.status = 'completed';
-  }
+  update.status = calculateStatus(startDate, endDate);
   
   next();
 });

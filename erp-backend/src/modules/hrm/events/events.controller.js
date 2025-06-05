@@ -4,17 +4,6 @@ const Notification = require('../../notification/Notification.model');
 const websocketService = require('../../../utils/websocket');
 const Employee = require('../../hrm/employee/employee.model');
 
-// Helper function to get current event status
-const getCurrentStatus = (startDate, endDate) => {
-  const currentDate = new Date();
-  if (currentDate < startDate) {
-    return 'upcoming';
-  } else if (currentDate >= startDate && currentDate <= endDate) {
-    return 'ongoing';
-  } else {
-    return 'completed';
-  }
-};
 
 // @desc    Create a new event
 // @route   POST /api/hrm/events
@@ -85,17 +74,8 @@ const createEvent = async (req, res, next) => {
 const getEvents = async (req, res, next) => {
   try {
     const events = await Event.find()
-      .populate('createdBy', 'firstName lastName email')
+      .populate('createdBy', 'name email')
       .sort({ startDate: 1 });
-
-    // Update status for each event
-    for (const event of events) {
-      const currentStatus = getCurrentStatus(event.startDate, event.endDate);
-      if (event.status !== currentStatus) {
-        event.status = currentStatus;
-        await event.save();
-      }
-    }
 
     res.status(200).json({
       success: true,
@@ -112,7 +92,7 @@ const getEvents = async (req, res, next) => {
 const getEvent = async (req, res, next) => {
   try {
     const event = await Event.findById(req.params.id)
-      .populate('createdBy', 'firstName lastName email');
+      .populate('createdBy', 'name email');
 
     if (!event) {
       return res.status(404).json({
@@ -146,13 +126,6 @@ const updateEvent = async (req, res, next) => {
       });
     }
 
-    // if (event.createdBy.toString() !== req.user._id.toString()) {
-    //   return res.status(401).json({
-    //     success: false,
-    //     message: 'Not authorized'
-    //   });
-    // }
-
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.id,
       {
@@ -162,8 +135,7 @@ const updateEvent = async (req, res, next) => {
         endDate
       },
       { new: true, runValidators: true }
-          // ).populate('createdBy', 'name email');
-    ).populate('createdBy', 'firstName lastName email');
+    ).populate('createdBy', 'name email');
 
     const allEmployees = await Employee.find({}, '_id');
 
@@ -219,13 +191,6 @@ const deleteEvent = async (req, res, next) => {
         message: 'Event not found'
       });
     }
-
-    // if (event.createdBy.toString() !== req.user._id.toString()) {
-    //   return res.status(401).json({
-    //     success: false,
-    //     message: 'Not authorized'
-    //   });
-    // }
 
     await event.deleteOne();
 
