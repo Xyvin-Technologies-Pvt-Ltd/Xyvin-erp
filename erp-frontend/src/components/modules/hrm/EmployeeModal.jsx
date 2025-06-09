@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { Dialog, Transition, Switch } from "@headlessui/react";
-import { XMarkIcon, ArrowDownTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, ArrowDownTrayIcon, TrashIcon, UserIcon, CodeBracketIcon, EnvelopeIcon, PhoneIcon, UserGroupIcon, BuildingOfficeIcon, BriefcaseIcon, CalendarIcon, CurrencyDollarIcon, LockClosedIcon, PhotographIcon, CameraIcon, CloudArrowUpIcon, DocumentIcon, DocumentArrowUpIcon, HeartIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
@@ -320,36 +320,6 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
     }
   };
 
-
-  //   useEffect(() => {
-  //   const fetchEmployeeId = async () => {
-  //     if (!employee) {
-  //       // Only fetch new ID when creating new employee
-  //       try {
-  //         console.log("Fetching next employee ID...");
-  //         const response = await getNextEmployeeId();
-  //         console.log("Response from getNextEmployeeId:", response);
-
-  //         // Extract employeeId from the response
-  //         const nextId = response?.data?.employee?.employeeId;
-  //         console.log("Next ID extracted:", nextId);
-
-  //         if (nextId) {
-  //           formik.setFieldValue("employeeId", nextId);
-  //         } else {
-  //           console.error("Invalid response structure:", response);
-  //           toast.error("Failed to generate employee ID. Please try again.");
-  //         }
-  //       } catch (error) {
-  //         console.error("Error fetching employee ID:", error);
-  //         toast.error(error.response?.data?.message || "Failed to generate employee ID");
-  //       }
-  //     }
-  //   };
-
-  //   fetchEmployeeId();
-  // }, [employee, getNextEmployeeId]); // Add getNextEmployeeId to dependencies
-
   useEffect(() => {
     const fetchEmployeeId = async () => {
       if (!employee) {
@@ -486,7 +456,7 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -500,465 +470,602 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-                  <button
-                    type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
-                    onClick={onClose}
-                  >
-                    <span className="sr-only">Close</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
+              <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">
+                          {employee ? "Edit Employee" : "Add Employee"}
+                        </h3>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-all duration-200"
+                      onClick={onClose}
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
-                    <Dialog.Title
-                      as="h3"
-                      className="text-lg font-semibold leading-6 text-gray-900"
-                    >
-                      {employee ? "Edit Employee" : "Add Employee"}
-                    </Dialog.Title>
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="employeeId" className="label">Employee ID</label>
-                          <input
-                            type="text"
-                            id="employeeId"
-                            className="input"
-                            onChange={handleInputChange}
-                            {...register("employeeId")}
-                            readOnly
-                            disabled
-                          />
-                          {errors.employeeId && (
-                            <div className="error-message">{errors.employeeId.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="firstName" className="label">First Name</label>
-                          <input
-                            type="text"
-                            id="firstName"
-                            className="input"
-                            {...register("firstName")}
-                          />
-                          {errors.firstName && (
-                            <div className="error-message">{errors.firstName.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="lastName" className="label">Last Name</label>
-                          <input
-                            type="text"
-                            id="lastName"
-                            className="input"
-                            {...register("lastName")}
-                          />
-                          {errors.lastName && (
-                            <div className="error-message">{errors.lastName.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="email" className="label">Email</label>
-                          <input
-                            type="email"
-                            id="email"
-                            className="input"
-                            {...register("email")}
-                          />
-                          {errors.email && (
-                            <div className="error-message">{errors.email.message}</div>
-                          )}
-                        </div>
-
-                        {!employee && (
-                          <div>
-                            <label htmlFor="password" className="label">Password</label>
-                            <input
-                              type="password"
-                              id="password"
-                              className="input"
-                              {...register("password")}
-                            />
-                            {errors.password && (
-                              <div className="error-message">{errors.password.message}</div>
-                              )}
-                          </div>
+                <div className="bg-white px-4 py-4">
+                  <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label htmlFor="employeeId" className="flex items-center text-sm font-medium text-gray-700">
+                          <CodeBracketIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Employee ID
+                        </label>
+                        <input
+                          type="text"
+                          id="employeeId"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
+                          onChange={handleInputChange}
+                          {...register("employeeId")}
+                          readOnly
+                          disabled
+                        />
+                        {errors.employeeId && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.employeeId.message}
+                          </p>
                         )}
-
-                        <div>
-                          <label htmlFor="phone" className="label">Phone Number</label>
-                          <input
-                            type="text"
-                            id="phone"
-                            className="input"
-                            {...register("phone")}
-                          />
-                          {errors.phone && (
-                            <div className="error-message">{errors.phone.message}</div>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="role" className="label">Role</label>
-                          <select
-                            id="role"
-                            className="input"
-                            {...register("role")}
-                          >
-                            {EMPLOYEE_ROLES.map((role) => (
-                              <option key={role} value={role}>{role}</option>
-                            ))}
-                          </select>
-                          {errors.role && (
-                            <div className="error-message">{errors.role.message}</div>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="department" className="label">Department</label>
-                          <select
-                            id="department"
-                            className="input"
-                            {...register("department")}
-                          >
-                            <option value="">Select Department</option>
-                            {Array.isArray(departments) &&
-                              departments.map((dept) => (
-                                <option key={dept.id || dept._id} value={dept.id || dept._id}>
-                                  {dept.name}
-                                </option>
-                              ))}
-                          </select>
-                          {errors.department && (
-                            <div className="error-message">{errors.department.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="position" className="label">Position</label>
-                          <select
-                            id="position"
-                            className="input"
-                            {...register("position")}
-                          >
-                            <option value="">Select Position</option>
-                            {Array.isArray(positions) && positions.map((position) => {
-                              const positionId = position._id || position.id;
-                              return (
-                                <option key={positionId} value={positionId}>
-                                  {position.title}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          {errors.position && (
-                            <div className="error-message">{errors.position.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="joiningDate" className="label">Joining Date</label>
-                          <input
-                            type="date"
-                            id="joiningDate"
-                            className="input"
-                            {...register("joiningDate")}
-                          />
-                          {errors.joiningDate && (
-                            <div className="error-message">{errors.joiningDate.message}</div>
-                            )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="status" className="label">Status</label>
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              checked={status === "active"}
-                              onChange={(checked) => {
-                                setStatus(checked ? "active" : "inactive");
-                                setValue("status", checked ? "active" : "inactive");
-                              }}
-                              className={`${
-                                status === "active" ? "bg-black" : "bg-gray-200"
-                              } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2`}
-                            >
-                              <span className="sr-only">Enable status</span>
-                              <span
-                                className={`${
-                                  status === "active" ? "translate-x-6" : "translate-x-1"
-                                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                              />
-                            </Switch>
-                            <span className="text-sm text-gray-600">
-                              {status === "active" ? "Active" : "Inactive"}
-                            </span>
-                          </div>
-                          {errors.status && (
-                            <div className="error-message">{errors.status.message}</div>
-                          )}
-                        </div>
-
-                        <div>
-                          <label htmlFor="salary" className="label">Salary</label>
-                          <input
-                            type="number"
-                            id="salary"
-                            className="input"
-                            {...register("salary")}
-                          />
-                          {errors.salary && (
-                            <div className="error-message">{errors.salary.message}</div>
-                          )}
-                        </div>
-
-                        {/* Password Reset Section - Moved here */}
-                        {employee && (
-                          <div>
-                            <div className="flex items-center mb-2">
-                              <input
-                                type="checkbox"
-                                id="resetPassword"
-                                className="h-4 w-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
-                                checked={showPasswordReset}
-                                onChange={(e) => setShowPasswordReset(e.target.checked)}
-                              />
-                              <label htmlFor="resetPassword" className="ml-2 text-sm text-gray-700">
-                                Reset Password
-                              </label>
-                            </div>
-                            
-                            {showPasswordReset && (
-                              <div className="mt-2">
-                                <label htmlFor="password" className="label">New Password</label>
-                                <input
-                                  type="password"
-                                  id="password"
-                                  className="input"
-                                  {...register("password", {
-                                    onChange: (e) => {
-                                      console.log('Password field changed:', {
-                                        hasValue: !!e.target.value,
-                                        length: e.target.value.length
-                                      });
-                                    }
-                                  })}
-                                  placeholder="Enter new password"
-                                />
-                                {errors.password && (
-                                  <div className="error-message">{errors.password.message}</div>
-                                )}
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Password must be at least 6 characters long
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2 w-[60%]">
-                          <div>
-                            <label htmlFor="profilePicture" className="label">Profile Picture</label>
-                            <div className="space-y-4">
-                              {profilePicUrl && (
-                                <div className="flex items-center space-x-4">
-                                  <img
-                                    src={profilePicUrl}
-                                    alt="Profile Preview"
-                                    className="h-24 w-24 rounded-full object-cover border-2 border-gray-200 bg-gray-100"
-                                    onError={(e) => {
-                                      console.error('Error loading profile picture from URL:', profilePicUrl);
-                                      // Only set default if not already using default and not a blob URL
-                                      if (profilePicUrl !== DEFAULT_AVATAR && !profilePicUrl.startsWith('blob:')) {
-                                        console.log('Setting default avatar');
-                                        setProfilePicUrl(DEFAULT_AVATAR);
-                                      }
-                                      // Prevent further error handling
-                                      e.target.onerror = null;
-                                    }}
-                                  />
-                                  <div className="text-sm text-gray-500">
-                                    {profilePicUrl === DEFAULT_AVATAR 
-                                      ? "No profile picture uploaded" 
-                                      : (
-                                        <div>
-                                          <p>Current profile picture</p>
-                                          <p className="text-xs text-gray-400 mt-1">
-                                            {profilePicUrl.split('/').pop()}
-                                          </p>
-                                        </div>
-                                      )}
-                                  </div>
-                                </div>
-                              )}
+                      <div className="space-y-1">
+                        <label htmlFor="firstName" className="flex items-center text-sm font-medium text-gray-700">
+                          <UserIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("firstName")}
+                        />
+                        {errors.firstName && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.firstName.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="lastName" className="flex items-center text-sm font-medium text-gray-700">
+                          <UserIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Last Name
+                        </label>
+                        <input
+                          type="text"
+                          id="lastName"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("lastName")}
+                        />
+                        {errors.lastName && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.lastName.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="email" className="flex items-center text-sm font-medium text-gray-700">
+                          <EnvelopeIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("email")}
+                        />
+                        {errors.email && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.email.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {!employee && (
+                        <div>
+                          <label htmlFor="password" className="label">Password</label>
+                          <input
+                            type="password"
+                            id="password"
+                            className="input"
+                            {...register("password")}
+                          />
+                          {errors.password && (
+                            <div className="error-message">{errors.password.message}</div>
+                            )}
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        <label htmlFor="phone" className="flex items-center text-sm font-medium text-gray-700">
+                          <PhoneIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Phone Number
+                        </label>
+                        <input
+                          type="text"
+                          id="phone"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("phone")}
+                        />
+                        {errors.phone && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.phone.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="role" className="flex items-center text-sm font-medium text-gray-700">
+                          <UserGroupIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Role
+                        </label>
+                        <select
+                          id="role"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("role")}
+                        >
+                          {EMPLOYEE_ROLES.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </select>
+                        {errors.role && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.role.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="department" className="flex items-center text-sm font-medium text-gray-700">
+                          <BuildingOfficeIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Department
+                        </label>
+                        <select
+                          id="department"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("department")}
+                        >
+                          <option value="">Select Department</option>
+                          {Array.isArray(departments) &&
+                            departments.map((dept) => (
+                              <option key={dept.id || dept._id} value={dept.id || dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                        </select>
+                        {errors.department && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.department.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="position" className="flex items-center text-sm font-medium text-gray-700">
+                          <BriefcaseIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Position
+                        </label>
+                        <select
+                          id="position"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("position")}
+                        >
+                          <option value="">Select Position</option>
+                          {Array.isArray(positions) && positions.map((position) => {
+                            const positionId = position._id || position.id;
+                            return (
+                              <option key={positionId} value={positionId}>
+                                {position.title}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        {errors.position && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.position.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="joiningDate" className="flex items-center text-sm font-medium text-gray-700">
+                          <CalendarIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Joining Date
+                        </label>
+                        <input
+                          type="date"
+                          id="joiningDate"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("joiningDate")}
+                        />
+                        {errors.joiningDate && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.joiningDate.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="status" className="flex items-center text-sm font-medium text-gray-700">
+                          <div className="w-3 h-3 mr-1.5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full"></div>
+                          Status
+                        </label>
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            checked={status === "active"}
+                            onChange={(checked) => {
+                              setStatus(checked ? "active" : "inactive");
+                              setValue("status", checked ? "active" : "inactive");
+                            }}
+                            className={`${
+                              status === "active"
+                                ? "bg-gradient-to-r from-purple-500 to-indigo-600"
+                                : "bg-gray-200"
+                            } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2`}
+                          >
+                            <span className="sr-only">Enable status</span>
+                            <span
+                              className={`${
+                                status === "active" ? "translate-x-6" : "translate-x-1"
+                              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-lg`}
+                            />
+                          </Switch>
+                          <span className={`text-sm font-medium ${
+                            status === "active" ? "text-green-600" : "text-gray-500"
+                          }`}>
+                            {status === "active" ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        {errors.status && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.status.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="salary" className="flex items-center text-sm font-medium text-gray-700">
+                          <CurrencyDollarIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                          Salary
+                        </label>
+                        <input
+                          type="number"
+                          id="salary"
+                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          {...register("salary")}
+                        />
+                        {errors.salary && (
+                          <p className="text-xs text-red-600 flex items-center">
+                            <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                            {errors.salary.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Password Reset Section with updated styling */}
+                      {employee && (
+                        <div className="space-y-1">
+                          <div className="flex items-center mb-2">
+                            <input
+                              type="checkbox"
+                              id="resetPassword"
+                              className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                              checked={showPasswordReset}
+                              onChange={(e) => setShowPasswordReset(e.target.checked)}
+                            />
+                            <label htmlFor="resetPassword" className="ml-2 text-sm text-gray-700">
+                              Reset Password
+                            </label>
+                          </div>
+                          
+                          {showPasswordReset && (
+                            <div className="mt-2">
+                              <label htmlFor="password" className="flex items-center text-sm font-medium text-gray-700">
+                                <LockClosedIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                                New Password
+                              </label>
                               <input
-                                type="file"
-                                id="profilePicture"
-                                accept="image/*"
-                                className="input"
-                                onChange={handleFileChange}
+                                type="password"
+                                id="password"
+                                className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                                {...register("password")}
+                                placeholder="Enter new password"
                               />
-                              <p className="text-xs text-gray-500">
-                                Supported formats: JPEG, PNG, GIF (Max 5MB)
+                              {errors.password && (
+                                <p className="text-xs text-red-600 flex items-center">
+                                  <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
+                                  {errors.password.message}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                Password must be at least 6 characters long
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2 w-[60%]">
+                        <div className="bg-white rounded-lg border border-gray-200 p-4">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <label className="flex items-center text-sm font-medium text-gray-700">
+                                <PhotographIcon className="w-4 h-4 mr-1.5 text-purple-500" />
+                                Profile Picture
+                              </label>
+                              {profilePicUrl !== DEFAULT_AVATAR && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setProfilePicUrl(DEFAULT_AVATAR);
+                                    setImageFile(null);
+                                  }}
+                                  className="text-xs text-red-500 hover:text-red-600 flex items-center"
+                                >
+                                  <TrashIcon className="w-3 h-3 mr-1" />
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col items-center space-y-4">
+                              <div className="relative group">
+                                <img
+                                  src={profilePicUrl}
+                                  alt="Profile Preview"
+                                  className="h-32 w-32 rounded-full object-cover border-4 border-white shadow-lg transition-transform duration-200 group-hover:scale-105"
+                                  onError={(e) => {
+                                    console.error('Error loading profile picture from URL:', profilePicUrl);
+                                    if (profilePicUrl !== DEFAULT_AVATAR && !profilePicUrl.startsWith('blob:')) {
+                                      console.log('Setting default avatar');
+                                      setProfilePicUrl(DEFAULT_AVATAR);
+                                    }
+                                    e.target.onerror = null;
+                                  }}
+                                />
+                                <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                  <CameraIcon className="h-8 w-8 text-white opacity-75" />
+                                </div>
+                              </div>
+
+                              <div className="w-full">
+                                <div className="flex flex-col items-center">
+                                  <label
+                                    htmlFor="profilePicture"
+                                    className="w-full flex flex-col items-center px-4 py-6 bg-gradient-to-br from-white to-purple-50 text-purple-600 rounded-lg border-2 border-purple-100 border-dashed cursor-pointer hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 group"
+                                  >
+                                    <CloudArrowUpIcon className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform duration-200" />
+                                    <span className="text-sm font-medium">Click to upload</span>
+                                    <input
+                                      type="file"
+                                      id="profilePicture"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={handleFileChange}
+                                    />
+                                  </label>
+                                  <p className="mt-2 text-xs text-gray-500">
+                                    Supported formats: JPEG, PNG, GIF (Max 5MB)
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-2">
+                        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center text-sm font-medium text-gray-700">
+                              <DocumentIcon className="w-4 h-4 mr-1.5 text-purple-500" />
+                              Document Upload
+                            </label>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div>
+                              <select
+                                id="proofType"
+                                className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400 bg-white"
+                                {...register("proofType")}
+                              >
+                                <option value="">Select Document Type</option>
+                                <option value="aadhaar">Aadhaar</option>
+                                <option value="pan">PAN Card</option>
+                                <option value="passport">Passport</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="proofDocument"
+                                className="w-full flex flex-col items-center px-4 py-6 bg-gradient-to-br from-white to-purple-50 text-purple-600 rounded-lg border-2 border-purple-100 border-dashed cursor-pointer hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 hover:border-purple-300 hover:text-purple-700 transition-all duration-200 group"
+                              >
+                                <DocumentArrowUpIcon className="w-8 h-8 mb-2 group-hover:scale-110 transition-transform duration-200" />
+                                <span className="text-sm font-medium">Click to upload document</span>
+                                <input
+                                  type="file"
+                                  id="proofDocument"
+                                  className="hidden"
+                                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                  onChange={handleDocumentChange}
+                                />
+                              </label>
+                              <p className="mt-2 text-xs text-gray-500 text-center">
+                                Supported formats: PDF, DOC, DOCX, JPEG, PNG (Max 5MB)
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="col-span-2">
-                          <div className="col-span-2">
-                            <label htmlFor="proofType" className="label">Document Type</label>
-                            <select
-                              id="proofType"
-                              className="input"
-                              {...register("proofType")}
-                            >
-                              <option value="">Select Document Type</option>
-                             
-                              <option value="aadhaar">Aadhaar</option>
-                              <option value="pan">PAN Card</option>
-                              <option value="passport">Passport</option>
-
-
-                            </select>
-                          </div>
-
-                          <div className="col-span-2">
-                            <label htmlFor="proofDocument" className="label">Upload Document</label>
-                            <input
-                              type="file"
-                              id="proofDocument"
-                              className="input"
-                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                              onChange={handleDocumentChange}
-                            />
-                            {/* <p className="text-xs text-gray-500 mt-1">
-                              Please select a document type before uploading a file. Supported formats: PDF, DOC, DOCX, JPEG, PNG (Max 5MB)
-                            </p> */}
-                          </div>
-
-                          {documentPreview && documentPreview.length > 0 && (
-                            <div className="col-span-2 mt-4">
-                              <h4 className="text-sm font-medium text-gray-900 mb-2">Existing Documents</h4>
-                              <div className="space-y-2">
-                                {documentPreview.map((doc, index) => (
-                                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                    <div className="flex-grow">
-                                      <p className="text-sm font-medium text-gray-900">
-                                        {doc.type.charAt(0).toUpperCase() + doc.type.slice(1).replace('_', ' ')}
+                        {documentPreview && documentPreview.length > 0 && (
+                          <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="flex items-center text-sm font-medium text-gray-900">
+                                <DocumentDuplicateIcon className="w-4 h-4 mr-1.5 text-purple-500" />
+                                Uploaded Documents
+                              </h4>
+                              <span className="text-xs text-gray-500">
+                                {documentPreview.length} document{documentPreview.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {documentPreview.map((doc, index) => (
+                                <div 
+                                  key={index} 
+                                  className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-purple-50 rounded-lg border border-purple-100 hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100 transition-all duration-200"
+                                >
+                                  <div className="flex-grow min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      {doc.type.charAt(0).toUpperCase() + doc.type.slice(1).replace('_', ' ')}
+                                    </p>
+                                    <p className="text-xs text-gray-500 truncate">{doc.title}</p>
+                                    {doc.uploadedAt && (
+                                      <p className="text-xs text-gray-400">
+                                        {new Date(doc.uploadedAt).toLocaleDateString()}
                                       </p>
-                                      <p className="text-xs text-gray-500">{doc.title}</p>
-                                      {doc.uploadedAt && (
-                                        <p className="text-xs text-gray-400">
-                                          Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDownloadDocument(doc)}
-                                        className="p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100"
-                                        title="Download Document"
-                                      >
-                                        <ArrowDownTrayIcon className="h-5 w-5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteDocument(doc)}
-                                        className="p-2 text-red-600 hover:text-red-900 rounded-full hover:bg-red-50"
-                                        title="Delete Document"
-                                      >
-                                        <TrashIcon className="h-5 w-5" />
-                                      </button>
-                                    </div>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadDocument(doc)}
+                                      className="p-1.5 text-purple-600 hover:text-purple-700 rounded-lg hover:bg-purple-200/50 transition-all duration-200"
+                                      title="Download Document"
+                                    >
+                                      <ArrowDownTrayIcon className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDocument(doc)}
+                                      className="p-1.5 text-red-600 hover:text-red-700 rounded-lg hover:bg-red-100 transition-all duration-200"
+                                      title="Delete Document"
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
+                      </div>
 
-                        <div className="col-span-2 mt-6 pt-6 border-t">
-                          <h3 className="text-lg font-semibold mb-4">Emergency Contact</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label htmlFor="emergencyContact.name" className="label">Contact Name</label>
-                              <input
-                                type="text"
-                                id="emergencyContact.name"
-                                className="input"
-                                {...register("emergencyContact.name")}
-                                onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
-                              />
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="emergencyContact.relationship" className="label">Relationship</label>
-                              <input
-                                type="text"
-                                id="emergencyContact.relationship"
-                                className="input"
-                                {...register("emergencyContact.relationship")}
-                                onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
-                              />
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="emergencyContact.phone" className="label">Contact Phone</label>
-                              <input
-                                type="text"
-                                id="emergencyContact.phone"
-                                className="input"
-                                {...register("emergencyContact.phone")}
-                                onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
-                              />
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="emergencyContact.email" className="label">Contact Email</label>
-                              <input
-                                type="email"
-                                id="emergencyContact.email"
-                                className="input"
-                                {...register("emergencyContact.email")}
-                                onChange={(e) => handleEmergencyContactChange('email', e.target.value)}
-                              />
-                            </div>
+                      <div className="col-span-2 mt-6 pt-6 border-t">
+                        <div className="flex items-center space-x-2 mb-4">
+                          <PhoneIcon className="w-5 h-5 text-purple-500" />
+                          <h3 className="text-lg font-semibold text-gray-900">Emergency Contact</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label htmlFor="emergencyContact.name" className="flex items-center text-sm font-medium text-gray-700">
+                              <UserIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                              Contact Name
+                            </label>
+                            <input
+                              type="text"
+                              id="emergencyContact.name"
+                              className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                              {...register("emergencyContact.name")}
+                              onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label htmlFor="emergencyContact.relationship" className="flex items-center text-sm font-medium text-gray-700">
+                              <HeartIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                              Relationship
+                            </label>
+                            <input
+                              type="text"
+                              id="emergencyContact.relationship"
+                              className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                              {...register("emergencyContact.relationship")}
+                              onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label htmlFor="emergencyContact.phone" className="flex items-center text-sm font-medium text-gray-700">
+                              <PhoneIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                              Contact Phone
+                            </label>
+                            <input
+                              type="text"
+                              id="emergencyContact.phone"
+                              className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                              {...register("emergencyContact.phone")}
+                              onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <label htmlFor="emergencyContact.email" className="flex items-center text-sm font-medium text-gray-700">
+                              <EnvelopeIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                              Contact Email
+                            </label>
+                            <input
+                              type="email"
+                              id="emergencyContact.email"
+                              className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                              {...register("emergencyContact.email")}
+                              onChange={(e) => handleEmergencyContactChange('email', e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                        <button
-                          type="submit"
-                          disabled={isLoading}
-                          className={`inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto ${
-                            isLoading ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                        >
-                          {isLoading ? "Processing..." : employee ? "Update" : "Create"}
-                        </button>
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                          onClick={onClose}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                    <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg shadow-md hover:shadow-lg disabled:shadow-sm transition-all duration-200 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed text-sm"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            {employee ? "Updating..." : "Creating..."}
+                          </>
+                        ) : (
+                          employee ? "Save Changes" : "Create Employee"
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 sm:mt-0 sm:mr-3 px-4 py-2.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover:bg-gray-50 text-sm"
+                        onClick={onClose}
+                        disabled={isLoading}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </Dialog.Panel>
             </Transition.Child>

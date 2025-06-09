@@ -288,18 +288,29 @@ const LeaveApplication = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        Loading leave information...
+      <div className="flex items-center justify-center min-h-[400px] bg-gradient-to-br from-gray-50 to-white">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
+          <p className="text-gray-500 font-medium">Loading leave information...</p>
+        </div>
       </div>
     );
   }
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Leave Application</h1>
+    <div className="container mx-auto px-4 py-8 space-y-8 min-h-screen">
+      <div className="flex flex-col md:flex-row md:items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Leave Application
+          </h1>
+          <p className="text-gray-600">Request and manage your leave applications</p>
+        </div>
         <div className="mt-4 md:mt-0">
-          <Button variant="outline" className="flex items-center gap-2">
-            <DocumentTextIcon className="h-5 w-5" />
+          <Button 
+            variant="outline" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          >
+            <DocumentTextIcon className="h-5 w-5 mr-2" />
             Download Leave Policy
           </Button>
         </div>
@@ -307,15 +318,15 @@ const LeaveApplication = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
+          <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
                     Leave Type
                   </label>
                   <Select value={leaveType} onValueChange={setLeaveType}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg hover:border-blue-500 transition-colors duration-200">
                       <SelectValue placeholder="Select leave type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -331,40 +342,40 @@ const LeaveApplication = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
                     Duration
                   </label>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     {getFormattedDateRange()}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-700">
                   Date Range
                 </label>
-                <div className="rounded-md border p-4">
+                <div className="rounded-xl border border-gray-200 p-4 bg-white shadow-sm">
                   <div className="flex flex-col">
                     <div className="flex justify-center items-center gap-4 mb-2 pb-2 border-b">
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={handlePreviousMonth}
-                        className="h-6 w-6"
+                        className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                       >
-                        <ChevronLeftIcon className="h-3 w-3" />
+                        <ChevronLeftIcon className="h-4 w-4" />
                       </Button>
-                      <div className="text-xs font-medium">
+                      <div className="text-sm font-medium text-gray-700">
                         {format(currentMonth, "MMMM yyyy")}
                       </div>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={handleNextMonth}
-                        className="h-6 w-6"
+                        className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                       >
-                        <ChevronRightIcon className="h-3 w-3" />
+                        <ChevronRightIcon className="h-4 w-4" />
                       </Button>
                     </div>
                     <Calendar
@@ -382,14 +393,13 @@ const LeaveApplication = () => {
                         nav: "hidden",
                         table: "w-full border-collapse space-y-1",
                         head_row: "flex",
-                        head_cell:
-                          "text-gray-500 w-8 font-normal text-[0.6rem]",
+                        head_cell: "text-gray-500 w-8 font-normal text-[0.8rem]",
                         row: "flex w-full",
-                        cell: "text-center text-[0.6rem] p-0 relative [&:has([aria-selected])]:bg-accent",
-                        day: "h-6 w-6 p-0 font-normal  hover:bg-gray-100",
+                        cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent hover:bg-gray-100 rounded-lg transition-colors duration-200",
+                        day: "h-8 w-8 p-0 font-normal hover:bg-blue-50 rounded-lg",
                         day_range_end: "day-range-end",
                         day_range_start: "day-range-start",
-                        day_selected: "bg-primary text-primary-foreground",
+                        day_selected: "bg-blue-600 text-white hover:bg-blue-700 hover:text-white rounded-lg",
                       }}
                     />
                   </div>
@@ -397,40 +407,49 @@ const LeaveApplication = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Reason</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">
+                  Reason
+                </label>
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Please provide a reason for your leave request"
-                  className="min-h-[100px]"
+                  className="min-h-[100px] bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              >
                 Submit Application
               </Button>
             </form>
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Recent Applications</h2>
+          <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Recent Applications</h2>
             <div className="space-y-4">
               {recentApplications.length === 0 ? (
-                <p className="text-center text-gray-500">
-                  No leave applications found
-                </p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto">
+                    <CalendarIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900">No leave applications</h3>
+                  <p className="text-gray-500 mt-1">Your leave applications will appear here</p>
+                </div>
               ) : (
                 recentApplications.map((application, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 rounded-lg border"
+                    className="flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-blue-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-gray-100 rounded-full">
-                        <CalendarIcon className="h-5 w-5 text-gray-600" />
+                      <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
+                        <CalendarIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{application.type}</p>
+                        <p className="font-medium text-gray-900">{application.type}</p>
                         <p className="text-sm text-gray-500">
                           {application.from} to {application.to}
                         </p>
@@ -439,14 +458,14 @@ const LeaveApplication = () => {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <div
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${getStatusColor(
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
                             application.status
                           )}`}
                         >
                           {getStatusIcon(application.status)}
                           <span>{application.status}</span>
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 mt-1">
                           {application.approvedBy}
                         </p>
                       </div>
@@ -458,30 +477,28 @@ const LeaveApplication = () => {
           </Card>
         </div>
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Leave Balance</h2>
+        <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Leave Balance</h2>
           <div className="space-y-6">
             {Object.entries(leaveBalance).map(([type, balance]) => (
               <div key={type} className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="capitalize">{type} Leave</span>
-                  <span className="font-semibold">
+                  <span className="capitalize text-gray-700">{type} Leave</span>
+                  <span className="font-semibold text-gray-900">
                     {balance.total - balance.used} days
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
                     style={{
-                      width: `${
-                        ((balance.used + balance.pending) / balance.total) * 100
-                      }%`,
+                      width: `${((balance.used + balance.pending) / balance.total) * 100}%`,
                     }}
                   />
                 </div>
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Used: {balance.used} days</span>
-                  <span>Pending: {balance.pending} days</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Used: {balance.used} days</span>
+                  <span className="text-gray-500">Pending: {balance.pending} days</span>
                 </div>
               </div>
             ))}
