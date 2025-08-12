@@ -177,6 +177,12 @@ const ProtectedRoute = () => {
       "/hrm/leave",
       "/hrm/payroll",
       "/hrm/events",
+      "/frm",
+      "/frm/dashboard",
+      "/frm/expenses",
+      "/frm/personal-loans",
+      "/frm/office-loans",
+      "/frm/profits",
     ],
     "Finance Manager": [
       "/",

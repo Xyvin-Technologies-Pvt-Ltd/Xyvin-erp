@@ -16,20 +16,9 @@ import {
 } from "recharts";
 import { TrendingUp, Calendar, Clock, Heart, Users, Award, Target, BarChart3 } from "lucide-react";
 
-// Mock stores for demo
-const useHrmStore = () => ({
-  getMyAttendance: async () => ({ data: { attendance: [] } }),
-  getMyLeave: async () => ({ data: { leaves: [] } }),
-  getMyPayroll: async () => ({ data: { payroll: [] } }),
-});
-
-const useAuthStore = () => ({
-  user: { name: "John Doe", email: "john@example.com" }
-});
-
-const toast = {
-  error: (message) => console.error(message)
-};
+import useHrmStore from "@/stores/useHrmStore";
+import useAuthStore from "@/stores/auth.store";
+import { toast } from "react-hot-toast";
 
 const COLORS = ["#6366F1", "#F59E0B", "#EF4444"]; // Indigo, Amber, Red
 
@@ -284,25 +273,49 @@ function EmployeeDashboard() {
     const present = attendanceStats.present || 0;
     const late = attendanceStats.late || 0;
     const absent = attendanceStats.absent || 0;
-    const total = present + late + absent || 1;
+    const total = present + late + absent;
 
     const data = [
       {
         name: "Present",
         value: present,
-        percentage: Math.round((present / total) * 100),
+        percentage: total > 0 ? Math.round((present / (total)) * 100) : 0,
       },
       {
         name: "Late",
         value: late,
-        percentage: Math.round((late / total) * 100),
+        percentage: total > 0 ? Math.round((late / (total)) * 100) : 0,
       },
       {
         name: "Absent",
         value: absent,
-        percentage: Math.round((absent / total) * 100),
+        percentage: total > 0 ? Math.round((absent / (total)) * 100) : 0,
       },
     ];
+
+    // Hide categories with zero values
+    const filteredData = data.filter((d) => d.value > 0);
+
+    // If no data to show, render a placeholder
+    if (total === 0 || filteredData.length === 0) {
+      return (
+        <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-indigo-100 p-2 rounded-lg">
+                <BarChart3 className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Monthly Attendance Distribution
+              </h2>
+            </div>
+            <div className="h-40 flex items-center justify-center text-gray-500">
+              No attendance data available
+            </div>
+          </div>
+        </Card>
+      );
+    }
 
     return (
       <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -317,9 +330,9 @@ function EmployeeDashboard() {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+                <PieChart>
                 <Pie
-                  data={data}
+                  data={filteredData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -330,7 +343,7 @@ function EmployeeDashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {data.map((entry, index) => (
+                  {filteredData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
@@ -341,7 +354,7 @@ function EmployeeDashboard() {
                 </Pie>
                 <Tooltip
                   formatter={(value, name) => [
-                    `${value} days (${Math.round((value / total) * 100)}%)`,
+                    `${value} days (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
                     name,
                   ]}
                   contentStyle={{
@@ -564,7 +577,7 @@ function EmployeeDashboard() {
                 Dashboard Overview
               </h1>
               <p className="text-lg text-gray-600 font-medium">
-                Welcome back, {user?.name || 'Employee'}! Here's your performance summary.
+                Welcome back, {(user?.fullName || user?.name || user?.firstName && user?.lastName ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim() : user?.email?.split("@")[0]) || 'Employee'}! Here's your performance summary.
               </p>
             </div>
           </div>

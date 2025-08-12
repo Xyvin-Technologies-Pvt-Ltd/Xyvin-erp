@@ -106,7 +106,7 @@ const Sidebar = ({ open, setOpen }) => {
     "ERP System Administrator": ["base", "employee", "hrm", "clients", "projects", "frm"],
     "IT Manager": ["base", "employee", "projects"],
     "Project Manager": ["base", "employee", "projects"],
-    "HR Manager": ["base", "employee", "hrm"],
+    "HR Manager": ["base", "employee", "hrm", "frm"],
   };
 
   // Get allowed navigation sections
