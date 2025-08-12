@@ -72,10 +72,20 @@ exports.getAttendance = catchAsync(async (req, res) => {
 exports.createAttendance = catchAsync(async (req, res) => {
   const { employee, date, checkIn, status, notes, shift = 'Morning' } = req.body;
 
-  // Check for existing attendance record
+  // Normalize date to day range and prevent duplicates
+  const providedDate = new Date(date);
+  if (isNaN(providedDate.getTime())) {
+    throw createError(400, 'Invalid date format');
+  }
+  const dayStart = new Date(providedDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(providedDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
   const existingAttendance = await Attendance.findOne({
     employee,
-    date: new Date(date)
+    date: { $gte: dayStart, $lte: dayEnd },
+    isDeleted: false
   });
 
   if (existingAttendance) {
@@ -85,7 +95,7 @@ exports.createAttendance = catchAsync(async (req, res) => {
   // Create attendance with check-in only
   const attendance = await Attendance.create({
     employee,
-    date: new Date(date),
+    date: providedDate,
     checkIn: {
       time: checkIn?.time || new Date(),
       device: checkIn?.device || 'Web',
@@ -166,24 +176,60 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
   for (const record of attendanceRecords) {
     try {
       // Parse and validate date
-      const attendanceDate = new Date(record.date);
-      attendanceDate.setHours(0, 0, 0, 0);
+      const ProvidedDate = new Date(record.date);
+      if (isNaN(ProvidedDate.getTime())) {
+        throw createError(400, 'Invalid date format');
+      }
+      const dayStart = new Date(ProvidedDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(ProvidedDate);
+      dayEnd.setHours(23, 59, 59, 999);
 
-      // Find existing attendance for the day
+      // Find existing attendance for the day using range
       const existingAttendance = await Attendance.findOne({
         employee: record.employee,
-        date: attendanceDate
+        date: { $gte: dayStart, $lte: dayEnd },
+        isDeleted: false
       });
 
+      // If an attendance record exists for that day
       if (existingAttendance) {
-        // If checkout data is provided and not a holiday/on-leave, update existing record
-        if (record.checkOut && !['Holiday', 'On-Leave'].includes(record.status)) {
+        // Prevent duplicate check-in attempts via bulk
+        if (record.checkIn) {
+          errors.push({
+            employee: record.employee,
+            date: record.date,
+            error: 'Attendance already marked for this date'
+          });
+          continue;
+        }
+
+        // Handle checkout updates via bulk
+        if (record.checkOut) {
           const checkInTime = existingAttendance.checkIn?.time;
+          const alreadyCheckedOut = !!existingAttendance.checkOut?.time;
+
+          if (!checkInTime) {
+            errors.push({
+              employee: record.employee,
+              date: record.date,
+              error: 'Cannot checkout without an existing check-in'
+            });
+            continue;
+          }
+
+          if (alreadyCheckedOut) {
+            errors.push({
+              employee: record.employee,
+              date: record.date,
+              error: 'Checkout already recorded for this date'
+            });
+            continue;
+          }
+
           const checkOutTime = new Date(record.checkOut.time || new Date());
-          
-          // Calculate work hours
           const workHours = calculateWorkHours(checkInTime, checkOutTime);
-          
+
           const updatedAttendance = await Attendance.findByIdAndUpdate(
             existingAttendance._id,
             {
@@ -207,41 +253,52 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
               { path: 'position', select: 'title' }
             ]
           });
-          
+
           results.push(updatedAttendance);
           continue;
         }
+
+        // If neither checkIn nor checkOut provided properly
+        errors.push({
+          employee: record.employee,
+          date: record.date,
+          error: 'Invalid attendance payload'
+        });
+        continue;
       }
 
-      // Create new attendance record if no existing record or no checkout data
+      // No existing record for the day
+      if (record.checkOut) {
+        // Do not allow creating a new record with only checkout
+        errors.push({
+          employee: record.employee,
+          date: record.date,
+          error: 'Cannot checkout without an existing check-in'
+        });
+        continue;
+      }
+
+      // Create new attendance record for check-in (default Present)
+      const checkInTime = record.checkIn?.time ? new Date(record.checkIn.time) : new Date();
+      if (isNaN(checkInTime.getTime())) {
+        throw createError(400, 'Invalid check-in time format');
+      }
+
       const attendanceData = {
         employee: record.employee,
-        date: attendanceDate,
+        date: ProvidedDate,
         status: record.status || 'Present',
         notes: record.notes,
         shift: record.shift || 'Morning',
         workHours: 0,
         createdBy: req.user._id,
-        updatedBy: req.user._id
-      };
-
-      // Handle check-in data based on status
-      if (!['Holiday', 'On-Leave'].includes(record.status)) {
-        const checkInTime = record.checkIn?.time ? new Date(record.checkIn.time) : new Date();
-        if (isNaN(checkInTime.getTime())) {
-          throw createError(400, 'Invalid check-in time format');
-        }
-
-        attendanceData.checkIn = {
+        updatedBy: req.user._id,
+        checkIn: {
           time: checkInTime,
           device: record.checkIn?.device || 'Web',
           ipAddress: record.checkIn?.ipAddress
-        };
-      } else {
-        // For holiday/on-leave status, set special flags
-        attendanceData.isHoliday = record.status === 'Holiday';
-        attendanceData.notes = record.notes || `Not checked in - ${record.status}`;
-      }
+        }
+      };
 
       const newAttendance = await Attendance.create(attendanceData);
 

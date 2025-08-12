@@ -235,6 +235,34 @@ attendanceSchema.pre('save', function(next) {
     next();
 });
 
+// Validate no duplicate attendance records for same employee on same date
+attendanceSchema.pre('save', async function(next) {
+    try {
+        // Skip validation for updates (when _id exists)
+        if (this._id) {
+            return next();
+        }
+
+        // Check for existing attendance record for the same employee on the same date
+        const existingAttendance = await mongoose.model('Attendance').findOne({
+            employee: this.employee,
+            date: {
+                $gte: new Date(this.date.getFullYear(), this.date.getMonth(), this.date.getDate()),
+                $lt: new Date(this.date.getFullYear(), this.date.getMonth(), this.date.getDate() + 1)
+            },
+            isDeleted: false
+        });
+
+        if (existingAttendance) {
+            throw new Error(`Attendance record already exists for employee on ${this.date.toDateString()}`);
+        }
+
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Method to check if employee is currently checked in
 attendanceSchema.statics.isCheckedIn = async function(employeeId) {
     const today = new Date();

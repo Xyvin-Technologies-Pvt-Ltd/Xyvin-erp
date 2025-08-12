@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useMemo } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import {
@@ -13,10 +13,12 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-hot-toast";
 import useHrmStore from "../../../stores/useHrmStore";
+import * as hrmService from "../../../api/hrm.service";
 
 const AttendanceModal = ({ onClose, onSuccess }) => {
   const [activeEmployees, setActiveEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [dayAttendanceMap, setDayAttendanceMap] = useState({});
   const { createBulkAttendance, fetchEmployees } = useHrmStore();
 
   // Add status icons mapping
@@ -69,6 +71,32 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
     };
     loadEmployees();
   }, [fetchEmployees]);
+
+  useEffect(() => {
+    const loadDayAttendance = async () => {
+      try {
+        const dateStr = formik.values.date;
+        if (!dateStr) return;
+        const startDate = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
+        const endDate = new Date(`${dateStr}T23:59:59.999Z`).toISOString();
+        const response = await hrmService.getAttendance({ startDate, endDate });
+        const records = response?.data?.attendance || [];
+        const map = {};
+        records.forEach((rec) => {
+          const emp = rec.employee || {};
+          const key1 = (emp.id || emp._id || "").toString();
+          if (!key1) return;
+          map[key1] = rec;
+        });
+        setDayAttendanceMap(map);
+      } catch (error) {
+        console.error("Failed to load day attendance:", error);
+      }
+    };
+    // Delay execution until formik is initialized
+    loadDayAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [/* mount and when date changes via formik change handler below */]);
 
   const formik = useFormik({
     initialValues: {
@@ -129,13 +157,44 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
           return;
         }
 
-        const attendanceData = validEmployeeIds.map((employeeId) => {
+        const eligibleIds = validEmployeeIds.filter((id) => {
+          const rec = dayAttendanceMap[id];
+          if (values.type === "checkIn") {
+            return !rec; // no record yet for the date
+          }
+          return !!rec?.checkIn?.time && !rec?.checkOut?.time;
+        });
+
+        if (eligibleIds.length === 0) {
+          toast.error("No eligible employees to record for this date");
+          return;
+        }
+
+        const attendanceData = eligibleIds.map((employeeId) => {
           const datetime = new Date(`${values.date}T${values.time}`);
+          if (values.type === "checkIn") {
+            // Use the selected time for check-in
+            return {
+              employee: employeeId,
+              date: values.date,
+              checkIn: {
+                time: datetime,
+                device: "Web",
+                ipAddress: "",
+              },
+              status: "Present",
+              shift: values.shift,
+              notes: values.notes,
+            };
+          }
           return {
             employee: employeeId,
             date: values.date,
-            [values.type]: datetime,
-            status: values.status,
+            checkOut: {
+              time: datetime,
+              device: "Web",
+              ipAddress: "",
+            },
             shift: values.shift,
             notes: values.notes,
           };
@@ -144,17 +203,84 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
         console.log("Attendance data to be sent:", attendanceData); // Debug log
         await createBulkAttendance(attendanceData);
         toast.success("Attendance recorded successfully");
+        try {
+          const startDate = new Date(`${values.date}T00:00:00.000Z`).toISOString();
+          const endDate = new Date(`${values.date}T23:59:59.999Z`).toISOString();
+          const response = await hrmService.getAttendance({ startDate, endDate });
+          const records = response?.data?.attendance || [];
+          const map = {};
+          records.forEach((rec) => {
+            const emp = rec.employee || {};
+            const key1 = (emp.id || emp._id || "").toString();
+            if (!key1) return;
+            map[key1] = rec;
+          });
+          setDayAttendanceMap(map);
+        } catch (e) {
+          // ignore
+        }
+        formik.setFieldValue("selectedEmployees", []);
         onSuccess();
       } catch (error) {
         console.error("Attendance Error:", error);
-        const errorMessage =
-          error.response?.data?.error?.message ||
-          error.response?.data?.message ||
-          "Failed to record attendance";
+        let errorMessage = "Failed to record attendance";
+        
+        if (error.response?.data?.data?.errors) {
+          const errors = error.response.data.data.errors;
+          if (errors.length > 0) {
+            errorMessage = errors.map(err => 
+              `Employee ${err.employee}: ${err.error}`
+            ).join('\n');
+          }
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
         toast.error(errorMessage);
       }
     },
   });
+
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const dateStr = formik.values.date;
+        if (!dateStr) return;
+        const startDate = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
+        const endDate = new Date(`${dateStr}T23:59:59.999Z`).toISOString();
+        const response = await hrmService.getAttendance({ startDate, endDate });
+        const records = response?.data?.attendance || [];
+        const map = {};
+        records.forEach((rec) => {
+          const emp = rec.employee || {};
+          const key1 = (emp.id || emp._id || "").toString();
+          if (!key1) return;
+          map[key1] = rec;
+        });
+        setDayAttendanceMap(map);
+      } catch (error) {
+        console.error("Failed to refresh day attendance:", error);
+      }
+    };
+    refresh();
+  }, [formik.values.date, formik.values.type]);
+
+  const isEmployeeDisabled = (employee) => {
+    const key = (employee.id || employee._id || "").toString();
+    const rec = dayAttendanceMap[key];
+    if (formik.values.type === "checkIn") {
+      return !!rec;
+    }
+    if (!rec) return true;
+    const hasCheckIn = !!rec?.checkIn?.time;
+    const hasCheckOut = !!rec?.checkOut?.time;
+    return !hasCheckIn || hasCheckOut;
+  };
+
+  const eligibleFilteredEmployees = useMemo(
+    () => filteredEmployees.filter((e) => !isEmployeeDisabled(e)),
+    [filteredEmployees, dayAttendanceMap, formik.values.type]
+  );
 
   const handleEmployeeSelection = (employeeId, checked) => {
     console.log("Handling employee selection:", { employeeId, checked }); // Debug log
@@ -389,7 +515,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                             Select Employees
                           </label>
                           <div className="flex gap-2 mt-2 mb-2">
-                            <input
+                          <input
                               type="text"
                               placeholder="Search employees..."
                               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -422,14 +548,14 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                                   type="checkbox"
                                   id="select-all-employees"
                                   checked={
-                                    filteredEmployees.length > 0 &&
+                                    eligibleFilteredEmployees.length > 0 &&
                                     formik.values.selectedEmployees.length ===
-                                      activeEmployees.length
+                                      eligibleFilteredEmployees.length
                                   }
                                   onChange={(e) => {
                                     const isChecked = e.target.checked;
                                     const allEmployeeIds = isChecked
-                                      ? filteredEmployees.map((emp) => emp.id)
+                                      ? eligibleFilteredEmployees.map((emp) => emp.id)
                                       : [];
                                     formik.setFieldValue(
                                       "selectedEmployees",
@@ -459,17 +585,23 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                                   checked={formik.values.selectedEmployees.includes(
                                     employee.id
                                   )}
-                                  onChange={(e) =>
+                                  disabled={isEmployeeDisabled(employee)}
+                                  onChange={(e) => {
+                                    if (isEmployeeDisabled(employee)) return;
                                     handleEmployeeSelection(
                                       employee.id,
                                       e.target.checked
-                                    )
-                                  }
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    );
+                                  }}
+                                  className={`h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${
+                                    isEmployeeDisabled(employee) ? "opacity-50 cursor-not-allowed" : ""
+                                  }`}
                                 />
                                 <label
                                   htmlFor={`employee-${employee.id}`}
-                                  className="text-sm text-gray-700 cursor-pointer"
+                                  className={`text-sm text-gray-700 ${
+                                    isEmployeeDisabled(employee) ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                                  }`}
                                 >
                                   {employee.firstName} {employee.lastName} (
                                   {employee.employeeId || "No ID"})
