@@ -5,27 +5,127 @@ const { createError } = require('../../../utils/errors');
 
 // Get all attendance records
 exports.getAllAttendance = catchAsync(async (req, res) => {
-  const { startDate, endDate, employeeId, departmentId } = req.query;
+  const { startDate, endDate, employeeId, departmentId, positionId, employeeName, date } = req.query;
   
   let query = { isDeleted: false };
   
-  // Date range filter
-  if (startDate && endDate) {
+  if (date) {
+    const selectedDate = new Date(date);
+    if (isNaN(selectedDate.getTime())) {
+      throw createError(400, 'Invalid date format provided');
+    }
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    
     query.date = {
-      $gte: new Date(startDate),
-      $lte: new Date(endDate)
+      $gte: dayStart,
+      $lte: dayEnd
+    };
+  }
+  // Date range filter (only if single date not provided)
+  else if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw createError(400, 'Invalid date range format provided');
+    }
+    
+    if (start > end) {
+      throw createError(400, 'Start date cannot be after end date');
+    }
+    
+    query.date = {
+      $gte: start,
+      $lte: end
     };
   }
   
   // Employee filter
   if (employeeId) {
+    if (!employeeId.match(/^[0-9a-fA-F]{24}$/)) {
+      throw createError(400, 'Invalid employee ID format');
+    }
     query.employee = employeeId;
   }
   
   // Department filter
   if (departmentId) {
+    if (!departmentId.match(/^[0-9a-fA-F]{24}$/)) {
+      throw createError(400, 'Invalid department ID format');
+    }
     const employees = await Employee.find({ department: departmentId }).select('_id');
+    if (employees.length === 0) {
+      throw createError(404, 'No employees found in the specified department');
+    }
     query.employee = { $in: employees.map(emp => emp._id) };
+  }
+
+  // Position filter
+  if (positionId) {
+    if (!positionId.match(/^[0-9a-fA-F]{24}$/)) {
+      throw createError(400, 'Invalid position ID format');
+    }
+    const employees = await Employee.find({ position: positionId }).select('_id');
+    if (employees.length === 0) {
+      throw createError(404, 'No employees found with the specified position');
+    }
+    
+    if (query.employee && query.employee.$in) {
+      // If department filter is also applied, intersect the results
+      const departmentEmployees = query.employee.$in;
+      const positionEmployees = employees.map(emp => emp._id);
+      const intersection = departmentEmployees.filter(id => 
+        positionEmployees.some(posId => posId.toString() === id.toString())
+      );
+      
+      if (intersection.length === 0) {
+        throw createError(404, 'No employees found matching both department and position filters');
+      }
+      
+      query.employee = { $in: intersection };
+    } else {
+      query.employee = { $in: employees.map(emp => emp._id) };
+    }
+  }
+
+  // Employee name filter (search in first name and last name)
+  if (employeeName && employeeName.trim()) {
+    const trimmedName = employeeName.trim();
+    if (trimmedName.length < 2) {
+      throw createError(400, 'Employee name must be at least 2 characters long');
+    }
+    
+    const nameRegex = new RegExp(trimmedName, 'i');
+    const matchingEmployees = await Employee.find({
+      $or: [
+        { firstName: { $regex: nameRegex } },
+        { lastName: { $regex: nameRegex } }
+      ]
+    }).select('_id');
+    
+    if (matchingEmployees.length === 0) {
+      throw createError(404, `No employees found matching the name "${trimmedName}"`);
+    }
+    
+    if (query.employee && query.employee.$in) {
+      // If other filters are applied, intersect the results
+      const existingEmployees = query.employee.$in;
+      const nameEmployees = matchingEmployees.map(emp => emp._id);
+      const intersection = existingEmployees.filter(id => 
+        nameEmployees.some(nameId => nameId.toString() === id.toString())
+      );
+      
+      if (intersection.length === 0) {
+        throw createError(404, 'No employees found matching all applied filters');
+      }
+      
+      query.employee = { $in: intersection };
+    } else {
+      query.employee = { $in: matchingEmployees.map(emp => emp._id) };
+    }
   }
 
   const attendance = await Attendance.find(query)
@@ -958,4 +1058,86 @@ exports.getAttendanceByEmployeeId = catchAsync(async (req, res) => {
       stats
     }
   });
+}); 
+
+// Get unique departments and positions from attendance data
+exports.getAttendanceFilters = catchAsync(async (req, res) => {
+  try {
+    // Get unique departments from attendance records
+    const departments = await Attendance.aggregate([
+      { $match: { isDeleted: false } },
+      {
+        $lookup: {
+          from: 'employees',
+          localField: 'employee',
+          foreignField: '_id',
+          as: 'employeeDetails'
+        }
+      },
+      { $unwind: '$employeeDetails' },
+      {
+        $lookup: {
+          from: 'departments',
+          localField: 'employeeDetails.department',
+          foreignField: '_id',
+          as: 'departmentDetails'
+        }
+      },
+      { $unwind: '$departmentDetails' },
+      {
+        $group: {
+          _id: '$departmentDetails._id',
+          name: { $first: '$departmentDetails.name' }
+        }
+      },
+      { $sort: { name: 1 } }
+    ]);
+
+    // Get unique positions from attendance records
+    const positions = await Attendance.aggregate([
+      { $match: { isDeleted: false } },
+      {
+        $lookup: {
+          from: 'employees',
+          localField: 'employee',
+          foreignField: '_id',
+          as: 'employeeDetails'
+        }
+      },
+      { $unwind: '$employeeDetails' },
+      {
+        $lookup: {
+          from: 'positions',
+          localField: 'employeeDetails.position',
+          foreignField: '_id',
+          as: 'positionDetails'
+        }
+      },
+      { $unwind: '$positionDetails' },
+      {
+        $group: {
+          _id: '$positionDetails._id',
+          title: { $first: '$positionDetails.title' }
+        }
+      },
+      { $sort: { title: 1 } }
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        departments: departments.map(dept => ({
+          _id: dept._id,
+          name: dept.name
+        })),
+        positions: positions.map(pos => ({
+          _id: pos._id,
+          title: pos.title
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error getting attendance filters:', error);
+    throw error;
+  }
 }); 

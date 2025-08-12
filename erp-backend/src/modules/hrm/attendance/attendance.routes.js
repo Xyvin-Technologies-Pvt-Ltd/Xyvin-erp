@@ -10,7 +10,8 @@ const {
   getAttendanceStats,
   updateAttendance,
   getEmployeeAttendance,
-  getAttendanceByEmployeeId
+  getAttendanceByEmployeeId,
+  getAttendanceFilters
 } = require('./attendance.controller');
 const { protect } = require('../../../middleware/authMiddleware');
 
@@ -21,6 +22,9 @@ router.get('/my-attendance', getEmployeeAttendance);
 
 // Get attendance by employee ID
 router.get('/employee/:employeeId',  getAttendanceByEmployeeId);
+
+// Get attendance filters (departments and positions)
+router.get('/filters', getAttendanceFilters);
 
 // Bulk attendance route
 router.post('/bulk',  createBulkAttendance);

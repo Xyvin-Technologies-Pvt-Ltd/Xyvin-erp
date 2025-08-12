@@ -31,6 +31,8 @@ const useHrmStore = create(
       attendance: [],
       attendanceLoading: false,
       attendanceError: null,
+      attendanceDepartments: [],
+      attendancePositions: [],
 
       // Leaves
       leaves: [],
@@ -612,6 +614,25 @@ const useHrmStore = create(
             attendance: [],
             attendanceError: error.response?.data?.message || 'Failed to fetch attendance',
             attendanceLoading: false
+          });
+          throw error;
+        }
+      },
+
+      fetchAttendanceFilters: async () => {
+        try {
+          const response = await hrmService.getAttendanceFilters();
+          const { departments, positions } = response.data;
+          set({
+            attendanceDepartments: departments || [],
+            attendancePositions: positions || []
+          });
+          return { departments, positions };
+        } catch (error) {
+          console.error('Error fetching attendance filters:', error);
+          set({
+            attendanceDepartments: [],
+            attendancePositions: []
           });
           throw error;
         }

@@ -19,6 +19,7 @@ import {
   MoonIcon,
   PencilIcon,
   TrashIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 import useHrmStore from "../../stores/useHrmStore";
 import AttendanceModal from "../../components/modules/hrm/AttendanceModal";
@@ -230,11 +231,23 @@ const Attendance = () => {
   const [attendanceToDelete, setAttendanceToDelete] = useState(null);
   const [isCheckingNextMonth, setIsCheckingNextMonth] = useState(false);
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    employeeName: '',
+    departmentId: '',
+    positionId: '',
+    date: ''
+  });
+  const [filtersLoading, setFiltersLoading] = useState(false);
+
   const {
     attendance,
     attendanceLoading,
     attendanceError,
+    attendanceDepartments,
+    attendancePositions,
     fetchAttendance,
+    fetchAttendanceFilters,
     checkIn,
     getAttendanceStats,
     deleteAttendance,
@@ -242,7 +255,10 @@ const Attendance = () => {
     attendance: state.attendance,
     attendanceLoading: state.attendanceLoading,
     attendanceError: state.attendanceError,
+    attendanceDepartments: state.attendanceDepartments,
+    attendancePositions: state.attendancePositions,
     fetchAttendance: state.fetchAttendance,
+    fetchAttendanceFilters: state.fetchAttendanceFilters,
     checkIn: state.checkIn,
     getAttendanceStats: state.getAttendanceStats,
     deleteAttendance: state.deleteAttendance,
@@ -275,7 +291,6 @@ const Attendance = () => {
     },
   });
 
-  // Load initial data with date range
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -303,6 +318,144 @@ const Attendance = () => {
 
     loadInitialData();
   }, [currentDate]); // Run when currentDate changes
+
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        await fetchAttendanceFilters();
+      } catch (error) {
+        console.error("Error loading attendance filters:", error);
+        toast.error("Failed to load filter options. Some filters may not be available.");
+      }
+    };
+
+    loadFilters();
+  }, [fetchAttendanceFilters]);
+
+  // Filter functions
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  useEffect(() => {
+    const applyFiltersAutomatically = async () => {
+      try {
+        setFiltersLoading(true);
+        const filterParams = {};
+        
+        if (!filters.date) {
+          const startDate = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            1
+          );
+          const endDate = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            0
+          );
+          filterParams.startDate = startDate.toISOString();
+          filterParams.endDate = endDate.toISOString();
+        } else {
+          filterParams.date = filters.date;
+        }
+
+        // Add other filters
+        if (filters.employeeName) {
+          filterParams.employeeName = filters.employeeName;
+        }
+        if (filters.departmentId) {
+          filterParams.departmentId = filters.departmentId;
+        }
+        if (filters.positionId) {
+          filterParams.positionId = filters.positionId;
+        }
+
+        const hasFilters = filters.employeeName || filters.departmentId || filters.positionId || filters.date;
+        
+        if (!hasFilters) {
+          // No filters applied, show current month data
+          await Promise.all([
+            fetchAttendance(filterParams),
+            getAttendanceStats(filterParams),
+          ]);
+        } else {
+          // Apply filters automatically
+          await Promise.all([
+            fetchAttendance(filterParams),
+            getAttendanceStats(filterParams),
+          ]);
+        }
+      } catch (error) {
+        console.error("Error applying filters automatically:", error);
+        
+        if (error.response?.status === 404) {
+          toast.error(error.response?.data?.message || "No records found matching the filters");
+        } else if (error.response?.status === 400) {
+          toast.error(error.response?.data?.message || "Invalid filter parameters");
+        } else {
+          toast.error("Failed to apply filters. Please try again.");
+        }
+      } finally {
+        setFiltersLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      applyFiltersAutomatically();
+    }, filters.employeeName ? 600 : 0); // 500ms delay for text input
+
+    return () => clearTimeout(timeoutId);
+  }, [filters, currentDate, fetchAttendance, getAttendanceStats]);
+
+  const resetFilters = async () => {
+    setFilters({
+      employeeName: '',
+      departmentId: '',
+      positionId: '',
+      date: ''
+    });
+
+    try {
+      // Reload with current month's date range
+      const startDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      const endDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      );
+
+      await Promise.all([
+        fetchAttendance({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        }),
+        getAttendanceStats({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        }),
+      ]);
+    } catch (error) {
+      console.error("Error resetting filters:", error);
+      toast.error("Failed to reset filters");
+    }
+  };
+
+  const clearFilter = async (field) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: ''
+    }));
+    
+    // No need to manually apply filters - useEffect will handle it automatically
+  };
 
   // Load attendance stats
 useEffect(() => {
@@ -458,12 +611,10 @@ useEffect(() => {
   const handleNextMonth = async () => {
     try {
       setIsCheckingNextMonth(true);
-      // Calculate next month's date range
       const nextMonth = new Date(currentDate);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       const now = new Date();
-      // Only prevent navigation if we're trying to go beyond current month/year
       const wouldExceedCurrentMonth =
         nextMonth.getFullYear() > now.getFullYear() ||
         (nextMonth.getFullYear() === now.getFullYear() &&
@@ -472,6 +623,17 @@ useEffect(() => {
       if (wouldExceedCurrentMonth) {
         toast.error("Cannot navigate beyond the current month");
         return;
+      }
+
+      // Clear filters when navigating to a different month
+      if (Object.values(filters).some(value => value !== '')) {
+        setFilters({
+          employeeName: '',
+          departmentId: '',
+          positionId: '',
+          date: ''
+        });
+        toast.info("Filters cleared when navigating to a different month");
       }
 
       setCurrentDate(nextMonth);
@@ -484,6 +646,17 @@ useEffect(() => {
   };
 
   const handlePreviousMonth = () => {
+    // Clear filters when navigating to a different month
+    if (Object.values(filters).some(value => value !== '')) {
+      setFilters({
+        employeeName: '',
+        departmentId: '',
+        positionId: '',
+        date: ''
+      });
+      toast.info("Filters cleared when navigating to a different month");
+    }
+
     const prevMonth = new Date(currentDate);
     prevMonth.setMonth(prevMonth.getMonth() - 1);
     setCurrentDate(prevMonth);
@@ -838,13 +1011,225 @@ useEffect(() => {
               </button>
             </div>
           </div>
+          {/* Filter Status */}
+          {Object.values(filters).some(value => value !== '') && (
+            <div className="mt-3 flex items-center space-x-2 text-sm text-gray-600">
+              <FunnelIcon className="h-4 w-4 text-blue-500" />
+              <span>Active filters:</span>
+              {filters.employeeName && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                  Name: {filters.employeeName}
+                </span>
+              )}
+              {filters.departmentId && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                  Dept: {attendanceDepartments.find(d => d._id === filters.departmentId)?.name || 'Unknown'}
+                </span>
+              )}
+              {filters.positionId && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                  Position: {attendancePositions.find(p => p._id === filters.positionId)?.title || 'Unknown'}
+                </span>
+              )}
+              {filters.date && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800">
+                  Date: {new Date(filters.date).toLocaleDateString()}
+                </span>
+              )}
+              {data.length === 0 && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800">
+                  No results found
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4">
           <AttendanceTypeIcons />
 
+          {/* Filter Controls */}
+          <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                <FunnelIcon className="h-4 w-4 mr-2 text-blue-500" />
+                Filter Attendance Records 
+              </h3>
+              {Object.values(filters).some(value => value !== '') && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {Object.values(filters).filter(value => value !== '').length} active filter(s)
+                </span>
+              )}
+            </div>
+            
+            {/* Loading State for Filters */}
+            {attendanceDepartments.length === 0 && attendancePositions.length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-2"></div>
+                  <p className="text-sm text-gray-600">Loading filter options...</p>
+                </div>
+              </div>
+            )}
+            
+            {(attendanceDepartments.length > 0 || attendancePositions.length > 0) && (
+              <div className="flex flex-wrap items-end gap-4">
+                {/* Employee Name Filter */}
+                <div className="flex-1 min-w-[200px] relative">
+                  <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Employee Name
+                  </label>
+                  <input
+                    type="text"
+                    id="employeeName"
+                    placeholder="Type to search..."
+                    value={filters.employeeName}
+                    onChange={(e) => handleFilterChange('employeeName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    title="Search by first or last name"
+                  />
+                  {filters.employeeName && (
+                    <button
+                      onClick={() => clearFilter('employeeName')}
+                      className="absolute right-2 top-8 text-gray-500 hover:text-gray-700"
+                      title="Clear Employee Name filter"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Department Filter */}
+                <div className="flex-1 min-w-[150px] relative">
+                  <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <select
+                    id="department"
+                    value={filters.departmentId}
+                    onChange={(e) => handleFilterChange('departmentId', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    title="Filter by department"
+                    disabled={attendanceDepartments.length === 0}
+                  >
+                    <option value="">
+                      {attendanceDepartments.length === 0 ? "No departments available" : "All Departments"}
+                    </option>
+                    {attendanceDepartments.map((dept) => (
+                      <option key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  {filters.departmentId && (
+                    <button
+                      onClick={() => clearFilter('departmentId')}
+                      className="absolute right-2 top-8 text-gray-500 hover:text-gray-700"
+                      title="Clear Department filter"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Position Filter */}
+                <div className="flex-1 min-w-[150px] relative">
+                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
+                    Position
+                  </label>
+                  <select
+                    id="position"
+                    value={filters.positionId}
+                    onChange={(e) => handleFilterChange('positionId', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    title="Filter by position"
+                    disabled={attendancePositions.length === 0}
+                  >
+                    <option value="">
+                      {attendancePositions.length === 0 ? "No positions available" : "All Positions"}
+                    </option>
+                    {attendancePositions.map((pos) => (
+                      <option key={pos._id} value={pos._id}>
+                        {pos.title}
+                      </option>
+                    ))}
+                  </select>
+                  {filters.positionId && (
+                    <button
+                      onClick={() => clearFilter('positionId')}
+                      className="absolute right-2 top-8 text-gray-500 hover:text-gray-700"
+                      title="Clear Position filter"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Date Filter */}
+                <div className="flex-1 min-w-[150px] relative">
+                  <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    id="date"
+                    value={filters.date}
+                    onChange={(e) => handleFilterChange('date', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    title="Filter by specific date"
+                  />
+                  {filters.date && (
+                    <button
+                      onClick={() => clearFilter('date')}
+                      className="absolute right-2 top-8 text-gray-500 hover:text-gray-700"
+                      title="Clear Date filter"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Actions */}
+                <div className="min-w-[100px]">
+                  <button
+                    onClick={resetFilters}
+                    className="w-full px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
+                    title="Clear all filters and show current month data"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            )}
+                      
+            {attendanceDepartments.length === 0 && attendancePositions.length === 0 && (
+              <div className="text-center py-4 text-sm text-gray-500">
+                <p>Filter options are not available. You can still use the employee name and date filters.</p>
+              </div>
+            )}
+          </div>
+
           {/* Table */}
           <div className="mt-4 flex flex-col">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {Object.values(filters).some(value => value !== '') ? (
+                  <span>
+                    Showing <span className="font-semibold text-gray-900">{data.length}</span> filtered results
+                  </span>
+                ) : (
+                  <span>
+                    Showing <span className="font-semibold text-gray-900">{data.length}</span> attendance records for {formatMonthYear(currentDate)}
+                  </span>
+                )}
+              </div>
+              {filtersLoading && (
+                <div className="flex items-center text-sm text-blue-600">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mr-2" />
+                  Updating results...
+                </div>
+              )}
+            </div>
             <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
@@ -921,13 +1306,25 @@ useEffect(() => {
                             <div className="flex flex-col items-center justify-center space-y-2">
                               <CalendarDaysIcon className="h-8 w-8 text-gray-400" />
                               <p className="text-base font-medium text-gray-500">
-                                No attendance records found for{" "}
-                                {formatMonthYear(currentDate)}
+                                {Object.values(filters).some(value => value !== '') 
+                                  ? "No attendance records found matching the applied filters"
+                                  : `No attendance records found for ${formatMonthYear(currentDate)}`
+                                }
                               </p>
                               <p className="text-sm text-gray-400">
-                                Try selecting a different month or add new
-                                attendance records
+                                {Object.values(filters).some(value => value !== '') 
+                                  ? "Try adjusting your filters or select a different date range"
+                                  : "Try selecting a different month or add new attendance records"
+                                }
                               </p>
+                              {Object.values(filters).some(value => value !== '') && (
+                                <button
+                                  onClick={resetFilters}
+                                  className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                                >
+                                  Clear Filters
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
