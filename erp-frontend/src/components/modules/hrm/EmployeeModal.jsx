@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { Dialog, Transition, Switch } from "@headlessui/react";
-import { XMarkIcon, ArrowDownTrayIcon, TrashIcon, UserIcon, CodeBracketIcon, EnvelopeIcon, PhoneIcon, UserGroupIcon, BuildingOfficeIcon, BriefcaseIcon, CalendarIcon, CurrencyDollarIcon, LockClosedIcon, PhotographIcon, CameraIcon, CloudArrowUpIcon, DocumentIcon, DocumentArrowUpIcon, HeartIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, ArrowDownTrayIcon, TrashIcon, UserIcon, CodeBracketIcon, EnvelopeIcon, PhoneIcon, UserGroupIcon, BuildingOfficeIcon, BriefcaseIcon, CalendarIcon, CurrencyDollarIcon, LockClosedIcon, PhotoIcon , CameraIcon, CloudArrowUpIcon, DocumentIcon, DocumentArrowUpIcon, HeartIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
@@ -814,7 +814,7 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <label className="flex items-center text-sm font-medium text-gray-700">
-                                <PhotographIcon className="w-4 h-4 mr-1.5 text-purple-500" />
+                                <PhotoIcon  className="w-4 h-4 mr-1.5 text-purple-500" />
                                 Profile Picture
                               </label>
                               {profilePicUrl !== DEFAULT_AVATAR && (
