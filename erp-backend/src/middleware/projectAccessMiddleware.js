@@ -32,12 +32,12 @@ exports.hasProjectAccess = async (req, res, next) => {
             });
         }
 
-        // Check if user has Admin role
-    
+        // Check if user has Admin-like role
         const isAdmin = req.user.role === 'ERP System Administrator';
+        const isOperationOfficer = req.user.role === 'Operation Officer';
 
         // If user is admin, allow access
-        if (isAdmin) {
+        if (isAdmin || isOperationOfficer) {
             logger.info(`Admin user ${userId} granted access to project ${projectId}`);
             return next();
         }

@@ -10,6 +10,7 @@ exports.createProject = async (req, res) => {
 
     const project = new Project({
       ...req.body,
+      manager: req.body.manager || undefined,
       createdBy: req.user._id
     });
 
@@ -18,6 +19,14 @@ exports.createProject = async (req, res) => {
     // Populate after save
     const populatedProject = await Project.findById(project._id)
       .populate('client', 'name company')
+      .populate({
+        path: 'manager',
+        select: 'firstName lastName email position department',
+        populate: [
+          { path: 'position', select: 'title' },
+          { path: 'department', select: 'name' }
+        ]
+      })
       .populate({
         path: 'team',
         select: 'firstName lastName email position department role status',
@@ -36,6 +45,22 @@ exports.createProject = async (req, res) => {
     // Transform project data
     const transformedProject = {
       ...populatedProject.toObject(),
+      manager: populatedProject.manager ? {
+        id: populatedProject.manager._id,
+        _id: populatedProject.manager._id,
+        name: `${populatedProject.manager.firstName} ${populatedProject.manager.lastName}`,
+        firstName: populatedProject.manager.firstName,
+        lastName: populatedProject.manager.lastName,
+        email: populatedProject.manager.email,
+        position: populatedProject.manager.position ? {
+          id: populatedProject.manager.position._id,
+          title: populatedProject.manager.position.title
+        } : null,
+        department: populatedProject.manager.department ? {
+          id: populatedProject.manager.department._id,
+          name: populatedProject.manager.department.name
+        } : null,
+      } : null,
       team: populatedProject.team.map(member => ({
         id: member._id,
         _id: member._id,
@@ -187,7 +212,7 @@ exports.getProjects = async (req, res) => {
   try {
     const userId = req.user._id;
     
-    const isAdmin = req.user.role === 'ERP System Administrator';
+    const isAdmin = req.user.role === 'ERP System Administrator' || req.user.role === 'Operation Officer';
     const isProjectManager = req.user.role === 'Project Manager';
     let query = {};
 
@@ -224,6 +249,14 @@ exports.getProjects = async (req, res) => {
     const projects = await Project.find(query)
       .populate('client', 'name company email phone')
       .populate({
+        path: 'manager',
+        select: 'firstName lastName email position department',
+        populate: [
+          { path: 'position', select: 'title' },
+          { path: 'department', select: 'name' }
+        ]
+      })
+      .populate({
         path: 'team',
         select: 'firstName lastName email position department role status',
         populate: [
@@ -259,6 +292,22 @@ exports.getProjects = async (req, res) => {
     const transformedProjects = projects.map(project => {
       const transformedProject = {
         ...project.toObject(),
+        manager: project.manager ? {
+          id: project.manager._id,
+          _id: project.manager._id,
+          name: `${project.manager.firstName} ${project.manager.lastName}`,
+          firstName: project.manager.firstName,
+          lastName: project.manager.lastName,
+          email: project.manager.email,
+          position: project.manager.position ? {
+            id: project.manager.position._id,
+            title: project.manager.position.title
+          } : null,
+          department: project.manager.department ? {
+            id: project.manager.department._id,
+            name: project.manager.department.name
+          } : null,
+        } : null,
         team: project.team.map(member => ({
           id: member._id,
           _id: member._id,
@@ -325,6 +374,14 @@ exports.getProject = async (req, res) => {
     const project = await Project.findById(req.params.id)
       .populate('client', 'name company email phone')
       .populate({
+        path: 'manager',
+        select: 'firstName lastName email position department',
+        populate: [
+          { path: 'position', select: 'title' },
+          { path: 'department', select: 'name' }
+        ]
+      })
+      .populate({
         path: 'team',
         select: 'firstName lastName email position department role status',
         populate: [
@@ -352,6 +409,22 @@ exports.getProject = async (req, res) => {
     // Transform team data to match expected format
     const transformedProject = {
       ...project.toObject(),
+      manager: project.manager ? {
+        id: project.manager._id,
+        _id: project.manager._id,
+        name: `${project.manager.firstName} ${project.manager.lastName}`,
+        firstName: project.manager.firstName,
+        lastName: project.manager.lastName,
+        email: project.manager.email,
+        position: project.manager.position ? {
+          id: project.manager.position._id,
+          title: project.manager.position.title
+        } : null,
+        department: project.manager.department ? {
+          id: project.manager.department._id,
+          name: project.manager.department.name
+        } : null,
+      } : null,
       team: project.team.map(member => ({
         id: member._id,
         _id: member._id,
@@ -394,6 +467,14 @@ exports.updateProject = async (req, res) => {
     )
       .populate('client', 'name company')
       .populate({
+        path: 'manager',
+        select: 'firstName lastName email position department',
+        populate: [
+          { path: 'position', select: 'title' },
+          { path: 'department', select: 'name' }
+        ]
+      })
+      .populate({
         path: 'team',
         select: 'firstName lastName email position department role status',
         populate: [
@@ -413,6 +494,22 @@ exports.updateProject = async (req, res) => {
     // Transform project data
     const transformedProject = {
       ...project.toObject(),
+      manager: project.manager ? {
+        id: project.manager._id,
+        _id: project.manager._id,
+        name: `${project.manager.firstName} ${project.manager.lastName}`,
+        firstName: project.manager.firstName,
+        lastName: project.manager.lastName,
+        email: project.manager.email,
+        position: project.manager.position ? {
+          id: project.manager.position._id,
+          title: project.manager.position.title
+        } : null,
+        department: project.manager.department ? {
+          id: project.manager.department._id,
+          name: project.manager.department.name
+        } : null,
+      } : null,
       team: project.team.map(member => ({
         id: member._id,
         _id: member._id,
@@ -525,6 +622,14 @@ exports.getProjectDetails = async (req, res) => {
     const project = await Project.findById(req.params.id)
       .populate('client', 'name company email phone')
       .populate({
+        path: 'manager',
+        select: 'firstName lastName email position department',
+        populate: [
+          { path: 'position', select: 'title' },
+          { path: 'department', select: 'name' }
+        ]
+      })
+      .populate({
         path: 'team',
         select: 'firstName lastName email position department role status',
         populate: [
@@ -558,6 +663,22 @@ exports.getProjectDetails = async (req, res) => {
     // Transform project data
     const transformedProject = {
       ...project.toObject(),
+      manager: project.manager ? {
+        id: project.manager._id,
+        _id: project.manager._id,
+        name: `${project.manager.firstName} ${project.manager.lastName}`,
+        firstName: project.manager.firstName,
+        lastName: project.manager.lastName,
+        email: project.manager.email,
+        position: project.manager.position ? {
+          id: project.manager.position._id,
+          title: project.manager.position.title
+        } : null,
+        department: project.manager.department ? {
+          id: project.manager.department._id,
+          name: project.manager.department.name
+        } : null,
+      } : null,
       team: project.team.map(member => ({
         id: member._id,
         _id: member._id,

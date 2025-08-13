@@ -4,10 +4,12 @@ import { XMarkIcon, UserGroupIcon, CalendarDaysIcon, DocumentTextIcon } from '@h
 import { useProjectStore } from '@/stores/projectStore';
 import { useClientStore } from '@/stores/clientStore';
 import { toast } from 'react-hot-toast';
+import useHrmStore from '@/stores/useHrmStore';
 
 const ProjectModal = ({ isOpen, onClose, project = null }) => {
   const { addProject, updateProject } = useProjectStore();
   const { clients, fetchClients } = useClientStore();
+  const { employees, fetchEmployees } = useHrmStore();
   const isEditing = !!project;
 
   const {
@@ -25,12 +27,13 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
     const loadData = async () => {
       try {
         await fetchClients();
+        await fetchEmployees();
       } catch (error) {
-        toast.error('Failed to load clients');
+        toast.error('Failed to load clients or employees');
       }
     };
     loadData();
-  }, [fetchClients]);
+  }, [fetchClients, fetchEmployees]);
 
   useEffect(() => {
     if (project) {
@@ -53,6 +56,7 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
         endDate: project.endDate ? project.endDate.split('T')[0] : '',
         status: project.status || 'planning',
         clientId: clientId,
+        managerId: project.manager?._id || project.manager?.id || '',
         id: project._id || project.id
       };
       
@@ -69,7 +73,8 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
         startDate: '',
         endDate: '',
         status: 'planning',
-        clientId: ''
+        clientId: '',
+        managerId: ''
       });
     }
   }, [project, reset, clients]);
@@ -82,7 +87,8 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
         startDate: new Date(data.startDate).toISOString(),
         endDate: data.endDate ? new Date(data.endDate).toISOString() : null,
         status: data.status || 'planning',
-        client: data.clientId
+        client: data.clientId,
+        manager: data.managerId || null
       };
 
       console.log('Submitting project data:', formattedData);
@@ -295,6 +301,33 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
                     <option value="on-hold">On Hold</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
+                  </select>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Manager */}
+              <div className="space-y-1">
+                <label htmlFor="managerId" className="flex items-center text-sm font-medium text-gray-700">
+                  <UserGroupIcon className="w-4 h-4 mr-1.5 text-gray-500" />
+                  Project Manager
+                </label>
+                <div className="relative">
+                  <select
+                    id="managerId"
+                    {...register('managerId')}
+                    className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none appearance-none bg-white text-sm border-gray-300 focus:border-blue-500 hover:border-gray-400"
+                  >
+                    <option value="">Select a manager </option>
+                    {Array.isArray(employees) && employees.map(emp => (
+                      <option key={emp._id || emp.id} value={emp._id || emp.id}>
+                        {emp.firstName} {emp.lastName} {emp.position?.title ? `- ${emp.position.title}` : ''}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

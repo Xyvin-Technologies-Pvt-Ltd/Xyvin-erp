@@ -9,7 +9,8 @@ exports.validateProject = (data) => {
     endDate: Joi.date().min(Joi.ref('startDate')).allow(null),
     status: Joi.string().valid('planning', 'in-progress', 'on-hold', 'completed', 'cancelled'),
     budget: Joi.number().min(0).allow(null),
-    team: Joi.array().items(Joi.string().hex().length(24))
+    team: Joi.array().items(Joi.string().hex().length(24)),
+    manager: Joi.string().hex().length(24).allow(null)
   });
 
   return schema.validate(data);

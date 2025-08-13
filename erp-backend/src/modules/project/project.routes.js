@@ -17,15 +17,15 @@ const { hasProjectAccess } = require('../../middleware/projectAccessMiddleware')
 router.use(protect);
 
 // Routes that don't need project-specific access control
-router.post('/', authorize('ERP System Administrator', 'Project Manager'), createProject);
+router.post('/', authorize('ERP System Administrator', 'Project Manager', 'Operation Officer'), createProject);
 router.get('/', getProjects); // Will be filtered in controller based on user role
 
 // Routes that need project-specific access control
 router.get('/:id', hasProjectAccess, getProject);
 router.get('/:id/details', hasProjectAccess, getProjectDetails);
 router.put('/:id', hasProjectAccess, updateProject);
-router.delete('/:id', authorize('ERP System Administrator', 'Project Manager'), hasProjectAccess, deleteProject);
-router.post('/:id/assign-team', authorize('ERP System Administrator', 'Project Manager'), hasProjectAccess, assignTeam);
+router.delete('/:id', authorize('ERP System Administrator', 'Project Manager', 'Operation Officer'), hasProjectAccess, deleteProject);
+router.post('/:id/assign-team', authorize('ERP System Administrator', 'Project Manager', 'Operation Officer'), hasProjectAccess, assignTeam);
 
 // Test route for project access
 router.get('/:id/test-access', hasProjectAccess, testProjectAccess);

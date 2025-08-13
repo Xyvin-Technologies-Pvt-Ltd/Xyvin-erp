@@ -230,6 +230,7 @@ const ProtectedRoute = () => {
       "/projects/list",
       "/projects/details",
       "/projects/assign",
+      "/projects/kanban",
     ],
   };
 
