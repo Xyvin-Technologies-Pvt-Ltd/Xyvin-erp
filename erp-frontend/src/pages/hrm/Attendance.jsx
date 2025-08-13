@@ -345,6 +345,10 @@ const Attendance = () => {
       try {
         setFiltersLoading(true);
         const filterParams = {};
+        if (filters.employeeName && filters.employeeName.trim().length < 2) {
+          setFiltersLoading(false);
+          return;
+        }
         
         if (!filters.date) {
           const startDate = new Date(
@@ -391,13 +395,9 @@ const Attendance = () => {
         }
       } catch (error) {
         console.error("Error applying filters automatically:", error);
-        
-        if (error.response?.status === 404) {
-          toast.error(error.response?.data?.message || "No records found matching the filters");
-        } else if (error.response?.status === 400) {
-          toast.error(error.response?.data?.message || "Invalid filter parameters");
+        if (error.response?.status === 404 || error.response?.status === 400) {
         } else {
-          toast.error("Failed to apply filters. Please try again.");
+          console.log("Failed to apply filters. Please try again.");
         }
       } finally {
         setFiltersLoading(false);
@@ -406,7 +406,7 @@ const Attendance = () => {
 
     const timeoutId = setTimeout(() => {
       applyFiltersAutomatically();
-    }, filters.employeeName ? 600 : 0); // 500ms delay for text input
+    }, filters.employeeName ? 600 : 0);
 
     return () => clearTimeout(timeoutId);
   }, [filters, currentDate, fetchAttendance, getAttendanceStats]);
@@ -894,33 +894,11 @@ useEffect(() => {
     usePagination
   );
 
-  // Update isCurrentMonth calculation to check if we're at current month AND year
   const now = new Date();
   const isCurrentMonth =
     currentDate.getMonth() === now.getMonth() &&
     currentDate.getFullYear() === now.getFullYear();
 
-  if (attendanceLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading attendance data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (attendanceError) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
-          <ExclamationCircleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 font-semibold text-lg">{attendanceError}</p>
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
 

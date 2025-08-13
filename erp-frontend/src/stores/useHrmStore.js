@@ -609,6 +609,15 @@ const useHrmStore = create(
             attendanceLoading: false
           });
         } catch (error) {
+          const status = error?.response?.status;
+          if (status === 404) {
+            set({
+              attendance: [],
+              attendanceError: null,
+              attendanceLoading: false
+            });
+            return { data: { attendance: [] } };
+          }
           console.error('Error fetching attendance:', error); // Debug log
           set({
             attendance: [],
