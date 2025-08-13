@@ -60,7 +60,7 @@ const AttendanceEditModal = ({ attendance, onClose, onSuccess }) => {
       );
 
       let status = "Absent";
-      const startTime = new Date(checkIn).setHours(10, 0, 0, 0);
+      const startTime = new Date(checkIn).setHours(10, 15, 0, 0);
 
       if (checkIn > startTime) status = "Late";
       else if (workHours >= 8) status = "Present";
