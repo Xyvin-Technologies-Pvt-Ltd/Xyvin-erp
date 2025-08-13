@@ -105,8 +105,9 @@ function EmployeeDashboard() {
   const fetchLeaveStats = async () => {
     try {
       const response = await getMyLeave();
-      const leaves = response?.data?.leaves || [];
+      const leaves = response?.data?.leaves || response?.leaves || [];
 
+      // Start with sensible defaults, but allow dynamic types to be added
       const leaveCount = {
         annual: { used: 0, total: 14 },
         sick: { used: 0, total: 7 },
@@ -121,10 +122,12 @@ function EmployeeDashboard() {
               new Date(leave.endDate),
               new Date(leave.startDate)
             ) + 1;
-          const type = leave.leaveType.toLowerCase();
-          if (leaveCount[type]) {
-            leaveCount[type].used += days;
+          const type = (leave.leaveType || "other").toLowerCase();
+          if (!leaveCount[type]) {
+            // Unknown type: track it dynamically; no configured total
+            leaveCount[type] = { used: 0, total: 0 };
           }
+          leaveCount[type].used += days;
         }
       });
 
@@ -136,16 +139,25 @@ function EmployeeDashboard() {
 
   const fetchRecentPayslips = async () => {
     try {
-      const response = await getMyPayroll();
+      const res = await getMyPayroll();
       let payrollData = [];
 
-      if (response?.data?.payroll && Array.isArray(response.data.payroll)) {
-        payrollData = response.data.payroll;
-      } else if (response?.data?.data && Array.isArray(response.data.data)) {
-        payrollData = response.data.data;
+      const candidates = [
+        res?.payroll,
+        res?.data?.payroll,
+        res?.data?.data,
+        res?.data,
+        res?.payrolls,
+        res?.items,
+      ];
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate)) {
+          payrollData = candidate;
+          break;
+        }
       }
 
-      if (payrollData.length === 0) {
+      if (!Array.isArray(payrollData) || payrollData.length === 0) {
         const defaultData = generateDefaultPayslips();
         setRecentPayslips(defaultData);
         return;
@@ -159,10 +171,8 @@ function EmployeeDashboard() {
 
       const formattedPayslips = sortedPayroll.map((payroll) => ({
         month: format(new Date(payroll.period || payroll.date), "MMM yyyy"),
+        // Use only net salary (single-line chart)
         amount: parseFloat(payroll.netSalary || payroll.amount) || 0,
-        grossSalary: parseFloat(payroll.grossSalary || payroll.gross) || 0,
-        deductions:
-          parseFloat(payroll.deductions || payroll.totalDeductions) || 0,
       }));
 
       setRecentPayslips(formattedPayslips);
@@ -387,7 +397,7 @@ function EmployeeDashboard() {
     const data = Object.entries(leaveStats).map(([type, stats]) => ({
       name: type.charAt(0).toUpperCase() + type.slice(1),
       used: stats.used,
-      remaining: stats.total - stats.used,
+      remaining: Math.max((stats.total || 0) - (stats.used || 0), 0),
     }));
 
     return (
@@ -502,24 +512,6 @@ function EmployeeDashboard() {
                     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                   }}
                 />
-                <Legend
-                  verticalAlign="top"
-                  height={36}
-                  wrapperStyle={{
-                    paddingBottom: "20px",
-                    color: '#111827',
-                    fontWeight: 500,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="grossSalary"
-                  name="Gross Salary"
-                  stroke="#22C55E"
-                  strokeWidth={3}
-                  dot={{ fill: '#22C55E', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: '#22C55E' }}
-                />
                 <Line
                   type="monotone"
                   dataKey="amount"
@@ -528,15 +520,6 @@ function EmployeeDashboard() {
                   strokeWidth={3}
                   dot={{ fill: '#3B82F6', strokeWidth: 2, r: 5 }}
                   activeDot={{ r: 8, fill: '#3B82F6' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="deductions"
-                  name="Deductions"
-                  stroke="#EF4444"
-                  strokeWidth={3}
-                  dot={{ fill: '#EF4444', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: '#EF4444' }}
                 />
               </LineChart>
             </ResponsiveContainer>
