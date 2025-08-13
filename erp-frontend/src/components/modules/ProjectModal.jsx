@@ -113,7 +113,8 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
   };
 
   if (!isOpen) return null;
-
+ console.log(employees, 'Available employees:', employees);
+ 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -322,12 +323,14 @@ const ProjectModal = ({ isOpen, onClose, project = null }) => {
                     {...register('managerId')}
                     className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none appearance-none bg-white text-sm border-gray-300 focus:border-blue-500 hover:border-gray-400"
                   >
-                    <option value="">Select a manager </option>
-                    {Array.isArray(employees) && employees.map(emp => (
-                      <option key={emp._id || emp.id} value={emp._id || emp.id}>
-                        {emp.firstName} {emp.lastName} {emp.position?.title ? `- ${emp.position.title}` : ''}
-                      </option>
-                    ))}
+                    <option value="">Select a project manager</option>
+                    {Array.isArray(employees) && employees
+                      .filter(emp => emp.role ==='Project Manager' )
+                      .map(emp => (
+                        <option key={emp._id || emp.id} value={emp._id || emp.id}>
+                          {emp.firstName} {emp.lastName} {emp.position?.title ? `- ${emp.position.title}` : ''}
+                        </option>
+                      ))}
                   </select>
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
