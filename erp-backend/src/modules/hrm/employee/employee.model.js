@@ -80,7 +80,8 @@ const employeeSchema = new mongoose.Schema(
         'Finance Manager',
         'Employee',
         'Sales Manager',
-        'Admin'
+        'Admin',
+        'Operation Officer'
       ],
       default: "Employee",
     },

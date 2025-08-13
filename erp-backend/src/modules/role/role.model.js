@@ -14,7 +14,8 @@ const roleSchema = new mongoose.Schema({
             'HR Manager',
             'Finance Manager',
             'Sales Manager',
-            'Employee'
+            'Employee',
+            'Operation Officer'
         ],
     },
     description: {

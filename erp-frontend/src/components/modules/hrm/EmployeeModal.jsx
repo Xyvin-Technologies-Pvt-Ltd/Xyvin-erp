@@ -20,7 +20,8 @@ const EMPLOYEE_ROLES = [
   "Finance Manager",
   "Employee",
   "Sales Manager",
-  "Admin"
+  "Admin",
+  "Operation Officer"
 ];
 
 const ALLOWED_DOCUMENT_TYPES = [
