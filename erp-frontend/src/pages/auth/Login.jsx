@@ -34,7 +34,7 @@ const Login = () => {
 
       if (response.success) {
         toast.success("Login successful!");
-        navigate("/dashboard");
+        navigate("/employee/dashboard");
       } else {
         throw new Error(response.error || "Login failed");
       }

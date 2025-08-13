@@ -63,14 +63,11 @@ const router = createBrowserRouter(
               path: "/",
               element: <Dashboard />,
             },
-            // {
-            //   path: "dashboard",
-            //   element: <Dashboard />,
-            // },
             {
-                  path: "dashboard",
-                  element: <EmployeeDashboard />,
-                },
+              path: "dashboard",
+              element: <Dashboard />,
+            },
+            
             // Employee Routes
             {
               path: "employee",
