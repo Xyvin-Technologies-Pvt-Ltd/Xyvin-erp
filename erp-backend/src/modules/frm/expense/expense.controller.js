@@ -192,7 +192,7 @@ const getExpenses = async (req, res, next) => {
     }
 
     // Add user role based filters
-    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+    if (req.user.role !== 'admin' && req.user.role !== 'manager' &&  req.user.role !== 'hr') {
       filter.submittedBy = req.user._id;
     }
 
@@ -247,7 +247,7 @@ const getExpenseById = async (req, res, next) => {
     }
 
     // Check if user has permission to view
-    if (req.user.role !== 'admin' && req.user.role !== 'manager' && 
+    if (req.user.role !== 'admin' && req.user.role !== 'manager' &&  req.user.role !== 'hr' &&  
         expense.submittedBy._id.toString() !== req.user._id.toString()) {
       return next(createError(403, 'Not authorized to view this expense'));
     }
@@ -422,7 +422,7 @@ const getExpenseStats = async (req, res, next) => {
       {
         $match: {
           status: 'Approved',
-          ...(req.user.role !== 'admin' && req.user.role !== 'manager' 
+          ...(req.user.role !== 'admin' && req.user.role !== 'manager' &&  req.user.role !== 'hr'
               ? { submittedBy: req.user._id } 
               : {})
         }

@@ -73,7 +73,7 @@ const PaySlip = () => {
         console.log('No payroll found for period:', month);
         setDataNotFound(true);
         setPaySlipData(null);
-        toast.error('No payroll data found for selected month');
+        // toast.error('No payroll data found for selected month');
         return;
       }
 
