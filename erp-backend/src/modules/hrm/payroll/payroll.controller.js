@@ -45,12 +45,26 @@ exports.getPayrollById = async (req, res, next) => {
 // Create new payroll
 exports.createPayroll = async (req, res, next) => {
   try {
-    const { employee: employeeId, allowances, deductions, ...payrollData } = req.body;
+    const { employee: employeeId, allowances, deductions, period, ...payrollData } = req.body;
     
     // Get employee to fetch salary
     const employee = await Employee.findById(employeeId);
     if (!employee) {
       return next(createError(404, 'Employee not found'));
+    }
+
+    let periodDate;
+    if (period && typeof period === 'string') {
+      // If period is in format "YYYY-MM", convert to first day of that month
+      if (period.match(/^\d{4}-\d{2}$/)) {
+        periodDate = new Date(period + '-01');
+      } else {
+        periodDate = new Date(period);
+      }
+    } else if (period) {
+      periodDate = new Date(period);
+    } else {
+      periodDate = new Date();
     }
 
     // Calculate total allowances
@@ -65,6 +79,7 @@ exports.createPayroll = async (req, res, next) => {
     const payroll = new Payroll({
       ...payrollData,
       employee: employeeId,
+      period: periodDate,
       basicSalary: employee.salary,
       allowances: {
         mobile: allowances?.mobile || 0,
@@ -99,7 +114,19 @@ exports.createPayroll = async (req, res, next) => {
 // Update payroll
 exports.updatePayroll = async (req, res, next) => {
   try {
-    const { allowances, deductions, basicSalary, ...updateData } = req.body;
+    const { allowances, deductions, basicSalary, period, ...updateData } = req.body;
+
+    let periodDate;
+    if (period && typeof period === 'string') {
+      // If period is in format "YYYY-MM", convert to first day of that month
+      if (period.match(/^\d{4}-\d{2}$/)) {
+        periodDate = new Date(period + '-01');
+      } else {
+        periodDate = new Date(period);
+      }
+    } else if (period) {
+      periodDate = new Date(period);
+    }
 
     // Calculate total allowances if provided
     let totalAllowances = 0;
@@ -134,6 +161,7 @@ exports.updatePayroll = async (req, res, next) => {
       { 
         $set: {
           ...updateData,
+          ...(periodDate && { period: periodDate }),
           basicSalary: finalBasicSalary,
           allowances: finalAllowances,
           deductions: finalDeductions,

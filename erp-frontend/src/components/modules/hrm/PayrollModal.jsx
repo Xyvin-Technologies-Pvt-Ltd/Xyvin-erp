@@ -9,7 +9,7 @@ import * as hrmService from "../../../api/hrm.service";
 
 const validationSchema = Yup.object({
   employee: Yup.string().required("Employee is required"),
-  period: Yup.date().required("Period is required"),
+  period: Yup.string().required("Period is required"),
   basicSalary: Yup.number()
     .required("Basic salary is required")
     .min(0, "Basic salary cannot be negative"),
@@ -43,7 +43,7 @@ const PayrollModal = ({ payroll, onClose, onSuccess }) => {
   const formik = useFormik({
     initialValues: {
       employee: payroll?.employee?._id || "",
-      period: payroll?.period || new Date().toISOString().split("T")[0],
+      period: payroll?.period ? new Date(payroll.period).toISOString().slice(0, 7) : new Date().toISOString().slice(0, 7),
       basicSalary: payroll?.basicSalary || 0,
       allowances: {
         mobile: payroll?.allowances?.mobile || 0,
@@ -59,6 +59,9 @@ const PayrollModal = ({ payroll, onClose, onSuccess }) => {
     validationSchema,
     onSubmit: async (values) => {
       try {
+        console.log("Form values being submitted:", values);
+        console.log("Period value:", values.period);
+        
         if (payroll?._id) {
           await hrmService.updatePayroll(payroll._id, values);
           toast.success("Payroll updated successfully");
@@ -68,6 +71,7 @@ const PayrollModal = ({ payroll, onClose, onSuccess }) => {
         }
         onSuccess();
       } catch (error) {
+        console.error("Error submitting payroll:", error);
         toast.error(error.response?.data?.message || "Something went wrong");
       }
     },
@@ -202,6 +206,10 @@ const PayrollModal = ({ payroll, onClose, onSuccess }) => {
                             id="period"
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             {...formik.getFieldProps("period")}
+                            value={formik.values.period}
+                            onChange={(e) => {
+                              formik.setFieldValue("period", e.target.value);
+                            }}
                           />
                           {formik.touched.period && formik.errors.period && (
                             <p className="mt-1 text-sm text-red-600">

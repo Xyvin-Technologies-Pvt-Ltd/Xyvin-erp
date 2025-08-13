@@ -82,7 +82,14 @@ const Payroll = () => {
 
   useEffect(() => {
     fetchPayrollData();
-    console.log(payroll, "payroll");
+    console.log("Payroll data:", payroll);
+    console.log("Payroll data structure:", payroll?.map(p => ({
+      id: p._id,
+      employee: p.employee,
+      period: p.period,
+      netSalary: p.netSalary,
+      status: p.status
+    })));
   }, [fetchPayrollData]);
 
   const handleDeleteClick = (payroll) => {
@@ -107,7 +114,6 @@ const Payroll = () => {
         (record) => record.status === "processed"
       ).length;
 
-      // Calculate mock changes (you can replace this with actual historical data comparison)
       const mockChanges = {
         employees: "+5%",
         paid: "+8%",
@@ -128,14 +134,14 @@ const Payroll = () => {
   const columns = useMemo(
     () => [
       {
-        Header: "Employee Id",
+        Header: "Employee Name",
         accessor: (row) => {
           if (!row.employee) return "N/A";
           return `${row.employee.firstName || ''} ${row.employee.lastName || ''}`.trim() || "N/A";
         },
       },
       {
-        Header: "Employee Name",
+        Header: "Department",
         accessor: (row) => row.employee?.department?.name || "N/A",
       },
       {
@@ -143,20 +149,20 @@ const Payroll = () => {
         accessor: (row) => row.employee?.position?.title || "N/A",
       },
       {
-        Header: "Email",
-        accessor: (row) => row.employee?.email || "N/A",
-      },
-      {
-        Header: "Joining Date",
-        accessor: (row) => row.employee?.joiningDate,
+        Header: "Period",
+        accessor: "period",
         Cell: ({ value }) => {
           if (!value) return "N/A";
-          return new Date(value).toLocaleDateString("en-US", {
+          const date = new Date(value);
+          return date.toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
-            day: "numeric",
           });
         },
+      },
+      {
+        Header: "Email",
+        accessor: (row) => row.employee?.email || "N/A",
       },
       {
         Header: "Salary",
