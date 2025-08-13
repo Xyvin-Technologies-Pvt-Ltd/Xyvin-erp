@@ -8,17 +8,21 @@ import { useNavigate } from 'react-router-dom';
 import { useTable, usePagination } from 'react-table';
 import { useMemo } from 'react';
 import DeleteConfirmationModal from '@/components/common/DeleteConfirmationModal';
+import useAuthStore from '@/stores/auth.store';
 
 const ProjectList = () => {
   const navigate = useNavigate();
   const { projects, fetchProjects, deleteProject } = useProjectStore();
   const { clients, fetchClients } = useClientStore();
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null); 
   const [tableData, setTableData] = useState([]);
+
+  const canAddProjects = user?.role === 'ERP System Administrator' || user?.role === 'Operation Officer';
 
   useEffect(() => {
     const loadData = async () => {
@@ -242,6 +246,22 @@ const ProjectList = () => {
         )
       },
       {
+        Header: 'Project Manager',
+        accessor: 'manager',
+        Cell: ({ value }) => (
+          <div className="flex items-center space-x-1">
+            <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-purple-100 to-indigo-200 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-purple-600">
+                {value?.firstName?.[0] || value?.name?.[0] || '?'}
+              </span>
+            </div>
+            <span className="text-xs font-medium text-gray-700 truncate">
+              {value ? `${value.firstName || value.name} ${value.lastName || ''}`.trim() : 'Not Assigned'}
+            </span>
+          </div>
+        )
+      },
+      {
         Header: 'Team',
         accessor: row => getUniqueAssigneesCount(row),
         Cell: ({ value }) => (
@@ -353,13 +373,15 @@ const ProjectList = () => {
               </h1>
               <p className="text-gray-600">Manage and track all your projects in one place</p>
             </div>
-            <button
-              onClick={handleAdd}
-              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-            >
-              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              Add Project
-            </button>
+            {canAddProjects && (
+              <button
+                onClick={handleAdd}
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              >
+                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                Add Project
+              </button>
+            )}
           </div>
         </div>
 
@@ -416,13 +438,15 @@ const ProjectList = () => {
                           <h3 className="text-lg font-semibold text-gray-900">No projects found</h3>
                           <p className="text-gray-500 mt-1">Get started by creating your first project</p>
                         </div>
-                        <button
-                          onClick={handleAdd}
-                          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
-                        >
-                          <PlusIcon className="w-4 h-4 mr-2" />
-                          Add Project
-                        </button>
+                        {canAddProjects && (
+                          <button
+                            onClick={handleAdd}
+                            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                          >
+                            <PlusIcon className="w-4 h-4 mr-2" />
+                            Add Project
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
