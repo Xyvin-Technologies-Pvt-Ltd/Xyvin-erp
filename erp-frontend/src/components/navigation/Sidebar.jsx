@@ -36,7 +36,7 @@ const frmNavigation = {
 };
 
 const baseNavigation = [
-  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+  { name: "Events", href: "/dashboard", icon: HomeIcon },
 ];
 
 const employeeNavigation = {
