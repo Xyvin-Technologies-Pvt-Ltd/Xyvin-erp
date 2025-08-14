@@ -623,13 +623,31 @@ const getCurrentEmployee = catchAsync(async (req, res) => {
     throw createError(404, 'Employee not found');
   }
 
+  let profilePicture = employee.profilePicture;
+  if (profilePicture) {
+    profilePicture = profilePicture
+      .replace(/^\/?public\/?/, '/')
+      .replace(/^\/+/, '/')
+      .replace(/\/+/g, '/');
+    if (!profilePicture.startsWith('/uploads')) {
+      const withoutPublic = employee.profilePicture
+        .toString()
+        .replace(/^\/?public\/?/, '/')
+        .replace(/^\/+/, '/');
+      profilePicture = withoutPublic;
+    }
+  }
+
+  const responseEmployee = {
+    ...employee.toObject(),
+    profilePicture: profilePicture || employee.profilePicture,
+    fullName: `${employee.firstName} ${employee.lastName}`
+  };
+
   res.status(200).json({
     status: 'success',
     data: { 
-      employee: {
-        ...employee.toObject(),
-        fullName: `${employee.firstName} ${employee.lastName}`
-      }
+      employee: responseEmployee
     }
   });
 });

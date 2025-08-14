@@ -44,7 +44,13 @@ function initializeRoutes(app, base_path) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         next();
-    }, express.static(path.join(__dirname, '..', 'public')));
+    }, express.static(path.join(__dirname, '..', '..', 'public')));
+
+    app.use('/uploads', (req, res, next) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        next();
+    }, express.static(path.join(__dirname, '..', '..', 'public', 'uploads')));
 
 
 
