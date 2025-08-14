@@ -1041,14 +1041,14 @@ useEffect(() => {
             </div>
             
             {/* Loading State for Filters */}
-            {attendanceDepartments.length === 0 && attendancePositions.length === 0 && (
+            {/* {attendanceDepartments.length === 0 && attendancePositions.length === 0 && (
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-2"></div>
                   <p className="text-sm text-gray-600">Loading filter options...</p>
                 </div>
               </div>
-            )}
+            )} */}
             
             {(attendanceDepartments.length > 0 || attendancePositions.length > 0) && (
               <div className="flex flex-wrap items-end gap-4">

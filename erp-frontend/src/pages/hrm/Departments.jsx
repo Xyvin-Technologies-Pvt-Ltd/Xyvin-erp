@@ -334,7 +334,7 @@ const Departments = () => {
                           <h3 className="text-lg font-semibold text-gray-900">No departments found</h3>
                           <p className="text-gray-500 mt-1">Get started by creating your first department</p>
                         </div>
-                        <button
+                        {/* <button
                           onClick={() => {
                             setSelectedDepartment(null);
                             setShowModal(true);
@@ -343,7 +343,7 @@ const Departments = () => {
                         >
                           <PlusIcon className="w-4 h-4 mr-2" />
                           Add Department
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

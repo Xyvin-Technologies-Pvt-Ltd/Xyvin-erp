@@ -277,7 +277,7 @@ const Events = () => {
               <h3 className="text-lg font-semibold text-gray-900">No events found</h3>
               <p className="text-gray-500 mt-1">Get started by creating your first event</p>
             </div>
-            <button
+            {/* <button
               onClick={() => {
                 setSelectedEvent(null);
                 setShowModal(true);
@@ -286,7 +286,7 @@ const Events = () => {
             >
               <PlusIcon className="w-4 h-4 mr-2" />
               Add Event
-            </button>
+            </button> */}
           </div>
         </div>
       ) : (

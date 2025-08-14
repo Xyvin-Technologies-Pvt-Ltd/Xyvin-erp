@@ -362,7 +362,7 @@ const Employees = () => {
                           <h3 className="text-lg font-semibold text-gray-900">No employees found</h3>
                           <p className="text-gray-500 mt-1">Get started by adding your first employee</p>
                         </div>
-                        <button
+                        {/* <button
                           onClick={() => {
                             setSelectedEmployee(null);
                             setShowModal(true);
@@ -371,7 +371,7 @@ const Employees = () => {
                         >
                           <PlusIcon className="w-4 h-4 mr-2" />
                           Add Employee
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

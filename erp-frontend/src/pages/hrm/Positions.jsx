@@ -318,13 +318,13 @@ const Positions = () => {
                           <h3 className="text-lg font-semibold text-gray-900">No positions found</h3>
                           <p className="text-gray-500 mt-1">Get started by creating your first position</p>
                         </div>
-                        <button
+                        {/* <button
                           onClick={handleAdd}
                           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
                         >
                           <PlusIcon className="w-4 h-4 mr-2" />
                           Add Position
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>
