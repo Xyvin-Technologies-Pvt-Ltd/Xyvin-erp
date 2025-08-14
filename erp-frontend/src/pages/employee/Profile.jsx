@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { UserIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CalendarIcon, IdentificationIcon } from "@heroicons/react/24/outline";
+import { UserIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CalendarIcon, IdentificationIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import useAuthStore from "@/stores/auth.store";
 import useHrmStore from "@/stores/useHrmStore";
 import { toast } from "react-hot-toast";
@@ -15,11 +15,9 @@ const DUMMY_SVG = `data:image/svg+xml;utf8,
     <path d='M4 28c0-6.6 8-10 12-10s12 3.4 12 10v2H4v-2z'/>
   </svg>`;
 
-
-
 const Profile = () => {
   const { user } = useAuthStore();
-  const { getMyAttendance, getCurrentEmployee } = useHrmStore();
+  const { getMyAttendance, getCurrentEmployee, updateProfile } = useHrmStore();
 
   const [currentUser, setCurrentUser] = useState(user);
   const [profilePicUrl, setProfilePicUrl] = useState('');
@@ -31,6 +29,18 @@ const Profile = () => {
     percentage: 0,
     leaveCount: 0,
   });
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -176,6 +186,69 @@ const Profile = () => {
     }
   };
 
+  const handlePasswordChange = (field, value) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const validatePasswordForm = () => {
+    
+    if (!passwordData.newPassword) {
+      toast.error('New password is required');
+      return false;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return false;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return false;
+    }
+    return true;
+  };
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    
+    if (!validatePasswordForm()) {
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      
+      const response = await updateProfile({
+        currentPassword: passwordData.currentPassword,
+        password: passwordData.newPassword
+      });
+
+      if (response) {
+        toast.success('Password updated successfully');
+        setShowPasswordReset(false);
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast.error(error.response?.data?.message || 'Failed to update password');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -275,6 +348,130 @@ const Profile = () => {
                   <InfoField label="Contact Email" value={currentUser?.emergencyContact?.email} icon={<EnvelopeIcon className="w-4 h-4" />} />
                 </div>
               </div>
+            </div>
+
+            {/* Password Reset Section */}
+            <div className="pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <LockClosedIcon className="w-5 h-5 mr-2 text-blue-600" />
+                  Password Settings
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordReset(!showPasswordReset)}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                >
+                  {showPasswordReset ? 'Cancel' : 'Change Password'}
+                </button>
+              </div>
+
+              {showPasswordReset && (
+                <form onSubmit={handlePasswordReset} className="bg-gray-50 rounded-lg p-4 space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                    {/* <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.current ? "text" : "password"}
+                          value={passwordData.currentPassword}
+                          onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="Enter current password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('current')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPasswords.current ? (
+                            <EyeSlashIcon className="w-4 h-4" />
+                          ) : (
+                            <EyeIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div> */}
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.new ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="Enter new password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('new')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPasswords.new ? (
+                            <EyeSlashIcon className="w-4 h-4" />
+                          ) : (
+                            <EyeIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.confirm ? "text" : "password"}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                        placeholder="Confirm new password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPasswords.confirm ? (
+                          <EyeSlashIcon className="w-4 h-4" />
+                        ) : (
+                          <EyeIcon className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Password must be at least 6 characters long
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={isResettingPassword}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center"
+                    >
+                      {isResettingPassword ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Password'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </Card>
