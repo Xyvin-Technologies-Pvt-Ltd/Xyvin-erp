@@ -151,12 +151,10 @@ const getStatusColor = (status) => {
 };
 
 const formatTime = (dateObj, status, isHoliday) => {
-  if (status === "Holiday" || isHoliday) {
-    return "Not checked in - Holiday";
+  if (["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status)) {
+    return null;
   }
-  if (status === "On-Leave") {
-    return "Not checked in - On Leave";
-  }
+  
   if (!dateObj) return null;
   try {
     // Handle both direct date strings and nested time objects
@@ -735,27 +733,18 @@ useEffect(() => {
         Header: "Check In",
         accessor: "checkIn",
         Cell: ({ row }) => {
-          const time = formatTime(
-            row.original.checkIn,
-            row.original.status,
-            row.original.isHoliday
-          );
-          if (row.original.status === "Holiday" || row.original.isHoliday) {
+          const status = row.original.status;
+          const time = formatTime(row.original.checkIn, status, row.original.isHoliday);
+          
+          // For statuses that don't require time tracking
+          if (["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status)) {
             return (
-              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-pink-50 text-pink-700 ring-1 ring-pink-200">
-                <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                Holiday
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-gray-50 text-gray-700 ring-1 ring-gray-200">
+                <span> {status}</span>
               </div>
             );
           }
-          if (row.original.status === "On-Leave") {
-            return (
-              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
-                <PaperAirplaneIcon className="mr-2 h-4 w-4" />
-                On Leave
-              </div>
-            );
-          }
+          
           return (
             <div
               className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold ${
@@ -779,27 +768,18 @@ useEffect(() => {
         Header: "Check Out",
         accessor: "checkOut",
         Cell: ({ row }) => {
-          const time = formatTime(
-            row.original.checkOut,
-            row.original.status,
-            row.original.isHoliday
-          );
-          if (row.original.status === "Holiday" || row.original.isHoliday) {
+          const status = row.original.status;
+          const time = formatTime(row.original.checkOut, status, row.original.isHoliday);
+          
+          // For statuses that don't require time tracking
+          if (["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status)) {
             return (
-              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-pink-50 text-pink-700 ring-1 ring-pink-200">
-                <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                Holiday
+              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-gray-50 text-gray-700 ring-1 ring-gray-200">
+                <span> {status}</span>
               </div>
             );
           }
-          if (row.original.status === "On-Leave") {
-            return (
-              <div className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold bg-purple-50 text-purple-700 ring-1 ring-purple-200">
-                <PaperAirplaneIcon className="mr-2 h-4 w-4" />
-                On Leave
-              </div>
-            );
-          }
+          
           return (
             <div
               className={`inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold ${

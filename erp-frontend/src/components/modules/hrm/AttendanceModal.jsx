@@ -57,6 +57,14 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
     }
   };
 
+  const isTimeRequired = (status) => {
+    return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
+  };
+
+  const isAttendanceRequired = (status) => {
+    return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
+  };
+
   useEffect(() => {
     const loadEmployees = async () => {
       try {
@@ -110,10 +118,18 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
     },
     validationSchema: Yup.object({
       date: Yup.date().required("Date is required"),
-      time: Yup.string().required("Time is required"),
+      time: Yup.string().when('status', {
+        is: (status) => isTimeRequired(status),
+        then: (schema) => schema.required("Time is required"),
+        otherwise: (schema) => schema.optional(),
+      }),
       type: Yup.string()
         .oneOf(["checkIn", "checkOut"])
-        .required("Type is required"),
+        .when('status', {
+          is: (status) => isAttendanceRequired(status),
+          then: (schema) => schema.required("Type is required"),
+          otherwise: (schema) => schema.optional(),
+        }),
       selectedEmployees: Yup.array().min(1, "Select at least one employee"),
       status: Yup.string()
         .oneOf([
@@ -157,6 +173,49 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
           return;
         }
 
+        if (!isAttendanceRequired(values.status)) {
+          const eligibleIds = validEmployeeIds.filter((id) => {
+            const rec = dayAttendanceMap[id];
+            return !rec; // no record yet for the date
+          });
+
+          if (eligibleIds.length === 0) {
+            toast.error("No eligible employees to record for this date");
+            return;
+          }
+
+          const attendanceData = eligibleIds.map((employeeId) => ({
+            employee: employeeId,
+            date: values.date,
+            status: values.status,
+            shift: values.shift,
+            notes: values.notes,
+          }));
+
+          console.log("Attendance data to be sent:", attendanceData); // Debug log
+          await createBulkAttendance(attendanceData);
+          toast.success("Attendance recorded successfully");
+          try {
+            const startDate = new Date(`${values.date}T00:00:00.000Z`).toISOString();
+            const endDate = new Date(`${values.date}T23:59:59.999Z`).toISOString();
+            const response = await hrmService.getAttendance({ startDate, endDate });
+            const records = response?.data?.attendance || [];
+            const map = {};
+            records.forEach((rec) => {
+              const emp = rec.employee || {};
+              const key1 = (emp.id || emp._id || "").toString();
+              if (!key1) return;
+              map[key1] = rec;
+            });
+            setDayAttendanceMap(map);
+          } catch (e) {
+            // ignore
+          }
+          formik.setFieldValue("selectedEmployees", []);
+          onSuccess();
+          return;
+        }
+
         const eligibleIds = validEmployeeIds.filter((id) => {
           const rec = dayAttendanceMap[id];
           if (values.type === "checkIn") {
@@ -173,7 +232,6 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
         const attendanceData = eligibleIds.map((employeeId) => {
           const datetime = new Date(`${values.date}T${values.time}`);
           if (values.type === "checkIn") {
-            // Use the selected time for check-in
             return {
               employee: employeeId,
               date: values.date,
@@ -182,7 +240,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                 device: "Web",
                 ipAddress: "",
               },
-              status: "Present",
+              status: values.status, // Use the selected status, not hardcoded "Present"
               shift: values.shift,
               notes: values.notes,
             };
@@ -268,6 +326,11 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
   const isEmployeeDisabled = (employee) => {
     const key = (employee.id || employee._id || "").toString();
     const rec = dayAttendanceMap[key];
+    
+    if (!isAttendanceRequired(formik.values.status)) {
+      return !!rec;
+    }
+    
     if (formik.values.type === "checkIn") {
       return !!rec;
     }
@@ -279,7 +342,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
 
   const eligibleFilteredEmployees = useMemo(
     () => filteredEmployees.filter((e) => !isEmployeeDisabled(e)),
-    [filteredEmployees, dayAttendanceMap, formik.values.type]
+    [filteredEmployees, dayAttendanceMap, formik.values.type, formik.values.status]
   );
 
   const handleEmployeeSelection = (employeeId, checked) => {
@@ -298,7 +361,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
   };
 
   return (
-    <Transition.Root show={true} as={Fragment}>
+    <Transition.Root show={true} as={ Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
         <Transition.Child
           as={Fragment}
@@ -373,15 +436,20 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                         <div>
                           <label
                             htmlFor="time"
-                            className="block text-sm font-medium text-gray-700"
+                            className={`block text-sm font-medium text-gray-700 ${
+                              !isTimeRequired(formik.values.status) ? 'opacity-50' : ''
+                            }`}
                           >
-                            Time
+                            Time {!isTimeRequired(formik.values.status) && '(Not required)'}
                           </label>
                           <input
                             type="time"
                             id="time"
                             name="time"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            disabled={!isTimeRequired(formik.values.status)}
+                            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                              !isTimeRequired(formik.values.status) ? 'bg-gray-100 cursor-not-allowed' : ''
+                            }`}
                             {...formik.getFieldProps("time")}
                           />
                           {formik.touched.time && formik.errors.time && (
@@ -394,14 +462,19 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                         <div>
                           <label
                             htmlFor="type"
-                            className="block text-sm font-medium text-gray-700"
+                            className={`block text-sm font-medium text-gray-700 ${
+                              !isAttendanceRequired(formik.values.status) ? 'opacity-50' : ''
+                            }`}
                           >
-                            Type
+                            Type {!isAttendanceRequired(formik.values.status) && '(Not required)'}
                           </label>
                           <select
                             id="type"
                             name="type"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            disabled={!isAttendanceRequired(formik.values.status)}
+                            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                              !isAttendanceRequired(formik.values.status) ? 'bg-gray-100 cursor-not-allowed' : ''
+                            }`}
                             {...formik.getFieldProps("type")}
                           >
                             <option value="checkIn">Check In</option>
@@ -528,9 +601,6 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                                 const filtered = activeEmployees.filter(
                                   (emp) =>
                                     (emp.firstName || "")
-                                      .toLowerCase()
-                                      .includes(searchTerm) ||
-                                    (emp.lastName || "")
                                       .toLowerCase()
                                       .includes(searchTerm) ||
                                     (emp.employeeId || "")

@@ -192,20 +192,28 @@ exports.createAttendance = catchAsync(async (req, res) => {
     throw createError(400, 'Attendance record already exists for this date');
   }
 
-  // Create attendance with check-in only
-  const attendance = await Attendance.create({
+  const isAttendanceRequired = (status) => {
+    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+  };
+
+  let attendanceData = {
     employee,
     date: providedDate,
-    checkIn: {
-      time: checkIn?.time || new Date(),
-      device: checkIn?.device || 'Web',
-      ipAddress: checkIn?.ipAddress
-    },
     status: status || 'Present',
     notes,
     shift,
-    workHours: 0 // Initialize work hours as 0
-  });
+    workHours: 0
+  };
+
+  if (isAttendanceRequired(status)) {
+    attendanceData.checkIn = {
+      time: checkIn?.time || new Date(),
+      device: checkIn?.device || 'Web',
+      ipAddress: checkIn?.ipAddress
+    };
+  }
+
+  const attendance = await Attendance.create(attendanceData);
 
   const populatedAttendance = await Attendance.findById(attendance._id)
     .populate({
@@ -272,6 +280,10 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
   const results = [];
   const errors = [];
 
+  const isAttendanceRequired = (status) => {
+    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+  };
+
   // Process each attendance record
   for (const record of attendanceRecords) {
     try {
@@ -294,6 +306,15 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
 
       // If an attendance record exists for that day
       if (existingAttendance) {
+        if (!isAttendanceRequired(record.status)) {
+          errors.push({
+            employee: record.employee,
+            date: record.date,
+            error: 'Attendance already marked for this date'
+          });
+          continue;
+        }
+
         // Prevent duplicate check-in attempts via bulk
         if (record.checkIn) {
           errors.push({
@@ -368,7 +389,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
       }
 
       // No existing record for the day
-      if (record.checkOut) {
+      if (record.checkOut && !record.checkIn) {
         // Do not allow creating a new record with only checkout
         errors.push({
           employee: record.employee,
@@ -378,7 +399,35 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
         continue;
       }
 
-      // Create new attendance record for check-in (default Present)
+      if (!isAttendanceRequired(record.status)) {
+        const attendanceData = {
+          employee: record.employee,
+          date: ProvidedDate,
+          status: record.status,
+          notes: record.notes,
+          shift: record.shift || 'Morning',
+          workHours: 0,
+          createdBy: req.user._id,
+          updatedBy: req.user._id
+        };
+
+        const newAttendance = await Attendance.create(attendanceData);
+
+        const populatedAttendance = await Attendance.findById(newAttendance._id)
+          .populate({
+            path: 'employee',
+            select: 'firstName lastName department position',
+            populate: [
+              { path: 'department', select: 'name' },
+              { path: 'position', select: 'title' }
+            ]
+          });
+
+        results.push(populatedAttendance);
+        continue;
+      }
+
+      // Create new attendance record for check-in with proper status
       const checkInTime = record.checkIn?.time ? new Date(record.checkIn.time) : new Date();
       if (isNaN(checkInTime.getTime())) {
         throw createError(400, 'Invalid check-in time format');
@@ -838,33 +887,54 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     throw createError(404, 'No attendance record found with that ID');
   }
 
-  // Calculate work hours if both checkIn and checkOut are provided
+  const isAttendanceRequired = (status) => {
+    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+  };
+
+  // Calculate work hours if both checkIn and checkOut are provided and status requires attendance
   let workHours = attendance.workHours;
-  if (checkIn?.time && checkOut?.time) {
+  if (isAttendanceRequired(status) && checkIn?.time && checkOut?.time) {
     const checkInTime = new Date(checkIn.time);
     const checkOutTime = new Date(checkOut.time);
     workHours = calculateWorkHours(checkInTime, checkOutTime);
+  } else if (!isAttendanceRequired(status)) {
+    workHours = 0;
+  }
+
+  // Prepare update data
+  let updateData = {
+    date: date ? new Date(date) : attendance.date,
+    status: status || attendance.status,
+    notes: notes !== undefined ? notes : attendance.notes,
+    shift: shift || attendance.shift,
+    workHours
+  };
+
+  // Only include check-in/check-out data if status requires attendance
+  if (isAttendanceRequired(status)) {
+    if (checkIn) {
+      updateData.checkIn = {
+        time: new Date(checkIn.time),
+        device: checkIn.device || 'Web',
+        ipAddress: checkIn.ipAddress
+      };
+    }
+    if (checkOut) {
+      updateData.checkOut = {
+        time: new Date(checkOut.time),
+        device: checkOut.device || 'Web',
+        ipAddress: checkOut.ipAddress
+      };
+    }
+  } else {
+    // For statuses that don't require attendance, remove check-in/check-out data
+    updateData.checkIn = null;
+    updateData.checkOut = null;
   }
 
   const updatedAttendance = await Attendance.findByIdAndUpdate(
     req.params.id,
-    {
-      date: date ? new Date(date) : attendance.date,
-      checkIn: checkIn ? {
-        time: new Date(checkIn.time),
-        device: checkIn.device || 'Web',
-        ipAddress: checkIn.ipAddress
-      } : attendance.checkIn,
-      checkOut: checkOut ? {
-        time: new Date(checkOut.time),
-        device: checkOut.device || 'Web',
-        ipAddress: checkOut.ipAddress
-      } : attendance.checkOut,
-      status: status || attendance.status,
-      notes: notes !== undefined ? notes : attendance.notes,
-      shift: shift || attendance.shift,
-      workHours
-    },
+    updateData,
     {
       new: true,
       runValidators: true
