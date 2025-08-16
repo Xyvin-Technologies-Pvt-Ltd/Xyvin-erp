@@ -388,10 +388,10 @@ const FRMDashboard = () => {
                 <CardContent>
                   <PieChart
                     data={[
-                      {
-                        name: "Pending",
-                        value: expenseStats?.pendingAmount || 0,
-                      },
+                      // {
+                      //   name: "Pending",
+                      //   value: expenseStats?.pendingAmount || 0,
+                      // },
                       {
                         name: "Approved",
                         value: expenseStats?.approvedAmount || 0,
@@ -401,7 +401,8 @@ const FRMDashboard = () => {
                         value: expenseStats?.rejectedAmount || 0,
                       },
                     ]}
-                    colors={["#f59e0b", "#16a34a", "#dc2626"]}
+                    // colors={["#f59e0b", "#16a34a", "#dc2626"]}
+                    colors={[ "#16a34a", "#dc2626"]}
                     height={350}
                   />
                 </CardContent>
