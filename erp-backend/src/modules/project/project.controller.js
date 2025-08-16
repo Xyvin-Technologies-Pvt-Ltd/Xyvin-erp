@@ -1,6 +1,11 @@
 const Project = require('./project.model');
 const { validateProject } = require('./project.validation');
 const Task = require('./task/task.model');
+const Notification = require('../notification/Notification.model');
+const websocketService = require('../../utils/websocket');
+
+console.log('Project controller loaded, Notification model:', Notification);
+console.log('WebSocket service loaded:', websocketService);
 
 // Create new project
 exports.createProject = async (req, res) => {
@@ -15,6 +20,88 @@ exports.createProject = async (req, res) => {
     });
 
     await project.save();
+
+    console.log('Project created successfully:', {
+      projectId: project._id,
+      projectName: project.name,
+      manager: project.manager,
+      createdBy: req.user._id
+    });
+
+    if (project.manager) {
+      console.log('Attempting to create notification for manager:', project.manager);
+      console.log('Notification data:', {
+        user: project.manager,
+        sender: req.user._id,
+        title: `New Project Assignment: ${project.name}`,
+        message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
+        type: 'PROJECT_ASSIGNED'
+      });
+      
+      try {
+        if (!project.manager || !req.user._id || !project.name) {
+          throw new Error('Missing required notification data');
+        }
+
+        console.log('Testing notification creation...');
+        const testNotification = await Notification.create({
+          user: project.manager,
+          sender: req.user._id,
+          title: 'Test Notification',
+          message: 'This is a test notification',
+          type: 'TASK_ASSIGNED' 
+        });
+        console.log('Test notification created successfully:', testNotification._id);
+
+        const notification = await Notification.create({
+          user: project.manager,
+          sender: req.user._id,
+          title: `New Project Assignment: ${project.name}`,
+          message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
+          type: 'PROJECT_ASSIGNED'
+        });
+
+        console.log(`Notification created successfully for manager ${project.manager} for project ${project._id}:`, notification._id);
+
+        // Send WebSocket notification
+        console.log('Attempting to send WebSocket notification to user:', project.manager.toString());
+        console.log('WebSocket service state:', {
+          hasWss: !!websocketService.getWss(),
+          wss: websocketService.getWss()
+        });
+        
+        const wsResult = websocketService.sendToUser(project.manager.toString(), {
+          type: 'notification',
+          data: {
+            _id: notification._id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            read: notification.read,
+            createdAt: notification.createdAt,
+            sender: {
+              _id: req.user._id,
+              firstName: req.user.firstName,
+              lastName: req.user.lastName,
+              email: req.user.email,
+              role: req.user.role
+            },
+            projectId: project._id,
+            projectName: project.name
+          }
+        });
+        console.log('WebSocket notification sent successfully, result:', wsResult);
+      } catch (notificationError) {
+        console.error('Failed to create project assignment notification:', notificationError);
+        console.error('Error details:', {
+          message: notificationError.message,
+          stack: notificationError.stack,
+          name: notificationError.name
+        });
+      }
+    } else {
+      console.log('No manager assigned to project, skipping notification');
+    }
 
     // Populate after save
     const populatedProject = await Project.findById(project._id)
@@ -460,6 +547,12 @@ exports.updateProject = async (req, res) => {
     const { error } = validateProject(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
 
+    // Get the old project to check for manager changes
+    const oldProject = await Project.findById(req.params.id);
+    if (!oldProject) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
     const project = await Project.findByIdAndUpdate(
       req.params.id,
       { ...req.body },
@@ -490,6 +583,44 @@ exports.updateProject = async (req, res) => {
       });
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    if (req.body.manager && req.body.manager !== oldProject.manager?.toString()) {
+      try {
+        const notification = await Notification.create({
+          user: req.body.manager,
+          sender: req.user._id,
+          title: `Project Manager Assignment: ${project.name}`,
+          message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
+          type: 'PROJECT_ASSIGNED'
+        });
+
+        console.log(`Notification created for new manager ${req.body.manager} for project ${project._id}`);
+
+        // Send WebSocket notification
+        websocketService.sendToUser(req.body.manager.toString(), {
+          type: 'notification',
+          data: {
+            _id: notification._id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            read: notification.read,
+            createdAt: notification.createdAt,
+            sender: {
+              _id: req.user._id,
+              firstName: req.user.firstName,
+              lastName: req.user.lastName,
+              email: req.user.email,
+              role: req.user.role
+            },
+            projectId: project._id,
+            projectName: project.name
+          }
+        });
+      } catch (notificationError) {
+        console.error('Failed to create project manager assignment notification:', notificationError);
+      }
+    }
 
     // Transform project data
     const transformedProject = {
@@ -582,6 +713,45 @@ exports.assignTeam = async (req, res) => {
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+
+    if (employees && employees.length > 0) {
+      try {
+        for (const employeeId of employees) {
+          const notification = await Notification.create({
+            user: employeeId,
+            sender: req.user._id,
+            title: `Project Team Assignment: ${project.name}`,
+            message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you to the project "${project.name}"`,
+            type: 'PROJECT_TEAM_ASSIGNED'
+          });
+
+          console.log(`Notification created for team member ${employeeId} for project ${project._id}`);
+
+          websocketService.sendToUser(employeeId.toString(), {
+            type: 'notification',
+            data: {
+              _id: notification._id,
+              title: notification.title,
+              message: notification.message,
+              type: notification.type,
+              read: notification.read,
+              createdAt: notification.createdAt,
+              sender: {
+                _id: req.user._id,
+                firstName: req.user.firstName,
+                lastName: req.user.lastName,
+                email: req.user.email,
+                role: req.user.role
+              },
+              projectId: project._id,
+              projectName: project.name
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error('Failed to create team assignment notifications:', notificationError);
+      }
     }
 
     // Transform team data to match expected format
