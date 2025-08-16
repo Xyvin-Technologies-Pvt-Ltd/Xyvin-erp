@@ -25,8 +25,8 @@ const FRMDashboard = () => {
       setLoading(true);
       const [expenses, personalLoans, officeLoans, profits] = await Promise.all([
         frmService.getExpenses(),
-        frmService.getPersonalLoanStats(),
-        frmService.getOfficeLoanStats(),
+        frmService.getPersonalLoans(),
+        frmService.getOfficeLoans(),
         frmService.getProfits(),
       ]);
 
@@ -65,8 +65,23 @@ const FRMDashboard = () => {
       };
 
       setExpenseStats(formattedExpenseStats);
-      setPersonalLoanStats(personalLoans);
-      setOfficeLoanStats(officeLoans);
+      
+      // Calculate personal loan stats from actual loan data
+      const personalLoanStats = {
+        totalAmount: personalLoans.reduce((sum, loan) => sum + (loan.amount || 0), 0),
+        totalCount: personalLoans.length,
+        loans: personalLoans
+      };
+      
+      // Calculate office loan stats from actual loan data
+      const officeLoanStats = {
+        totalAmount: officeLoans.reduce((sum, loan) => sum + (loan.amount || 0), 0),
+        totalCount: officeLoans.length,
+        loans: officeLoans
+      };
+      
+      setPersonalLoanStats(personalLoanStats);
+      setOfficeLoanStats(officeLoanStats);
 
       // Calculate profit stats from actual profit data
       const profitData = {
@@ -90,24 +105,28 @@ const FRMDashboard = () => {
       setProfitStats(profitData);
 
       // Calculate monthly trends for loans
-      const personalLoanMonthlyTrend = personalLoans?.loans?.reduce((acc, loan) => {
-        const month = new Date(loan.createdAt || loan.date).getMonth();
-        acc[month] = (acc[month] || 0) + (loan.amount || 0);
+      const personalLoanMonthlyTrend = personalLoans.reduce((acc, loan) => {
+        if (loan.createdAt) {
+          const month = new Date(loan.createdAt).getMonth();
+          acc[month] = (acc[month] || 0) + (loan.amount || 0);
+        }
         return acc;
-      }, Array(12).fill(0)) || Array(12).fill(0);
+      }, Array(12).fill(0));
 
-      const officeLoanMonthlyTrend = officeLoans?.loans?.reduce((acc, loan) => {
-        const month = new Date(loan.createdAt || loan.date).getMonth();
-        acc[month] = (acc[month] || 0) + (loan.amount || 0);
+      const officeLoanMonthlyTrend = officeLoans.reduce((acc, loan) => {
+        if (loan.createdAt) {
+          const month = new Date(loan.createdAt).getMonth();
+          acc[month] = (acc[month] || 0) + (loan.amount || 0);
+        }
         return acc;
-      }, Array(12).fill(0)) || Array(12).fill(0);
+      }, Array(12).fill(0));
 
       setPersonalLoanStats({
-        ...personalLoans,
+        ...personalLoanStats,
         monthlyTrend: personalLoanMonthlyTrend
       });
       setOfficeLoanStats({
-        ...officeLoans,
+        ...officeLoanStats,
         monthlyTrend: officeLoanMonthlyTrend
       });
     } catch (error) {
@@ -181,7 +200,7 @@ const FRMDashboard = () => {
       },
       {
         title: "Net Position",
-        value: formatCurrency((profitStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0)),
+        value: formatCurrency(Math.abs((profitStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0))),
         subtitle: (profitStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0) >= 0 ? "Positive balance" : "Negative balance",
         icon: (profitStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0) >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon,
         gradient: (profitStats?.totalAmount || 0) - (expenseStats?.totalAmount || 0) >= 0 ? "from-green-500 to-emerald-600" : "from-red-500 to-rose-600",
@@ -192,23 +211,23 @@ const FRMDashboard = () => {
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="flex flex-wrap gap-6 mb-8 justify-center">
         {cards.map((card, index) => (
-          <Card key={index} className={`relative overflow-hidden bg-gradient-to-br ${card.bgGradient} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}>
+          <Card key={index} className={`flex-1 min-w-[280px] max-w-[320px] relative overflow-hidden bg-gradient-to-br ${card.bgGradient} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}>
             <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600 mb-1">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-600 mb-2 leading-tight">
                     {card.title}
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 mb-1">
+                  <p className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
                     {card.value}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 leading-tight">
                     {card.subtitle}
                   </p>
                 </div>
-                <div className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300 flex-shrink-0 ml-3`}>
                   <card.icon className={`h-6 w-6 ${card.iconColor}`} />
                 </div>
               </div>
@@ -394,7 +413,8 @@ const FRMDashboard = () => {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="col-span-4 bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="text-xl font-bold text-gray-900">Loan Trends</CardTitle>
+                  <CardTitle className="text-xl font-bold text-gray-900">Loan Trends by Creation Date</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">Based on loan creation date</p>
                 </CardHeader>
                 <CardContent className="pl-2">
                   <LineChart
