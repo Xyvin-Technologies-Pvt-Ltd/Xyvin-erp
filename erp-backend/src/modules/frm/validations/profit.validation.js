@@ -2,22 +2,20 @@ const Joi = require('joi');
 
 const createProfit = {
   body: Joi.object().keys({
-    profitNumber: Joi.string().required().trim(),
-    title: Joi.string().required().min(3).max(200).trim(),
+    profitNumber: Joi.string().trim(),
+    description: Joi.string().required().min(3).max(1000).trim(),
     amount: Joi.number().required().min(0),
     date: Joi.date(),
     category: Joi.string().valid('sales', 'services', 'investments', 'other').required(),
-    description: Joi.string().max(1000).trim().allow(''),
-    source: Joi.string().required().trim(),
-    status: Joi.string().valid('Pending', 'Verified', 'Rejected'),
+    notes: Joi.string().max(1000).trim().allow(''),
+    status: Joi.string().valid('Pending', 'Realized', 'Cancelled'),
   }),
 };
 
 const getProfits = {
   query: Joi.object().keys({
-    status: Joi.string().valid('Pending', 'Verified', 'Rejected'),
+    status: Joi.string().valid('Pending', 'Realized', 'Cancelled'),
     category: Joi.string().valid('sales', 'services', 'investments', 'other'),
-    source: Joi.string(),
     startDate: Joi.date(),
     endDate: Joi.date(),
   }),
@@ -36,13 +34,12 @@ const updateProfit = {
   body: Joi.object()
     .keys({
       profitNumber: Joi.string().trim(),
-      title: Joi.string().min(3).max(200).trim(),
+      description: Joi.string().min(3).max(1000).trim(),
       amount: Joi.number().min(0),
       date: Joi.date(),
       category: Joi.string().valid('sales', 'services', 'investments', 'other'),
-      description: Joi.string().max(1000).trim().allow(''),
-      source: Joi.string().trim(),
-      status: Joi.string().valid('Pending', 'Verified', 'Rejected'),
+      notes: Joi.string().max(1000).trim().allow(''),
+      status: Joi.string().valid('Pending', 'Realized', 'Cancelled'),
     })
     .min(1), // Require at least one field to update
 };
@@ -58,7 +55,7 @@ const verifyProfit = {
     profitId: Joi.string().required(),
   }),
   body: Joi.object().keys({
-    status: Joi.string().valid('Verified', 'Rejected').required(),
+    status: Joi.string().valid('Realized', 'Cancelled').required(),
   }),
 };
 

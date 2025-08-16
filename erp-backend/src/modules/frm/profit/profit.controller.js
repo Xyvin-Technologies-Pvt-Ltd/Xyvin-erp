@@ -33,6 +33,21 @@ const getNextProfitNumber = async (req, res) => {
 // Create new profit
 const createProfit = async (req, res) => {
   try {
+    console.log('Received profit data:', req.body);
+    console.log('Received files:', req.files);
+    
+    // Validate required fields
+    if (!req.body.description || !req.body.amount || !req.body.category) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: {
+          description: !req.body.description ? 'Description is required' : null,
+          amount: !req.body.amount ? 'Amount is required' : null,
+          category: !req.body.category ? 'Category is required' : null
+        }
+      });
+    }
+    
     const files = req.files;
     const documents = [];
 
@@ -57,13 +72,22 @@ const createProfit = async (req, res) => {
     const profit = new Profit({
       ...req.body,
       profitNumber,
-      documents
+      documents,
+      date: req.body.date ? new Date(req.body.date) : new Date(),
+      amount: Number(req.body.amount) || 0
     });
 
     await profit.save();
     res.status(201).json(profit);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Profit creation error:', error);
+    res.status(400).json({ 
+      message: error.message,
+      details: error.errors ? Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      })) : []
+    });
   }
 };
 

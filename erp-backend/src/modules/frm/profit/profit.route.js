@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const profitController = require('../profit/profit.controller');
 const { protect } = require('../../../middleware/authMiddleware');
-
+const upload = require('../../../middleware/upload');
 
 router.use(protect)
 
@@ -10,7 +10,7 @@ router.use(protect)
 router.get('/next-number', profitController.getNextProfitNumber);
 
 // Create a new profit
-router.post('/', profitController.createProfit);
+router.post('/', upload.array('documents'), profitController.createProfit);
 
 // Get all profits
 router.get('/', profitController.getProfits);
@@ -19,7 +19,7 @@ router.get('/', profitController.getProfits);
 router.get('/:id', profitController.getProfitById);
 
 // Update profit
-router.put('/:id', profitController.updateProfit);
+router.put('/:id', upload.array('documents'), profitController.updateProfit);
 
 // Delete profit
 router.delete('/:id', profitController.deleteProfit);

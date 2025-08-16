@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const profitSchema = new mongoose.Schema({
   profitNumber: {
     type: String,
-    required: true,
     unique: true
   },
   description: {

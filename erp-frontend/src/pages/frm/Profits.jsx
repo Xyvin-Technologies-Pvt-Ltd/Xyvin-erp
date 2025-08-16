@@ -99,39 +99,46 @@ const Profits = () => {
 
         const formData = new FormData();
 
-        Object.entries(updateFields).forEach(([key, value]) => {
-          if (key === "documents") {
-            if (value && value.length) {
-              for (let i = 0; i < value.length; i++) {
-                if (value[i] instanceof File) {
-                  formData.append("documents", value[i]);
-                }
-              }
-            }
-          } else {
-            if (key === "amount") {
-              formData.append(key, Number(value) || 0);
-            } else {
-              formData.append(key, value === null ? "" : value);
+        // Ensure required fields are properly set
+        formData.append("description", updateFields.description || "");
+        formData.append("amount", Number(updateFields.amount) || 0);
+        formData.append("category", updateFields.category || "");
+        formData.append("date", updateFields.date || new Date().toISOString().split("T")[0]);
+        formData.append("notes", updateFields.notes || "");
+        formData.append("status", updateFields.status || "Pending");
+        
+        // Handle documents
+        if (updateFields.documents && updateFields.documents.length) {
+          for (let i = 0; i < updateFields.documents.length; i++) {
+            if (updateFields.documents[i] instanceof File) {
+              formData.append("documents", updateFields.documents[i]);
             }
           }
-        });
+        }
 
         await frmService.updateProfit(editingProfit._id, formData);
         toast.success("Profit updated successfully");
       } else {
         const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
-          if (key === "documents") {
-            if (value && value.length) {
-              for (let i = 0; i < value.length; i++) {
-                formData.append("documents", value[i]);
-              }
+        
+        // Ensure required fields are properly set
+        formData.append("description", data.description || "");
+        formData.append("amount", data.amount || 0);
+        formData.append("category", data.category || "");
+        formData.append("date", data.date || new Date().toISOString().split("T")[0]);
+        formData.append("notes", data.notes || "");
+        formData.append("status", data.status || "Pending");
+        
+        // Handle documents
+        if (data.documents && data.documents.length) {
+          for (let i = 0; i < data.documents.length; i++) {
+            if (data.documents[i] instanceof File) {
+              formData.append("documents", data.documents[i]);
             }
-          } else if (value !== undefined && value !== "") {
-            formData.append(key, value);
           }
-        });
+        }
+        
+        console.log("Sending form data:", Object.fromEntries(formData.entries()));
         await frmService.createProfit(formData);
         toast.success("Profit created successfully");
       }
@@ -140,11 +147,20 @@ const Profits = () => {
       fetchProfits();
     } catch (error) {
       console.error("Error saving profit:", error);
-      toast.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to save profit"
-      );
+      console.error("Error response:", error.response?.data);
+      let errorMessage = "Failed to save profit";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        if (error.response.data.details) {
+          const details = Object.values(error.response.data.details).filter(Boolean);
+          if (details.length > 0) {
+            errorMessage += `: ${details.join(', ')}`;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     }
   };
 

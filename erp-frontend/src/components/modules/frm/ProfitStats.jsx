@@ -1,6 +1,6 @@
 import { CurrencyRupeeIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
-const ProfitStats = ({ stats }) => {
+const ProfitStats = ({ stats = {} }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
