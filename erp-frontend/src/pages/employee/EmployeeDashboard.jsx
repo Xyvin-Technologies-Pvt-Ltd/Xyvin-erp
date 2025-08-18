@@ -142,14 +142,7 @@ function EmployeeDashboard() {
       const res = await getMyPayroll();
       let payrollData = [];
 
-      const candidates = [
-        res?.payroll,
-        res?.data?.payroll,
-        res?.data?.data,
-        res?.data,
-        res?.payrolls,
-        res?.items,
-      ];
+      const candidates = [res?.data, res?.data?.data, res?.payroll, res?.payrolls, res?.items];
       for (const candidate of candidates) {
         if (Array.isArray(candidate)) {
           payrollData = candidate;
@@ -158,8 +151,7 @@ function EmployeeDashboard() {
       }
 
       if (!Array.isArray(payrollData) || payrollData.length === 0) {
-        const defaultData = generateDefaultPayslips();
-        setRecentPayslips(defaultData);
+        setRecentPayslips([]);
         return;
       }
 
@@ -178,8 +170,7 @@ function EmployeeDashboard() {
       setRecentPayslips(formattedPayslips);
     } catch (error) {
       console.error("Error fetching payslips:", error);
-      const defaultData = generateDefaultPayslips();
-      setRecentPayslips(defaultData);
+      setRecentPayslips([]);
     }
   };
 
@@ -466,8 +457,7 @@ function EmployeeDashboard() {
   };
 
   const renderPayrollChart = () => {
-    const chartData =
-      recentPayslips.length > 0 ? recentPayslips : generateDefaultPayslips();
+    const chartData = recentPayslips;
 
     return (
       <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -480,6 +470,11 @@ function EmployeeDashboard() {
               Salary Trend Analysis
             </h2>
           </div>
+          {(!chartData || chartData.length === 0) ? (
+            <div className="h-40 flex items-center justify-center text-gray-500">
+              No salary data available
+            </div>
+          ) : (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -524,6 +519,7 @@ function EmployeeDashboard() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          )}
         </div>
       </Card>
     );
