@@ -18,6 +18,7 @@ const useChatStore = create((set, get) => ({
   isLoading: false,
   error: null,
   ws: null,
+  unreadCount: 0,
 
   setSelectedRole: (role) => set({ selectedRole: role }),
 
@@ -35,7 +36,8 @@ const useChatStore = create((set, get) => ({
   fetchConversations: async () => {
     try {
       const conversations = await chatService.listConversations();
-      set({ conversations });
+      const totalUnread = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+      set({ conversations, unreadCount: totalUnread });
     } catch (e) {}
   },
 
@@ -45,6 +47,8 @@ const useChatStore = create((set, get) => ({
       const msgs = await chatService.getMessages(user._id);
       set((state) => ({ messages: { ...state.messages, [user._id]: msgs } }));
       await chatService.markRead(user._id);
+      // Update unread count after marking as read
+      get().fetchConversations();
     } catch (e) {
       // ignore
     }
@@ -102,6 +106,8 @@ const useChatStore = create((set, get) => ({
           if (active && active._id === msg.sender) {
             await chatService.markRead(msg.sender);
           }
+          // Update unread count when new message arrives
+          get().fetchConversations();
         }
         if (data.type === 'notification') {
           

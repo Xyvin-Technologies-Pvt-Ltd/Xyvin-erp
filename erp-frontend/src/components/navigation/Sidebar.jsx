@@ -103,6 +103,7 @@ const Sidebar = ({ open, setOpen }) => {
   // Define role-based navigation permissions
   const navigationPermissions = {
     Employee: ["base", "employee"],
+    Admin: ["base", "employee", "hrm", "clients", "projects", "frm"],
     "ERP System Administrator": ["base", "employee", "hrm", "clients", "projects", "frm"],
     "IT Manager": ["base", "employee", "projects"],
     "Project Manager": ["base", "employee", "projects"],
