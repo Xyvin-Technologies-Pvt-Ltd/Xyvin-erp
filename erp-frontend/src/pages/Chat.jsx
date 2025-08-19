@@ -106,7 +106,7 @@ const Chat = () => {
 
   return (
     <>
-      <div className="h-[calc(100vh-6rem)] grid grid-cols-12 gap-4">
+      <div className="h-[calc(100vh-7rem)] grid grid-cols-12 gap-4">
         <Card className="col-span-3 overflow-hidden flex flex-col">
           <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">Roles</h2>
