@@ -58,6 +58,7 @@ const Chat = () => {
 
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [deletePopup, setDeletePopup] = useState({ isOpen: false, messageId: null });
   const bottomRef = useRef(null);
 
@@ -80,12 +81,49 @@ const Chat = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeUser]);
 
+  useEffect(() => {
+    return () => {
+      if (filePreview?.url) URL.revokeObjectURL(filePreview.url);
+    };
+  }, [filePreview]);
+
+  const formatBytes = (bytes) => {
+    if (bytes === undefined || bytes === null) return '';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let i = 0;
+    while (value >= 1024 && i < sizes.length - 1) {
+      value /= 1024;
+      i += 1;
+    }
+    const precision = value < 10 && i > 0 ? 1 : 0;
+    return `${value.toFixed(precision)} ${sizes[i]}`;
+  };
+
+  const onFileChange = (e) => {
+    const f = e.target.files?.[0] || null;
+    if (filePreview?.url) URL.revokeObjectURL(filePreview.url);
+    setFile(f);
+    if (f) {
+      const url = URL.createObjectURL(f);
+      setFilePreview({ url, isImage: f.type?.startsWith('image/'), name: f.name, size: f.size });
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const clearSelectedFile = () => {
+    if (filePreview?.url) URL.revokeObjectURL(filePreview.url);
+    setFile(null);
+    setFilePreview(null);
+  };
+
   const onSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !file) return;
     await sendMessage(input.trim(), file);
     setInput('');
-    setFile(null);
+    clearSelectedFile();
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -245,9 +283,29 @@ const Chat = () => {
               <div ref={bottomRef} />
             </div>
               <form onSubmit={onSend} className="p-3 border-t bg-white">
+                {filePreview && (
+                  <div className="mb-2 p-2 border rounded-md bg-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {filePreview.isImage ? (
+                        <img src={filePreview.url} alt={filePreview.name} className="h-12 w-12 object-cover rounded" />
+                      ) : (
+                        <div className="h-12 w-12 rounded bg-gray-200 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7M7 7h10M7 7l2-2h6l2 2" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate max-w-[16rem]">{filePreview.name}</div>
+                        <div className="text-xs text-gray-500">{formatBytes(filePreview.size)}</div>
+                      </div>
+                    </div>
+                    <button type="button" onClick={clearSelectedFile} className="text-gray-500 hover:text-red-600 text-sm ml-3">Clear</button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <label className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-300 hover:bg-gray-50 cursor-pointer" title="Upload file">
-                    <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                  <label className={`inline-flex items-center justify-center w-9 h-9 rounded-md border cursor-pointer ${filePreview ? 'border-indigo-500 bg-indigo-50 hover:bg-indigo-100' : 'border-gray-300 hover:bg-gray-50'}`} title="Upload file">
+                    <input type="file" className="hidden" onChange={onFileChange} accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
                     </svg>
@@ -260,8 +318,9 @@ const Chat = () => {
                   />
                   <button 
                     type="submit"
-                    className="w-9 h-9 rounded-md flex items-center justify-center text-white hover:opacity-90 transition-opacity bg-blue-500"
+                    className="w-9 h-9 rounded-md flex items-center justify-center text-white hover:opacity-90 transition-opacity bg-blue-500 disabled:opacity-50"
                     title="Send"
+                    disabled={!input.trim() && !file}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12l14-7-7 14-2-5-5-2z" />
