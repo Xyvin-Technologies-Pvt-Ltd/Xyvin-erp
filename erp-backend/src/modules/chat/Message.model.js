@@ -14,8 +14,21 @@ const messageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: true,
       trim: true
+    },
+    // Optional attachment support for images, pdf, docs, etc.
+    attachmentUrl: {
+      type: String,
+      default: null
+    },
+    attachmentType: {
+      type: String,
+      enum: [null, 'image', 'pdf', 'doc', 'file'],
+      default: null
+    },
+    attachmentName: {
+      type: String,
+      default: null
     },
     read: {
       type: Boolean,

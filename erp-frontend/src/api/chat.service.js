@@ -13,8 +13,12 @@ const chatService = {
     const res = await api.get(`/chat/messages/${userId}`);
     return res.data?.data || [];
   },
-  sendMessage: async (userId, content) => {
-    const res = await api.post(`/chat/messages/${userId}`, { content });
+  sendMessage: async (userId, payload) => {
+    // payload can be { content } or FormData with content + attachment
+    const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData;
+    const res = await api.post(`/chat/messages/${userId}`, payload, isFormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : undefined);
     return res.data?.data;
   },
   markRead: async (userId) => {

@@ -54,10 +54,20 @@ const useChatStore = create((set, get) => ({
     }
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, file) => {
     const user = get().activeUser;
-    if (!user || !content?.trim()) return;
-    const newMsg = await chatService.sendMessage(user._id, content.trim());
+    if (!user) return;
+    let payload;
+    if (file) {
+      const form = new FormData();
+      if (content && content.trim()) form.append('content', content.trim());
+      form.append('attachment', file);
+      payload = form;
+    } else {
+      if (!content?.trim()) return;
+      payload = { content: content.trim() };
+    }
+    const newMsg = await chatService.sendMessage(user._id, payload);
     set((state) => ({
       messages: {
         ...state.messages,

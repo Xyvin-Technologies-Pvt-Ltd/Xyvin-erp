@@ -26,16 +26,16 @@ const DeleteConfirmationPopup = ({ isOpen, onClose, onConfirm, message }) => {
           >
             Cancel
           </button>
-          <button
+      <button
             onClick={onConfirm}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
+      >
             Delete
-          </button>
+      </button>
         </div>
       </div>
-    </div>
-  );
+  </div>
+);
 };
 
 const Chat = () => {
@@ -54,6 +54,7 @@ const Chat = () => {
   } = useChatStore();
 
   const [input, setInput] = useState('');
+  const [file, setFile] = useState(null);
   const [deletePopup, setDeletePopup] = useState({ isOpen: false, messageId: null });
   const bottomRef = useRef(null);
 
@@ -77,9 +78,10 @@ const Chat = () => {
 
   const onSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    await sendMessage(input.trim());
+    if (!input.trim() && !file) return;
+    await sendMessage(input.trim(), file);
     setInput('');
+    setFile(null);
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -102,13 +104,13 @@ const Chat = () => {
     <>
       <div className="h-[calc(100vh-6rem)] grid grid-cols-12 gap-4">
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1e2251' }}>
+          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1d2361ff' }}>
             <h2 className="font-semibold text-lg">Roles</h2>
           </div>
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
               {roles.map((role) => (
-                <button
+              <button
                   key={role}
                   onClick={() => setSelectedRole(role)}
                   className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
@@ -119,14 +121,14 @@ const Chat = () => {
                   style={selectedRole === role ? { backgroundColor: '#4338CA' } : {}}
                 >
                   <div className="font-medium text-sm">{role}</div>
-                </button>
-              ))}
-            </div>
+              </button>
+            ))}
           </div>
-        </Card>
+        </div>
+      </Card>
 
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1e2251' }}>
+          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1d2361ff' }}>
             <h2 className="font-semibold text-lg">{selectedRole} List</h2>
             <div className="text-xs opacity-90 mt-1">{users.length} users</div>
           </div>
@@ -157,7 +159,7 @@ const Chat = () => {
         </Card>
 
         <Card className="col-span-6 flex flex-col">
-          {!activeUser ? (
+        {!activeUser ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,15 +169,15 @@ const Chat = () => {
               <div className="text-lg font-medium mb-2">Select a user to start chatting</div>
               <div className="text-sm">Choose someone from the user list to begin a conversation</div>
             </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              <div className="p-4 border-b bg-white">
+        ) : (
+          <div className="flex flex-col h-full">
+            <div className="p-4 border-b bg-white">
                 <div className="font-semibold text-lg">{activeUser.firstName} {activeUser.lastName}</div>
                 <div className="text-sm text-gray-600">{activeUser.position?.title || 'No Position'} • {activeUser.role}</div>
                 <div className="text-xs text-gray-500">{activeUser.email}</div>
-              </div>
-              <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50">
-                {(messages[activeUser._id] || []).map((m) => (
+            </div>
+            <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50">
+              {(messages[activeUser._id] || []).map((m) => (
                   <div key={m._id} className={`flex ${m.sender === activeUser._id ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[70%] ${m.sender === activeUser._id ? 'self-start' : 'self-end'}`}>
                       <div className={`rounded-lg px-3 py-2 text-sm relative group ${
@@ -183,8 +185,25 @@ const Chat = () => {
                           ? 'bg-white border shadow-sm' 
                           : 'text-white'
                       }`}
-                      style={m.sender === activeUser._id ? {} : { backgroundColor: '#1e2251' }}
+                      style={m.sender === activeUser._id ? {} : { backgroundColor: '#1d2361ff' }}
                       >
+                        {/* Attachment rendering */}
+                        {m.attachmentUrl && (
+                          <div className="mb-1">
+                            {m.attachmentType === 'image' ? (
+                              <a href={m.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                                <img src={m.attachmentUrl} alt={m.attachmentName || 'attachment'} className="rounded max-w-full h-auto" />
+                              </a>
+                            ) : (
+                              <a href={m.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
+                                </svg>
+                                <span className="text-xs break-all">{m.attachmentName || 'Download attachment'}</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
                         {m.content}
                         {m.sender !== activeUser._id && (
                           <button
@@ -199,32 +218,41 @@ const Chat = () => {
                       <div className="text-[10px] text-gray-400 mt-1 text-center">
                         {new Date(m.createdAt).toLocaleString()}
                       </div>
-                    </div>
                   </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
-              <form onSubmit={onSend} className="p-4 border-t bg-white">
-                <div className="flex gap-3">
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+              <form onSubmit={onSend} className="p-3 border-t bg-white">
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-gray-300 hover:bg-gray-50 cursor-pointer" title="Upload file">
+                    <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
+                    </svg>
+                  </label>
                   <input
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Type a message..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                   />
                   <button 
                     type="submit"
-                    className="px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
-                    style={{ backgroundColor: '#1e2251' }}
+                    className="w-9 h-9 rounded-md flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: '#1d2361ff' }}
+                    title="Send"
                   >
-                    Send
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12l14-7-7 14-2-5-5-2z" />
+                    </svg>
                   </button>
                 </div>
               </form>
-            </div>
-          )}
-        </Card>
-      </div>
+          </div>
+        )}
+      </Card>
+    </div>
 
       <DeleteConfirmationPopup
         isOpen={deletePopup.isOpen}

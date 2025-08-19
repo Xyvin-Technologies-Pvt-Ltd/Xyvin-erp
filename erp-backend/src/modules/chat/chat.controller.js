@@ -2,6 +2,7 @@ const Message = require('./Message.model');
 const Employee = require('../hrm/employee/employee.model');
 const Notification = require('../notification/Notification.model');
 const websocketService = require('../../utils/websocket');
+const { uploadFile } = require('../../utils/fileUpload');
 
 // List users by optional role filter
 exports.listUsers = async (req, res, next) => {
@@ -122,25 +123,57 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
-// Send a new message
+// Send a new message (supports optional file attachment)
 exports.sendMessage = async (req, res, next) => {
   try {
     const senderId = req.user._id;
     const recipientId = req.params.userId;
     const { content } = req.body;
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({ success: false, message: 'Message content is required' });
+    // Validate that at least text or attachment is provided
+    if ((!content || !content.trim()) && !req.file) {
+      return res.status(400).json({ success: false, message: 'Either message content or an attachment is required' });
     }
 
-    const message = await Message.create({ sender: senderId, recipient: recipientId, content: content.trim() });
+    let attachmentUrl = null;
+    let attachmentType = null;
+    let attachmentName = null;
+
+    if (req.file) {
+      // Move file from temp to uploads and get URL
+      attachmentUrl = await uploadFile(req.file);
+      attachmentName = req.file.originalname;
+      const mime = req.file.mimetype || '';
+      if (mime.startsWith('image/')) attachmentType = 'image';
+      else if (mime === 'application/pdf') attachmentType = 'pdf';
+      else if (mime.includes('msword') || mime.includes('officedocument')) attachmentType = 'doc';
+      else attachmentType = 'file';
+    }
+
+    const createPayload = {
+      sender: senderId,
+      recipient: recipientId,
+      read: false
+    };
+    if (content && content.trim()) createPayload.content = content.trim();
+    if (attachmentUrl) {
+      createPayload.attachmentUrl = attachmentUrl;
+      createPayload.attachmentType = attachmentType;
+      createPayload.attachmentName = attachmentName;
+    }
+
+    const message = await Message.create(createPayload);
 
     // Create a notification
+    const previewText = (content && content.trim())
+      ? (content.length > 100 ? content.slice(0, 100) + '…' : content)
+      : (attachmentName ? `Attachment: ${attachmentName}` : 'Attachment');
+
     const notification = await Notification.create({
       user: recipientId,
       sender: senderId,
       title: 'New Message',
-      message: content.length > 100 ? content.slice(0, 100) + '…' : content,
+      message: previewText,
       type: 'CHAT_MESSAGE'
     });
 
@@ -152,6 +185,9 @@ exports.sendMessage = async (req, res, next) => {
         sender: senderId,
         recipient: recipientId,
         content: message.content,
+        attachmentUrl: message.attachmentUrl,
+        attachmentType: message.attachmentType,
+        attachmentName: message.attachmentName,
         createdAt: message.createdAt,
         read: false
       }
