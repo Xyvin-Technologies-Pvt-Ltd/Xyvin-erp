@@ -7,6 +7,7 @@ const useChatStore = create((set, get) => ({
     'Admin',
     'Project Manager',
     'HR Manager',
+    'IT Manager',
     'Finance Manager',
     'Employee',
     'Operation Officer'
