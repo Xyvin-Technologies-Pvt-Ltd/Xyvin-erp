@@ -61,6 +61,7 @@ function initializeRoutes(app, base_path) {
     app.use(`${base_path}/projects`, require('../modules/project/project.routes'));
     app.use(`${base_path}/tasks`, require('../modules/project/task/task.routes'));
     app.use(`${base_path}/notifications`, require('../modules/notification/notification.routes'));
+    app.use(`${base_path}/chat`, require('../modules/chat/chat.routes'));
 
 }
 module.exports = {

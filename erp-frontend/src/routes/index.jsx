@@ -49,6 +49,7 @@ import OfficeLoans from "@/pages/frm/OfficeLoans";
 import Profits from "@/pages/frm/Profits";
 import Events from "@/pages/hrm/Events";
 import Notification from "@/pages/notification/Notification";
+import Chat from "@/pages/Chat";
 
 const router = createBrowserRouter(
   [
@@ -201,6 +202,10 @@ const router = createBrowserRouter(
                   element: <Profits />,
                 },
               ],
+            },
+            {
+              path: "chat",
+              element: <Chat />,
             },
           ],
         },
