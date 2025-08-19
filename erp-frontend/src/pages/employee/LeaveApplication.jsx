@@ -19,7 +19,9 @@ import {
   XCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { Dialog, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import useHrmStore from "@/stores/useHrmStore";
 import useAuthStore from "@/stores/auth.store";
@@ -37,6 +39,7 @@ const LeaveApplication = () => {
   const [reason, setReason] = useState("");
   const [recentApplications, setRecentApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [reviewDialog, setReviewDialog] = useState({ open: false, notes: "", status: "", type: "", from: "", to: "" });
   const [leaveBalance, setLeaveBalance] = useState({
     annual: { total: 14, used: 0, pending: 0 },
     sick: { total: 7, used: 0, pending: 0 },
@@ -78,6 +81,8 @@ const LeaveApplication = () => {
             approvedBy: leave.approvalChain?.length
               ? "Reviewed"
               : "",
+            reviewNotes: leave.reviewNotes || "",
+            _id: leave._id,
           }))
           .sort((a, b) => new Date(b.from) - new Date(a.from));
 
@@ -297,6 +302,7 @@ const LeaveApplication = () => {
     );
   }
   return (
+    <>
     <div className="container mx-auto px-4 py-8 space-y-8 min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between">
         <div className="space-y-2">
@@ -442,7 +448,20 @@ const LeaveApplication = () => {
                 recentApplications.map((application, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-blue-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200"
+                    className={`flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-blue-200 transition-all duration-200 ${application.reviewNotes ? 'cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50' : ''}`}
+                    onClick={() => {
+                      if (application.reviewNotes) {
+                        setReviewDialog({
+                          open: true,
+                          notes: application.reviewNotes,
+                          status: application.status,
+                          type: application.type,
+                          from: application.from,
+                          to: application.to,
+                        });
+                      }
+                    }}
+                    role={application.reviewNotes ? 'button' : undefined}
                   >
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
@@ -465,9 +484,14 @@ const LeaveApplication = () => {
                           {getStatusIcon(application.status)}
                           <span>{application.status}</span>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {application.approvedBy}
-                        </p>
+                        <div className="flex items-center justify-end mt-1 gap-2">
+                          <p className="text-sm text-gray-500">
+                            {application.approvedBy}
+                          </p>
+                          {/* {application.reviewNotes && (
+                            <span className="text-xs text-blue-600 underline">View notes</span>
+                          )} */}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -506,6 +530,76 @@ const LeaveApplication = () => {
         </Card>
       </div>
     </div>
+
+    <Transition.Root show={reviewDialog.open} as={React.Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={() => setReviewDialog(prev => ({ ...prev, open: false }))}>
+        <Transition.Child
+          as={React.Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <Transition.Child
+              as={React.Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
+                  <button
+                    type="button"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    onClick={() => setReviewDialog(prev => ({ ...prev, open: false }))}
+                  >
+                    <span className="sr-only">Close</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
+                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                      Review Notes
+                    </Dialog.Title>
+                    <div className="mt-2 text-sm text-gray-600">
+                      <p className="mb-1"><span className="font-medium text-gray-800">Type:</span> {reviewDialog.type}</p>
+                      <p className="mb-1"><span className="font-medium text-gray-800">Period:</span> {reviewDialog.from} to {reviewDialog.to}</p>
+                      <p className="mb-3"><span className="font-medium text-gray-800">Status:</span> {reviewDialog.status}</p>
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 whitespace-pre-wrap text-gray-800">
+                        {reviewDialog.notes}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                    onClick={() => setReviewDialog(prev => ({ ...prev, open: false }))}
+                  >
+                    Close
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition.Root>
+    </>
   );
 };
 

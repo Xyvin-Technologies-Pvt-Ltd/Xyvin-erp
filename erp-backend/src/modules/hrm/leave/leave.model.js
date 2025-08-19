@@ -38,6 +38,17 @@ const leaveSchema = new mongoose.Schema({
         enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'],
         default: 'Pending'
     },
+    reviewNotes: {
+        type: String,
+        trim: true
+    },
+    reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Employee'
+    },
+    reviewedAt: {
+        type: Date
+    },
     attachments: [{
         name: String,
         path: String,
