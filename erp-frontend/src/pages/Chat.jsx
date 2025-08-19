@@ -46,6 +46,8 @@ const Chat = () => {
     setSelectedRole,
     fetchUsers,
     users,
+    conversations,
+    fetchConversations,
     openChatWith,
     activeUser,
     messages,
@@ -61,6 +63,7 @@ const Chat = () => {
 
   useEffect(() => {
     connectWebSocket();
+    fetchConversations();
   }, []);
 
   useEffect(() => {
@@ -110,22 +113,32 @@ const Chat = () => {
           </div>
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
-              {roles.map((role) => (
-              <button
-                  key={role}
-                  onClick={() => setSelectedRole(role)}
-                  className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
-                    selectedRole === role 
-                      ? 'bg-blue-500 text-white' 
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className="font-medium text-sm">{role}</div>
-              </button>
-            ))}
+              {roles.map((role) => {
+                const unreadByRole = (conversations || []).reduce((sum, c) => {
+                  return c.user?.role === role ? sum + (c.unreadCount || 0) : sum;
+                }, 0);
+                return (
+                  <button
+                    key={role}
+                    onClick={() => setSelectedRole(role)}
+                    className={`w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between ${
+                      selectedRole === role 
+                        ? 'bg-blue-500 text-white' 
+                        : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <div className="font-medium text-sm text-left">{role}</div>
+                    {unreadByRole > 0 && (
+                      <span className={`${selectedRole === role ? 'bg-white text-blue-600' : 'bg-red-500 text-white'} ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5`}>
+                        {unreadByRole}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
         <Card className="col-span-3 overflow-hidden flex flex-col">
           <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
@@ -134,20 +147,30 @@ const Chat = () => {
           </div>
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
-              {users.map((user) => (
-                <button
-                  key={user._id}
-                  onClick={() => openChatWith(user)}
-                  className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
-                    activeUser?._id === user._id 
-                      ? 'bg-indigo-100 border border-indigo-300' 
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="font-medium text-gray-900 text-sm">{user.firstName} {user.lastName}</div>
-                  <div className="text-xs text-gray-500">{user.position?.title || 'No Position'}</div>
-                </button>
-              ))}
+              {users.map((user) => {
+                const unreadForUser = (conversations || []).find(c => c.user?._id === user._id)?.unreadCount || 0;
+                return (
+                  <button
+                    key={user._id}
+                    onClick={() => openChatWith(user)}
+                    className={`w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between ${
+                      activeUser?._id === user._id 
+                        ? 'bg-indigo-100 border border-indigo-300' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <div className="font-medium text-gray-900 text-sm">{user.firstName} {user.lastName}</div>
+                      <div className="text-xs text-gray-500">{user.position?.title || 'No Position'}</div>
+                    </div>
+                    {unreadForUser > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5 bg-red-500 text-white">
+                        {unreadForUser}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
               {users.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
                   <div className="text-sm">No users found</div>
@@ -262,5 +285,6 @@ const Chat = () => {
 };
 
 export default Chat;
+
 
 
