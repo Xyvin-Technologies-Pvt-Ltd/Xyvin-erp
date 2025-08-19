@@ -4,7 +4,6 @@ const Notification = require('../notification/Notification.model');
 const websocketService = require('../../utils/websocket');
 const { uploadFile } = require('../../utils/fileUpload');
 
-// List users by optional role filter
 exports.listUsers = async (req, res, next) => {
   try {
     const { role } = req.query;
@@ -16,7 +15,6 @@ exports.listUsers = async (req, res, next) => {
         filter.role = role;
       }
     }
-    // Always exclude the current user from the list
     filter._id = { $ne: req.user._id };
     const users = await Employee.find(filter)
       .select('firstName lastName email role department position profilePicture')
@@ -28,7 +26,6 @@ exports.listUsers = async (req, res, next) => {
   }
 };
 
-// List conversation counterparts with last message and unread count
 exports.listConversations = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -104,7 +101,6 @@ exports.listConversations = async (req, res, next) => {
   }
 };
 
-// Get message history with a specific user
 exports.getMessages = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -123,14 +119,12 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
-// Send a new message (supports optional file attachment)
 exports.sendMessage = async (req, res, next) => {
   try {
     const senderId = req.user._id;
     const recipientId = req.params.userId;
     const { content } = req.body;
 
-    // Validate that at least text or attachment is provided
     if ((!content || !content.trim()) && !req.file) {
       return res.status(400).json({ success: false, message: 'Either message content or an attachment is required' });
     }
@@ -140,7 +134,6 @@ exports.sendMessage = async (req, res, next) => {
     let attachmentName = null;
 
     if (req.file) {
-      // Move file from temp to uploads and get URL
       attachmentUrl = await uploadFile(req.file);
       attachmentName = req.file.originalname;
       const mime = req.file.mimetype || '';
@@ -164,7 +157,6 @@ exports.sendMessage = async (req, res, next) => {
 
     const message = await Message.create(createPayload);
 
-    // Create a notification
     const previewText = (content && content.trim())
       ? (content.length > 100 ? content.slice(0, 100) + '…' : content)
       : (attachmentName ? `Attachment: ${attachmentName}` : 'Attachment');
@@ -177,7 +169,6 @@ exports.sendMessage = async (req, res, next) => {
       type: 'CHAT_MESSAGE'
     });
 
-    // Real-time push to recipient
     websocketService.sendToUser(recipientId.toString(), {
       type: 'chat',
       data: {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import useChatStore from '@/stores/chatStore';
 import { Card } from '@/components/ui/card';
+import api from '@/api/api';
 
 const DeleteConfirmationPopup = ({ isOpen, onClose, onConfirm, message }) => {
   if (!isOpen) return null;
@@ -104,7 +105,7 @@ const Chat = () => {
     <>
       <div className="h-[calc(100vh-6rem)] grid grid-cols-12 gap-4">
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1d2361ff' }}>
+          <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">Roles</h2>
           </div>
           <div className="flex-1 overflow-auto">
@@ -115,10 +116,9 @@ const Chat = () => {
                   onClick={() => setSelectedRole(role)}
                   className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${
                     selectedRole === role 
-                      ? 'text-white' 
+                      ? 'bg-blue-500 text-white' 
                       : 'hover:bg-gray-100 text-gray-700'
                   }`}
-                  style={selectedRole === role ? { backgroundColor: '#4338CA' } : {}}
                 >
                   <div className="font-medium text-sm">{role}</div>
               </button>
@@ -128,9 +128,9 @@ const Chat = () => {
       </Card>
 
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#1d2361ff' }}>
+          <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">{selectedRole} List</h2>
-            <div className="text-xs opacity-90 mt-1">{users.length} users</div>
+            {/* <div className="text-xs opacity-90 mt-1">{users.length} users</div> */}
           </div>
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
@@ -180,22 +180,20 @@ const Chat = () => {
               {(messages[activeUser._id] || []).map((m) => (
                   <div key={m._id} className={`flex ${m.sender === activeUser._id ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[70%] ${m.sender === activeUser._id ? 'self-start' : 'self-end'}`}>
-                      <div className={`rounded-lg px-3 py-2 text-sm relative group ${
-                        m.sender === activeUser._id 
-                          ? 'bg-white border shadow-sm' 
-                          : 'text-white'
-                      }`}
-                      style={m.sender === activeUser._id ? {} : { backgroundColor: '#1d2361ff' }}
-                      >
+                      <div className={`relative group text-sm ${
+                        m.attachmentType === 'image'
+                          ? 'p-0 bg-transparent'
+                          : (m.sender === activeUser._id ? 'bg-white shadow-sm px-3 py-2' : 'bg-blue-500 text-white px-3 py-2')
+                      }`}>
                         {/* Attachment rendering */}
                         {m.attachmentUrl && (
                           <div className="mb-1">
                             {m.attachmentType === 'image' ? (
-                              <a href={m.attachmentUrl} target="_blank" rel="noopener noreferrer">
-                                <img src={m.attachmentUrl} alt={m.attachmentName || 'attachment'} className="rounded max-w-full h-auto" />
+                              <a href={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} target="_blank" rel="noopener noreferrer">
+                                <img src={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} alt={m.attachmentName || 'attachment'} className="max-w-full h-auto rounded" />
                               </a>
                             ) : (
-                              <a href={m.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
+                              <a href={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
                                 </svg>
@@ -239,8 +237,7 @@ const Chat = () => {
                   />
                   <button 
                     type="submit"
-                    className="w-9 h-9 rounded-md flex items-center justify-center text-white hover:opacity-90 transition-opacity"
-                    style={{ backgroundColor: '#1d2361ff' }}
+                    className="w-9 h-9 rounded-md flex items-center justify-center text-white hover:opacity-90 transition-opacity bg-blue-500"
                     title="Send"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
