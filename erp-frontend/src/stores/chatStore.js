@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import chatService from '@/api/chat.service';
+import api from '@/api/api';
 
 const useChatStore = create((set, get) => ({
   roles: [
@@ -46,8 +47,19 @@ const useChatStore = create((set, get) => ({
     try {
       const msgs = await chatService.getMessages(user._id);
       set((state) => ({ messages: { ...state.messages, [user._id]: msgs } }));
+
+      set((state) => {
+        const conversations = Array.isArray(state.conversations) ? [...state.conversations] : [];
+        const index = conversations.findIndex((c) => c.user && c.user._id === user._id);
+        if (index >= 0) {
+          const updated = { ...conversations[index], unreadCount: 0 };
+          conversations[index] = updated;
+        }
+        const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+        return { conversations, unreadCount: totalUnread };
+      });
+
       await chatService.markRead(user._id);
-      // Update unread count after marking as read
       get().fetchConversations();
     } catch (e) {
       // ignore
@@ -98,7 +110,25 @@ const useChatStore = create((set, get) => ({
     if (existing) return existing;
     const token = localStorage.getItem('token');
     if (!token) return null;
-    const wsUrl = `${import.meta.env.VITE_WS_URL}/websocket?token=${token}`.replace(/^http/, 'ws');
+    // Build a robust WebSocket URL with fallback to API origin
+    let baseWsUrl;
+    const configuredBase = import.meta.env.VITE_WS_URL;
+    if (configuredBase && typeof configuredBase === 'string') {
+      try {
+        baseWsUrl = new URL(configuredBase).origin.replace(/^http/, 'ws');
+      } catch (_) {
+        baseWsUrl = configuredBase.replace(/^http/, 'ws');
+      }
+    } else {
+      try {
+        const origin = new URL(api.defaults.baseURL).origin; // e.g. http://localhost:8080
+        baseWsUrl = origin.replace(/^http/, 'ws');
+      } catch (_) {
+        // Final fallback to current origin
+        baseWsUrl = window.location.origin.replace(/^http/, 'ws');
+      }
+    }
+    const wsUrl = `${baseWsUrl}/websocket?token=${token}`;
     const ws = new WebSocket(wsUrl);
     ws.onopen = () => {};
     ws.onmessage = async (event) => {
@@ -107,16 +137,37 @@ const useChatStore = create((set, get) => ({
         if (data.type === 'chat') {
           const msg = data.data;
           const active = get().activeUser;
+
           set((state) => ({
             messages: {
               ...state.messages,
               [msg.sender]: [...(state.messages[msg.sender] || []), msg]
             }
           }));
+
+          set((state) => {
+            const conversations = Array.isArray(state.conversations) ? [...state.conversations] : [];
+            const index = conversations.findIndex((c) => c.user && c.user._id === msg.sender);
+            const isActiveChat = !!(active && active._id === msg.sender);
+            if (index >= 0) {
+              const updated = { ...conversations[index] };
+              updated.lastMessage = msg;
+              updated.unreadCount = (updated.unreadCount || 0) + (isActiveChat ? 0 : 1);
+              conversations[index] = updated;
+            } else {
+              conversations.unshift({
+                user: { _id: msg.sender },
+                lastMessage: msg,
+                unreadCount: isActiveChat ? 0 : 1
+              });
+            }
+            const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+            return { conversations, unreadCount: totalUnread };
+          });
+
           if (active && active._id === msg.sender) {
             await chatService.markRead(msg.sender);
           }
-          // Update unread count when new message arrives
           get().fetchConversations();
         }
         if (data.type === 'notification') {
