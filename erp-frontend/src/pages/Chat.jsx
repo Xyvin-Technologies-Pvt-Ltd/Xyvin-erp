@@ -158,7 +158,7 @@ const Chat = () => {
           </div>
         </Card>
 
-        <Card className="col-span-6 flex flex-col">
+        <Card className="col-span-6 overflow-hidden flex flex-col">
         {!activeUser ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
@@ -170,13 +170,13 @@ const Chat = () => {
               <div className="text-sm">Choose someone from the user list to begin a conversation</div>
             </div>
         ) : (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             <div className="p-4 border-b bg-white">
                 <div className="font-semibold text-lg">{activeUser.firstName} {activeUser.lastName}</div>
                 <div className="text-sm text-gray-600">{activeUser.position?.title || 'No Position'} • {activeUser.role}</div>
                 <div className="text-xs text-gray-500">{activeUser.email}</div>
             </div>
-            <div className="flex-1 overflow-auto p-4 space-y-3 bg-gray-50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
               {(messages[activeUser._id] || []).map((m) => (
                   <div key={m._id} className={`flex ${m.sender === activeUser._id ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[70%] ${m.sender === activeUser._id ? 'self-start' : 'self-end'}`}>
