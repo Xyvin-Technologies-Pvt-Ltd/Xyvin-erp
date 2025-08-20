@@ -163,28 +163,7 @@ const Chat = () => {
     };
   }, [filePreview]);
 
-  // Handle typing with debounce
-  useEffect(() => {
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    if (isTyping) {
-      emitTyping(true);
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-        emitTyping(false);
-      }, 1000);
-    } else {
-      emitTyping(false);
-    }
-
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [isTyping, emitTyping]);
+  // Typing is handled in input events with debounce via typingTimeoutRef
 
   const formatBytes = (bytes) => {
     if (bytes === undefined || bytes === null) return '';
@@ -221,7 +200,30 @@ const Chat = () => {
     setInput(e.target.value);
     if (!isTyping) {
       setIsTyping(true);
+      emitTyping(true);
     }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      emitTyping(false);
+    }, 1000);
+  };
+
+  const handleInputFocus = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      emitTyping(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    setIsTyping(false);
+    emitTyping(false);
   };
 
   const onSend = async (e) => {
@@ -255,7 +257,7 @@ const Chat = () => {
       <div className="h-[calc(100vh-7rem)] grid grid-cols-12 gap-4">
         {/* Roles Column */}
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
+          <div className="p-4 border-b bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
             <h2 className="font-semibold text-lg">Roles</h2>
           </div>
           <div className="flex-1 overflow-auto">
@@ -273,13 +275,13 @@ const Chat = () => {
                     onClick={() => setSelectedRole(role)}
                     className={`w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between ${
                       selectedRole === role 
-                        ? 'bg-blue-500 text-white' 
-                        : 'hover:bg-gray-100 text-gray-700'
+                        ? 'bg-blue-500 text-white border border-blue-500' 
+                        : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     <div className="font-medium text-sm text-left">{role}</div>
                     {unreadByRole > 0 && (
-                      <span className={`${selectedRole === role ? 'bg-white text-blue-600' : 'bg-red-500 text-white'} ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5`}>
+                      <span className={`${selectedRole === role ? 'bg-white text-blue-700' : 'bg-rose-500 text-white'} ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5`}>
                         {unreadByRole}
                       </span>
                     )}
@@ -292,7 +294,7 @@ const Chat = () => {
 
         {/* Users Column */}
         <Card className="col-span-3 overflow-hidden flex flex-col">
-          <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
+          <div className="p-4 border-b bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
             <h2 className="font-semibold text-lg">{selectedRole} List</h2>
             <div className="text-xs opacity-90 mt-1 flex items-center gap-2">
               {/* <span>{users.length} users</span> */}
@@ -312,19 +314,19 @@ const Chat = () => {
                     onClick={() => openChatWith(user)}
                     className={`w-full px-3 py-3 rounded-lg transition-colors flex items-center justify-between ${
                       activeUser?._id === user._id 
-                        ? 'bg-indigo-100 border border-indigo-300' 
-                        : 'hover:bg-gray-50'
+                        ? 'bg-blue-50 border border-blue-300' 
+                        : 'border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-left">
                       <div className="font-medium text-gray-900 text-sm">{user.firstName} {user.lastName}</div>
                       <div className="text-xs text-gray-500">{user.position?.title || 'No Position'}</div>
                       {isUserTyping && (
-                        <div className="text-xs text-blue-600 italic">typing...</div>
+                        <div className="text-xs text-blue-500 italic">typing...</div>
                       )}
                     </div>
                     {unreadForUser > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5 bg-red-500 text-white">
+                      <span className="ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5 bg-rose-500 text-white">
                         {unreadForUser}
                       </span>
                     )}
@@ -356,13 +358,13 @@ const Chat = () => {
           ) : (
             <div className="flex flex-col h-full min-h-0">
               {/* Chat Header */}
-              <div className="p-4 border-b bg-white">
+              <div className="p-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
                 <div>
                   <div className="font-semibold text-lg">{activeUser.firstName} {activeUser.lastName}</div>
                   <div className="text-sm text-gray-600">{activeUser.position?.title || 'No Position'} • {activeUser.role}</div>
                   <div className="text-xs text-gray-500">{activeUser.email}</div>
                   {typingByUserId[activeUser._id] && (
-                    <div className="text-xs text-blue-600 italic mt-1">typing...</div>
+                    <div className="text-xs text-blue-500 italic mt-1">typing...</div>
                   )}
                 </div>
               </div>
@@ -376,17 +378,17 @@ const Chat = () => {
                       <div className={`relative group text-sm ${
                         m.attachmentType === 'image'
                           ? 'p-0 bg-transparent'
-                          : (m.sender === activeUser._id ? 'bg-white shadow-sm px-3 py-2' : 'bg-blue-500 text-white px-3 py-2')
+                          : (m.sender === activeUser._id ? 'bg-white border border-gray-200 rounded-xl px-3 py-2' : 'bg-blue-500 text-white rounded-xl px-3 py-2 shadow-sm')
                       }`}>
                         {/* Attachment rendering */}
                         {m.attachmentUrl && (
                           <div className="mb-1">
                             {m.attachmentType === 'image' ? (
                               <a href={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} target="_blank" rel="noopener noreferrer">
-                                <img src={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} alt={m.attachmentName || 'attachment'} className="max-w-full h-auto rounded" />
+                                <img src={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} alt={m.attachmentName || 'attachment'} className="max-w-full h-auto rounded-lg border border-gray-200" />
                               </a>
                             ) : (
-                              <a href={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
+                              <a href={`${new URL(api.defaults.baseURL).origin}${m.attachmentUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline text-blue-700 hover:text-blue-800">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
                                 </svg>
@@ -438,17 +440,19 @@ const Chat = () => {
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <label className={`inline-flex items-center justify-center w-9 h-9 rounded-md border cursor-pointer ${filePreview ? 'border-indigo-500 bg-indigo-50 hover:bg-indigo-100' : 'border-gray-300 hover:bg-gray-50'}`} title="Upload file">
+                  <label className={`inline-flex items-center justify-center w-9 h-9 rounded-md border cursor-pointer ${filePreview ? 'border-blue-500 bg-blue-50 hover:bg-blue-100' : 'border-gray-300 hover:bg-gray-50'}`} title="Upload file">
                     <input type="file" className="hidden" onChange={onFileChange} accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.414a4 4 0 10-5.656-5.657L5.757 10.343" />
                     </svg>
                   </label>
                   <input
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Type a message..."
                     value={input}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
                   />
                   <button 
                     type="submit"
