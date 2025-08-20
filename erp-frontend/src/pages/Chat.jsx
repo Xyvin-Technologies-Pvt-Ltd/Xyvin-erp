@@ -295,8 +295,8 @@ const Chat = () => {
           <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">{selectedRole} List</h2>
             <div className="text-xs opacity-90 mt-1 flex items-center gap-2">
-              <span>{users.length} users</span>
-              <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isSocketConnected ? 'Connected' : 'Disconnected'}></div>
+              {/* <span>{users.length} users</span> */}
+              {/* <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isSocketConnected ? 'Connected' : 'Disconnected'}></div> */}
             </div>
           </div>
           <div className="flex-1 overflow-auto">
