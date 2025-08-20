@@ -1,7 +1,7 @@
 const Message = require('./Message.model');
 const Employee = require('../hrm/employee/employee.model');
 const Notification = require('../notification/Notification.model');
-const websocketService = require('../../utils/websocket');
+const socketioService = require('../../utils/socketio');
 const { uploadFile } = require('../../utils/fileUpload');
 
 exports.listUsers = async (req, res, next) => {
@@ -123,9 +123,9 @@ exports.sendMessage = async (req, res, next) => {
   try {
     const senderId = req.user._id;
     const recipientId = req.params.userId;
-    const { content } = req.body;
+    const content = req.body.content || '';
 
-    if ((!content || !content.trim()) && !req.file) {
+    if (!content.trim() && !req.file) {
       return res.status(400).json({ success: false, message: 'Either message content or an attachment is required' });
     }
 
@@ -148,7 +148,12 @@ exports.sendMessage = async (req, res, next) => {
       recipient: recipientId,
       read: false
     };
-    if (content && content.trim()) createPayload.content = content.trim();
+    
+    // Only add content if it exists and is not empty
+    if (content && content.trim()) {
+      createPayload.content = content.trim();
+    }
+    
     if (attachmentUrl) {
       createPayload.attachmentUrl = attachmentUrl;
       createPayload.attachmentType = attachmentType;
@@ -169,33 +174,34 @@ exports.sendMessage = async (req, res, next) => {
       type: 'CHAT_MESSAGE'
     });
 
-    websocketService.sendToUser(recipientId.toString(), {
-      type: 'chat',
-      data: {
-        _id: message._id,
-        sender: senderId,
-        recipient: recipientId,
-        content: message.content,
-        attachmentUrl: message.attachmentUrl,
-        attachmentType: message.attachmentType,
-        attachmentName: message.attachmentName,
-        createdAt: message.createdAt,
-        read: false
-      }
-    });
+    // Send message via Socket.IO to both sender and recipient
+    const socketMessage = {
+      _id: message._id,
+      sender: senderId,
+      recipient: recipientId,
+      content: message.content || '',
+      attachmentUrl: message.attachmentUrl,
+      attachmentType: message.attachmentType,
+      attachmentName: message.attachmentName,
+      createdAt: message.createdAt,
+      read: false
+    };
 
-    // Also push a notification event
-    websocketService.sendToUser(recipientId.toString(), {
-      type: 'notification',
-      data: {
-        _id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        read: notification.read,
-        createdAt: notification.createdAt,
-        sender: senderId
-      }
+    // Emit to recipient
+    socketioService.emitToUser(recipientId.toString(), 'chat', socketMessage);
+    
+    // Emit to sender (for confirmation and real-time updates)
+    socketioService.emitToUser(senderId.toString(), 'chat', socketMessage);
+
+    // Emit notification to recipient
+    socketioService.emitToUser(recipientId.toString(), 'notification', {
+      _id: notification._id,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      read: notification.read,
+      createdAt: notification.createdAt,
+      sender: senderId
     });
 
     res.status(201).json({ success: true, data: message });

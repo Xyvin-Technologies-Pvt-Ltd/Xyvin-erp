@@ -27,16 +27,16 @@ const DeleteConfirmationPopup = ({ isOpen, onClose, onConfirm, message }) => {
           >
             Cancel
           </button>
-      <button
+          <button
             onClick={onConfirm}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-      >
+          >
             Delete
-      </button>
+          </button>
         </div>
       </div>
-  </div>
-);
+    </div>
+  );
 };
 
 const Chat = () => {
@@ -53,39 +53,113 @@ const Chat = () => {
     messages,
     sendMessage,
     deleteMessage,
-    connectWebSocket
+    connectSocket,
+    emitTyping,
+    typingByUserId,
+    isSocketConnected,
+    cleanup,
+    refreshMessages
   } = useChatStore();
 
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [deletePopup, setDeletePopup] = useState({ isOpen: false, messageId: null });
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
+  // Initialize socket and conversations
   useEffect(() => {
-    connectWebSocket();
+    console.log('Chat component mounted, connecting socket...');
+    connectSocket();
     fetchConversations();
+    
+    return () => {
+      console.log('Chat component unmounting, cleaning up...');
+      cleanup();
+    };
   }, []);
 
+  // Fetch users when role changes
   useEffect(() => {
     fetchUsers();
   }, [selectedRole]);
 
+  // Auto-select first user
   useEffect(() => {
     if (!activeUser && users.length > 0) {
+      console.log('Auto-selecting first user:', users[0]);
       openChatWith(users[0]);
     }
-  }, [users]);
+  }, [users, activeUser]);
 
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, activeUser]);
 
+  // Debug logging
+  useEffect(() => {
+    if (activeUser) {
+      console.log('Active user:', activeUser._id);
+      console.log('Messages for active user:', messages[activeUser._id]?.length || 0);
+    }
+  }, [activeUser, messages]);
+
+  // Periodic refresh to ensure messages are up-to-date
+  useEffect(() => {
+    if (!activeUser) return;
+    
+    const interval = setInterval(() => {
+      console.log('Periodic refresh of messages for:', activeUser._id);
+      refreshMessages(activeUser._id);
+    }, 3000); // Refresh every 3 seconds
+    
+    return () => clearInterval(interval);
+  }, [activeUser, refreshMessages]);
+
+  // Periodic refresh of conversations for unread counts
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('Periodic refresh of conversations');
+      fetchConversations();
+    }, 5000); // Refresh conversations every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchConversations]);
+
+  // Cleanup file preview
   useEffect(() => {
     return () => {
       if (filePreview?.url) URL.revokeObjectURL(filePreview.url);
     };
   }, [filePreview]);
+
+  // Handle typing with debounce
+  useEffect(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    if (isTyping) {
+      emitTyping(true);
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        emitTyping(false);
+      }, 1000);
+    } else {
+      emitTyping(false);
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [isTyping, emitTyping]);
 
   const formatBytes = (bytes) => {
     if (bytes === undefined || bytes === null) return '';
@@ -118,13 +192,22 @@ const Chat = () => {
     setFilePreview(null);
   };
 
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    if (!isTyping) {
+      setIsTyping(true);
+    }
+  };
+
   const onSend = async (e) => {
     e.preventDefault();
     if (!input.trim() && !file) return;
+    
+    console.log('Sending message...');
+    setIsTyping(false);
     await sendMessage(input.trim(), file);
     setInput('');
     clearSelectedFile();
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleDeleteMessage = (messageId) => {
@@ -145,6 +228,7 @@ const Chat = () => {
   return (
     <>
       <div className="h-[calc(100vh-7rem)] grid grid-cols-12 gap-4">
+        {/* Roles Column */}
         <Card className="col-span-3 overflow-hidden flex flex-col">
           <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">Roles</h2>
@@ -178,15 +262,20 @@ const Chat = () => {
           </div>
         </Card>
 
+        {/* Users Column */}
         <Card className="col-span-3 overflow-hidden flex flex-col">
           <div className="p-4 border-b text-white" style={{ backgroundColor: '#0e0ed1ff' }}>
             <h2 className="font-semibold text-lg">{selectedRole} List</h2>
-            {/* <div className="text-xs opacity-90 mt-1">{users.length} users</div> */}
+            <div className="text-xs opacity-90 mt-1 flex items-center gap-2">
+              <span>{users.length} users</span>
+              <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`} title={isSocketConnected ? 'Connected' : 'Disconnected'}></div>
+            </div>
           </div>
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
               {users.map((user) => {
                 const unreadForUser = (conversations || []).find(c => c.user?._id === user._id)?.unreadCount || 0;
+                const isUserTyping = typingByUserId[user._id];
                 return (
                   <button
                     key={user._id}
@@ -200,6 +289,9 @@ const Chat = () => {
                     <div className="text-left">
                       <div className="font-medium text-gray-900 text-sm">{user.firstName} {user.lastName}</div>
                       <div className="text-xs text-gray-500">{user.position?.title || 'No Position'}</div>
+                      {isUserTyping && (
+                        <div className="text-xs text-blue-600 italic">typing...</div>
+                      )}
                     </div>
                     {unreadForUser > 0 && (
                       <span className="ml-2 inline-flex items-center justify-center text-[10px] font-semibold rounded-full px-2 py-0.5 bg-red-500 text-white">
@@ -219,8 +311,9 @@ const Chat = () => {
           </div>
         </Card>
 
+        {/* Chat Area */}
         <Card className="col-span-6 overflow-hidden flex flex-col">
-        {!activeUser ? (
+          {!activeUser ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500">
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,15 +323,34 @@ const Chat = () => {
               <div className="text-lg font-medium mb-2">Select a user to start chatting</div>
               <div className="text-sm">Choose someone from the user list to begin a conversation</div>
             </div>
-        ) : (
-          <div className="flex flex-col h-full min-h-0">
-            <div className="p-4 border-b bg-white">
-                <div className="font-semibold text-lg">{activeUser.firstName} {activeUser.lastName}</div>
-                <div className="text-sm text-gray-600">{activeUser.position?.title || 'No Position'} • {activeUser.role}</div>
-                <div className="text-xs text-gray-500">{activeUser.email}</div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-              {(messages[activeUser._id] || []).map((m) => (
+          ) : (
+            <div className="flex flex-col h-full min-h-0">
+              {/* Chat Header */}
+              <div className="p-4 border-b bg-white">
+                <div>
+                  <div className="font-semibold text-lg">{activeUser.firstName} {activeUser.lastName}</div>
+                  <div className="text-sm text-gray-600">{activeUser.position?.title || 'No Position'} • {activeUser.role}</div>
+                  <div className="text-xs text-gray-500">{activeUser.email}</div>
+                  {typingByUserId[activeUser._id] && (
+                    <div className="text-xs text-blue-600 italic mt-1">typing...</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                {/* Debug Info */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-4 text-xs">
+                    <div className="font-semibold text-yellow-800">Debug Info:</div>
+                    <div>Active User: {activeUser._id}</div>
+                    <div>Messages Count: {messages[activeUser._id]?.length || 0}</div>
+                    <div>Socket Connected: {isSocketConnected ? 'Yes' : 'No'}</div>
+                    <div>Total Messages: {Object.keys(messages).length}</div>
+                  </div>
+                )}
+                
+                {(messages[activeUser._id] || []).map((m) => (
                   <div key={m._id} className={`flex ${m.sender === activeUser._id ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[70%] ${m.sender === activeUser._id ? 'self-start' : 'self-end'}`}>
                       <div className={`relative group text-sm ${
@@ -277,11 +389,13 @@ const Chat = () => {
                       <div className="text-[10px] text-gray-400 mt-1 text-center">
                         {new Date(m.createdAt).toLocaleString()}
                       </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+
+              {/* Message Input */}
               <form onSubmit={onSend} className="p-3 border-t bg-white">
                 {filePreview && (
                   <div className="mb-2 p-2 border rounded-md bg-gray-50 flex items-center justify-between">
@@ -314,7 +428,7 @@ const Chat = () => {
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     placeholder="Type a message..."
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={handleInputChange}
                   />
                   <button 
                     type="submit"
@@ -328,10 +442,10 @@ const Chat = () => {
                   </button>
                 </div>
               </form>
-          </div>
-        )}
-      </Card>
-    </div>
+            </div>
+          )}
+        </Card>
+      </div>
 
       <DeleteConfirmationPopup
         isOpen={deletePopup.isOpen}
