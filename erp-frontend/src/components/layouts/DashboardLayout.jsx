@@ -8,12 +8,17 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const isChatRoute = location.pathname === '/chat';
-  const { fetchConversations, unreadCount, connectWebSocket } = useChatStore();
+  const { fetchConversations, unreadCount, connectSocket, cleanup } = useChatStore();
 
   useEffect(() => {
-    connectWebSocket();
+    connectSocket();
     fetchConversations();
-  }, [connectWebSocket, fetchConversations]);
+    
+    // Cleanup function
+    return () => {
+      cleanup();
+    };
+  }, [connectSocket, fetchConversations, cleanup]);
 
   return (
     <div className="min-h-screen bg-gray-100">

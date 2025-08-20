@@ -14,9 +14,9 @@ const messageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
+      required: false, // Made optional to allow messages with only attachments
       trim: true
     },
-    // Optional attachment support for images, pdf, docs, etc.
     attachmentUrl: {
       type: String,
       default: null
@@ -39,6 +39,14 @@ const messageSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+
+// Add validation to ensure either content or attachment is present
+messageSchema.pre('validate', function(next) {
+  if (!this.content && !this.attachmentUrl) {
+    return next(new Error('Message must have either content or an attachment'));
+  }
+  next();
+});
 
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 
