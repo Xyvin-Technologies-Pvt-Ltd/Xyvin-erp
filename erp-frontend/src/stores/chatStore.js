@@ -226,6 +226,23 @@ const useChatStore = create((set, get) => ({
       });
       
       // Update conversations immediately to refresh unread counts
+      const active = get().activeUser;
+      const meId = JSON.parse(localStorage.getItem('user'))?._id;
+      const isIncoming = msg.sender !== meId && msg.recipient === meId;
+      const isActiveChat = active && active._id === conversationPartnerId;
+      // Optimistically adjust unread counts
+      set((state) => ({
+        conversations: (state.conversations || []).map((c) => {
+          if (c.user?._id !== conversationPartnerId) return c;
+          if (isActiveChat) {
+            return { ...c, unreadCount: 0 };
+          }
+          if (isIncoming) {
+            return { ...c, unreadCount: (c.unreadCount || 0) + 1 };
+          }
+          return c;
+        })
+      }));
       get().fetchConversations();
       
       // Mark as read if this is the active chat
@@ -319,6 +336,24 @@ const useChatStore = create((set, get) => ({
         }
       }));
       console.log('Messages refreshed for user:', userId, msgs.length);
+
+      // If this is the active chat, mark messages as read and refresh conversations
+      const active = get().activeUser;
+      if (active && active._id === userId) {
+        try {
+          await chatService.markRead(userId);
+          // Optimistically zero unread for this conversation
+          set((state) => ({
+            conversations: (state.conversations || []).map((c) =>
+              c.user?._id === userId ? { ...c, unreadCount: 0 } : c
+            )
+          }));
+          // Then fetch authoritative counts
+          get().fetchConversations();
+        } catch (err) {
+          console.error('Failed to mark messages as read on refresh:', err);
+        }
+      }
     } catch (e) {
       console.error('Failed to refresh messages:', e);
     }

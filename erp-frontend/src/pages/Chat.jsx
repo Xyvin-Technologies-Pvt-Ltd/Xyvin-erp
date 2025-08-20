@@ -68,6 +68,8 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   // Initialize socket and conversations
   useEffect(() => {
@@ -94,14 +96,37 @@ const Chat = () => {
     }
   }, [users, activeUser]);
 
-  // Auto-scroll to bottom when messages change
+  // Track scroll position to determine if the user is near the bottom
+  const handleScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const threshold = 60; // px from bottom considered "at bottom"
+    const distanceFromBottom = el.scrollHeight - el.clientHeight - el.scrollTop;
+    setIsAtBottom(distanceFromBottom <= threshold);
+  };
+
+  // When switching to a chat, jump to bottom initially
   useEffect(() => {
+    if (!activeUser) return;
+    requestAnimationFrame(() => {
+      if (bottomRef.current) {
+        bottomRef.current.scrollIntoView({ behavior: 'auto' });
+      }
+      setIsAtBottom(true);
+    });
+  }, [activeUser?._id]);
+
+  // When messages for the active chat update, only auto-scroll if already at bottom
+  const activeUserId = activeUser?._id;
+  const messageCount = activeUserId ? (messages[activeUserId]?.length || 0) : 0;
+  useEffect(() => {
+    if (!activeUserId) return;
+    if (!isAtBottom) return; // don't jump if user is reading older messages
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, activeUser]);
+  }, [activeUserId, messageCount, isAtBottom]);
 
-  // Debug logging
   useEffect(() => {
     if (activeUser) {
       console.log('Active user:', activeUser._id);
@@ -237,7 +262,10 @@ const Chat = () => {
             <div className="space-y-1 p-2">
               {roles.map((role) => {
                 const unreadByRole = (conversations || []).reduce((sum, c) => {
-                  return c.user?.role === role ? sum + (c.unreadCount || 0) : sum;
+                  // Suppress unread for active conversation in the role count
+                  const isActiveConv = activeUser?._id && c.user?._id === activeUser._id;
+                  const add = isActiveConv ? 0 : (c.unreadCount || 0);
+                  return c.user?.role === role ? sum + add : sum;
                 }, 0);
                 return (
                   <button
@@ -274,7 +302,9 @@ const Chat = () => {
           <div className="flex-1 overflow-auto">
             <div className="space-y-1 p-2">
               {users.map((user) => {
-                const unreadForUser = (conversations || []).find(c => c.user?._id === user._id)?.unreadCount || 0;
+                const unreadForUserRaw = (conversations || []).find(c => c.user?._id === user._id)?.unreadCount || 0;
+                // Suppress unread badge for the currently active user
+                const unreadForUser = activeUser?._id === user._id ? 0 : unreadForUserRaw;
                 const isUserTyping = typingByUserId[user._id];
                 return (
                   <button
@@ -338,17 +368,7 @@ const Chat = () => {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-                {/* Debug Info */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-4 text-xs">
-                    <div className="font-semibold text-yellow-800">Debug Info:</div>
-                    <div>Active User: {activeUser._id}</div>
-                    <div>Messages Count: {messages[activeUser._id]?.length || 0}</div>
-                    <div>Socket Connected: {isSocketConnected ? 'Yes' : 'No'}</div>
-                    <div>Total Messages: {Object.keys(messages).length}</div>
-                  </div>
-                )}
+              <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">                
                 
                 {(messages[activeUser._id] || []).map((m) => (
                   <div key={m._id} className={`flex ${m.sender === activeUser._id ? 'justify-start' : 'justify-end'}`}>
