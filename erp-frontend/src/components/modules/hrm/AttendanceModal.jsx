@@ -70,8 +70,11 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
       try {
         const employees = await fetchEmployees();
         console.log("Loaded employees:", employees);
-        setActiveEmployees(employees);
-        setFilteredEmployees(employees);
+        const activeOnly = Array.isArray(employees)
+          ? employees.filter((e) => (e?.status || '').toLowerCase() === 'active')
+          : [];
+        setActiveEmployees(activeOnly);
+        setFilteredEmployees(activeOnly);
       } catch (error) {
         console.error("Error loading employees:", error);
         toast.error("Failed to load employees");
