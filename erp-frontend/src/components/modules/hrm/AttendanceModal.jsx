@@ -68,7 +68,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const employees = await fetchEmployees({ status: "active" });
+        const employees = await fetchEmployees();
         console.log("Loaded employees:", employees);
         setActiveEmployees(employees);
         setFilteredEmployees(employees);
@@ -324,6 +324,10 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
   }, [formik.values.date, formik.values.type]);
 
   const isEmployeeDisabled = (employee) => {
+    if (employee.status && employee.status !== 'active') {
+      return true;
+    }
+    
     const key = (employee.id || employee._id || "").toString();
     const rec = dayAttendanceMap[key];
     
@@ -590,7 +594,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                           <div className="flex gap-2 mt-2 mb-2">
                           <input
                               type="text"
-                              placeholder="Search employees..."
+                              placeholder="Search employees by name or ID..."
                               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                               onChange={(e) => {
                                 const searchTerm = e.target.value.toLowerCase();
@@ -601,6 +605,9 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                                 const filtered = activeEmployees.filter(
                                   (emp) =>
                                     (emp.firstName || "")
+                                      .toLowerCase()
+                                      .includes(searchTerm) ||
+                                    (emp.lastName || "")
                                       .toLowerCase()
                                       .includes(searchTerm) ||
                                     (emp.employeeId || "")
@@ -669,12 +676,19 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                                 />
                                 <label
                                   htmlFor={`employee-${employee.id}`}
-                                  className={`text-sm text-gray-700 ${
-                                    isEmployeeDisabled(employee) ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+                                  className={`text-sm ${
+                                    isEmployeeDisabled(employee) 
+                                      ? "opacity-60 cursor-not-allowed text-gray-500" 
+                                      : "text-gray-700 cursor-pointer"
                                   }`}
                                 >
                                   {employee.firstName} {employee.lastName} (
                                   {employee.employeeId || "No ID"})
+                                  {employee.status && employee.status !== 'active' && (
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                      {employee.status}
+                                    </span>
+                                  )}
                                 </label>
                               </div>
                             ))}
