@@ -5,7 +5,7 @@ const { protect, authorize } = require('../../../middleware/authMiddleware');
 
 
 router.use(protect);
-router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager'));
+router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager', 'Admin'));
 
 // Place the next-code route first (before ID routes)
 router.get('/code/next', departmentController.getNextDepartmentCode);
