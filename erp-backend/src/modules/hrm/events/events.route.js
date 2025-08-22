@@ -14,7 +14,7 @@ const {
 
 // Apply authentication middleware to all routes
 router.use(protect);
-router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager', 'Admin'));
+// router.use(authorize('ERP System Administrator','IT Manager','Project Manager','HR Manager', 'Admin'));
 
 router.route('/')
   .post(createEvent)
