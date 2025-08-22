@@ -55,6 +55,15 @@ const attendanceSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    // Regular Time (RT) and Overtime (OT)
+    regularHours: {
+        type: Number,
+        default: 0
+    },
+    overtimeHours: {
+        type: Number,
+        default: 0
+    },
     overtime: {
         hours: {
             type: Number,
@@ -198,6 +207,10 @@ attendanceSchema.pre('save', function(next) {
     // Skip work hours calculation for leave records
     if (this.isLeave) {
         this.workHours = 0; // Leave records should have 0 work hours
+        this.regularHours = 0;
+        this.overtimeHours = 0;
+        if (!this.overtime) this.overtime = {};
+        this.overtime.hours = 0;
         return next();
     }
 
