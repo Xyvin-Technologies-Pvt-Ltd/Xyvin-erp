@@ -189,6 +189,30 @@ exports.createAttendance = catchAsync(async (req, res) => {
   });
 
   if (existingAttendance) {
+    if (!['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status || existingAttendance.status)) {
+      if (!existingAttendance.lastSessionCheckIn) {
+        const sessionStart = checkIn?.time ? new Date(checkIn.time) : new Date();
+        await Attendance.findByIdAndUpdate(existingAttendance._id, {
+          $set: {
+            lastSessionCheckIn: sessionStart,
+            'checkIn.time': existingAttendance.checkIn?.time || sessionStart,
+            'checkIn.device': existingAttendance.checkIn?.device || checkIn?.device || 'Web',
+            'checkIn.ipAddress': existingAttendance.checkIn?.ipAddress || checkIn?.ipAddress,
+            updatedBy: req.user._id
+          }
+        });
+      }
+      const populated = await Attendance.findById(existingAttendance._id)
+        .populate({
+          path: 'employee',
+          select: 'firstName lastName department position',
+          populate: [
+            { path: 'department', select: 'name' },
+            { path: 'position', select: 'title' }
+          ]
+        });
+      return res.status(200).json({ status: 'success', data: { attendance: populated } });
+    }
     throw createError(400, 'Attendance record already exists for this date');
   }
 
@@ -211,6 +235,7 @@ exports.createAttendance = catchAsync(async (req, res) => {
       device: checkIn?.device || 'Web',
       ipAddress: checkIn?.ipAddress
     };
+    attendanceData.lastSessionCheckIn = new Date(attendanceData.checkIn.time);
   }
 
   const attendance = await Attendance.create(attendanceData);
@@ -315,54 +340,74 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
           continue;
         }
 
-        // Prevent duplicate check-in attempts via bulk
+        // Handle starting a new session via bulk check-in
         if (record.checkIn) {
-          errors.push({
-            employee: record.employee,
-            date: record.date,
-            error: 'Attendance already marked for this date'
-          });
+          if (!existingAttendance.lastSessionCheckIn) {
+            const sessionStart = new Date(record.checkIn.time || new Date());
+            await Attendance.findByIdAndUpdate(
+              existingAttendance._id,
+              {
+                $set: {
+                  lastSessionCheckIn: sessionStart,
+                  // ensure the day's first checkIn is preserved or set if missing
+                  'checkIn.time': existingAttendance.checkIn?.time || sessionStart,
+                  'checkIn.device': record.checkIn.device || existingAttendance.checkIn?.device || 'Web',
+                  'checkIn.ipAddress': record.checkIn.ipAddress || existingAttendance.checkIn?.ipAddress || undefined,
+                  updatedBy: req.user._id
+                }
+              },
+              { new: true }
+            );
+          }
+          // return current state
+          const populated = await Attendance.findById(existingAttendance._id)
+            .populate({
+              path: 'employee',
+              select: 'firstName lastName department position',
+              populate: [
+                { path: 'department', select: 'name' },
+                { path: 'position', select: 'title' }
+              ]
+            });
+          results.push(populated);
           continue;
         }
 
         // Handle checkout updates via bulk
         if (record.checkOut) {
-          const checkInTime = existingAttendance.checkIn?.time;
-          const alreadyCheckedOut = !!existingAttendance.checkOut?.time;
+          const sessionStart = existingAttendance.lastSessionCheckIn;
+          const alreadyCheckedOut = false; // we allow multiple sessions; do not block
 
-          if (!checkInTime) {
+          if (!sessionStart) {
             errors.push({
               employee: record.employee,
               date: record.date,
-              error: 'Cannot checkout without an existing check-in'
-            });
-            continue;
-          }
-
-          if (alreadyCheckedOut) {
-            errors.push({
-              employee: record.employee,
-              date: record.date,
-              error: 'Checkout already recorded for this date'
+              error: 'No active session to checkout'
             });
             continue;
           }
 
           const checkOutTime = new Date(record.checkOut.time || new Date());
-          const workHours = calculateWorkHours(checkInTime, checkOutTime);
+          const increment = calculateWorkHours(sessionStart, checkOutTime);
 
           const updatedAttendance = await Attendance.findByIdAndUpdate(
             existingAttendance._id,
             {
               $set: {
+                // Keep the last checkout of the day
                 checkOut: {
                   time: checkOutTime,
                   device: record.checkOut.device || 'Web',
                   ipAddress: record.checkOut.ipAddress
                 },
-                workHours,
-                status: determineStatus(checkInTime, checkOutTime, workHours),
-                updatedBy: req.user._id
+                $push: {
+                  sessions: { startTime: sessionStart, endTime: checkOutTime }
+                },
+                updatedBy: req.user._id,
+                lastSessionCheckIn: null
+              },
+              $inc: {
+                workHours: increment
               }
             },
             { new: true }
@@ -446,7 +491,8 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
           time: checkInTime,
           device: record.checkIn?.device || 'Web',
           ipAddress: record.checkIn?.ipAddress
-        }
+        },
+        lastSessionCheckIn: checkInTime
       };
 
       const newAttendance = await Attendance.create(attendanceData);
@@ -501,7 +547,7 @@ const calculateWorkHours = (checkInTime, checkOutTime) => {
   }
   
   const diffInHours = (checkOut - checkIn) / (1000 * 60 * 60); // Convert milliseconds to hours
-  return Math.max(0, Math.round(diffInHours * 100) / 100); // Round to 2 decimal places, ensure non-negative
+  return Math.max(0, Math.round(diffInHours * 100) / 100); 
 };
 
 // Update attendance for checkout
@@ -520,11 +566,10 @@ exports.checkOut = catchAsync(async (req, res) => {
     throw createError(400, 'Cannot checkout without a check-in record');
   }
 
-  if (attendance.checkOut && attendance.checkOut.time) {
-    throw createError(400, 'Employee has already checked out');
-  }
+  // Allow multiple sessions; do not block repeated checkout. We will add to workHours and set last checkout.
 
-  const checkInTime = new Date(attendance.checkIn.time);
+  const sessionStart = attendance.lastSessionCheckIn || attendance.checkIn.time;
+  const checkInTime = new Date(sessionStart);
   const checkOutTime = new Date(checkOut?.time || new Date());
 
   // Validate checkout time is after checkin
@@ -533,9 +578,9 @@ exports.checkOut = catchAsync(async (req, res) => {
   }
 
   // Calculate work hours
-  const workHours = calculateWorkHours(checkInTime, checkOutTime);
+  const increment = calculateWorkHours(checkInTime, checkOutTime);
 
-  // Update the attendance record with checkout and work hours
+  // Update the attendance record with checkout and accumulated work hours
   const updatedAttendance = await Attendance.findByIdAndUpdate(
     id,
     {
@@ -545,8 +590,12 @@ exports.checkOut = catchAsync(async (req, res) => {
           device: checkOut?.device || 'Web',
           ipAddress: checkOut?.ipAddress
         },
-        workHours,
-        status: determineStatus(checkInTime, checkOutTime, workHours)
+        status: determineStatus(attendance.checkIn.time, checkOutTime, attendance.workHours + increment),
+        lastSessionCheckIn: null
+      },
+      $push: { sessions: { startTime: checkInTime, endTime: checkOutTime } },
+      $inc: {
+        workHours: increment
       }
     },
     {
@@ -1011,8 +1060,8 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
       halfDay: attendance.filter(a => a.status === 'Half-Day').length,
       earlyLeave: attendance.filter(a => a.status === 'Early-Leave').length,
       onLeave: attendance.filter(a => a.status === 'On-Leave').length,
-      totalWorkHours: Number(attendance.reduce((sum, record) => sum + (record.workHours || 0), 0).toFixed(2)),
-      averageWorkHours: Number((attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) / (attendance.length || 1)).toFixed(2))
+      totalWorkHours: Math.round(attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) * 100) / 100,
+      averageWorkHours: Math.round((attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) / (attendance.length || 1)) * 100) / 100
     };
 
     // Format attendance records with proper date strings
@@ -1050,7 +1099,7 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
       acc[monthYear].total++;
       acc[monthYear][record.status.toLowerCase()] = (acc[monthYear][record.status.toLowerCase()] || 0) + 1;
       acc[monthYear].totalWorkHours += record.workHours || 0;
-      acc[monthYear].averageWorkHours = Number((acc[monthYear].totalWorkHours / acc[monthYear].total).toFixed(2));
+      acc[monthYear].averageWorkHours = Math.round((acc[monthYear].totalWorkHours / acc[monthYear].total) * 100) / 100;
       
       return acc;
     }, {});
