@@ -34,6 +34,9 @@ export function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
+        formatters={{
+        formatWeekdayName: (day) => day.toLocaleDateString("en-US", { weekday: "short" }),
+      }}
       {...props}
     />
   )

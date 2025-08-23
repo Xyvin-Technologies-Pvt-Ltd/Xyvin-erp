@@ -39,10 +39,19 @@ const LeaveApplication = () => {
   const [reason, setReason] = useState("");
   const [recentApplications, setRecentApplications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [reviewDialog, setReviewDialog] = useState({ open: false, notes: "", status: "", type: "", from: "", to: "" });
+  const [reviewDialog, setReviewDialog] = useState({
+    open: false,
+    notes: "",
+    status: "",
+    type: "",
+    from: "",
+    to: "",
+  });
   const [leaveBalance, setLeaveBalance] = useState({
     annual: { total: 14, used: 0, pending: 0 },
     sick: { total: 7, used: 0, pending: 0 },
+    halfday: { total: 3, used: 0, pending: 0 },
+    emergency: { total: 3, used: 0, pending: 0 },
     personal: { total: 3, used: 0, pending: 0 },
     maternity: { total: 90, used: 0, pending: 0 },
     paternity: { total: 14, used: 0, pending: 0 },
@@ -78,9 +87,7 @@ const LeaveApplication = () => {
             to: format(new Date(leave.endDate), "yyyy-MM-dd"),
             status:
               leave.status.charAt(0).toUpperCase() + leave.status.slice(1),
-            approvedBy: leave.approvalChain?.length
-              ? "Reviewed"
-              : "",
+            approvedBy: leave.approvalChain?.length ? "Reviewed" : "",
             reviewNotes: leave.reviewNotes || "",
             _id: leave._id,
           }))
@@ -91,6 +98,8 @@ const LeaveApplication = () => {
         const balanceCalculation = {
           annual: { total: 14, used: 0, pending: 0 },
           sick: { total: 7, used: 0, pending: 0 },
+          halfday: { total: 3, used: 0, pending: 0 },
+          emergency: { total: 3, used: 0, pending: 0 },
           personal: { total: 3, used: 0, pending: 0 },
           maternity: { total: 90, used: 0, pending: 0 },
           paternity: { total: 14, used: 0, pending: 0 },
@@ -257,7 +266,7 @@ const LeaveApplication = () => {
         return <ClockIcon className="h-5 w-5 text-yellow-600" />;
     }
   };
-  
+
   // Safe date range for display
   const getFormattedDateRange = () => {
     if (dateRange && dateRange.from && dateRange.to) {
@@ -275,7 +284,7 @@ const LeaveApplication = () => {
     }
     return "Select date range";
   };
-  
+
   // Handle Calendar selection with validation
   const handleDateSelect = (range) => {
     // Make sure we have a valid range object before updating state
@@ -296,309 +305,372 @@ const LeaveApplication = () => {
       <div className="flex items-center justify-center min-h-[400px] bg-gradient-to-br from-gray-50 to-white">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
-          <p className="text-gray-500 font-medium">Loading leave information...</p>
+          <p className="text-gray-500 font-medium">
+            Loading leave information...
+          </p>
         </div>
       </div>
     );
   }
   return (
     <>
-    <div className="container mx-auto px-4 py-8 space-y-8 min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            Leave Application
-          </h1>
-          <p className="text-gray-600">Request and manage your leave applications</p>
+      <div className="container mx-auto px-4 py-8 space-y-8 min-h-screen">
+        <div className="flex flex-col md:flex-row md:items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Leave Application
+            </h1>
+            <p className="text-gray-600">
+              Request and manage your leave applications
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <DocumentTextIcon className="h-5 w-5 mr-2" />
+              Download Leave Policy
+            </Button>
+          </div>
         </div>
-        <div className="mt-4 md:mt-0">
-          <Button 
-            variant="outline" 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-          >
-            <DocumentTextIcon className="h-5 w-5 mr-2" />
-            Download Leave Policy
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Leave Type
-                  </label>
-                  <Select value={leaveType} onValueChange={setLeaveType}>
-                    <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg hover:border-blue-500 transition-colors duration-200">
-                      <SelectValue placeholder="Select leave type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="annual">Annual Leave</SelectItem>
-                      <SelectItem value="sick">Sick Leave</SelectItem>
-                      <SelectItem value="personal">Personal Leave</SelectItem>
-                      <SelectItem value="unpaid">Unpaid Leave</SelectItem>
-                      <SelectItem value="other">Other Leave</SelectItem>
-                      <SelectItem value="maternity">Maternity Leave</SelectItem>
-                      <SelectItem value="paternity">Paternity Leave</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Leave Type
+                    </label>
+                    <Select value={leaveType} onValueChange={setLeaveType}>
+                      <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg hover:border-blue-500 transition-colors duration-200">
+                        <SelectValue placeholder="Select leave type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="annual">Annual Leave</SelectItem>
+                        <SelectItem value="sick">Sick Leave</SelectItem>
+                        <SelectItem value="halfday">Half-Day Leave</SelectItem>
+                        <SelectItem value="personal">Personal Leave</SelectItem>
+                        <SelectItem value="unpaid">Unpaid Leave</SelectItem>
+                        <SelectItem value="maternity">
+                          Maternity Leave
+                        </SelectItem>
+                        <SelectItem value="paternity">
+                          Paternity Leave
+                        </SelectItem>
+                        <SelectItem value="emergency">
+                          Emergency Leave
+                        </SelectItem>
+                        <SelectItem value="other">Other Leave</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Duration
-                  </label>
-                  <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    {getFormattedDateRange()}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Duration
+                    </label>
+                    <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      {getFormattedDateRange()}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Date Range
-                </label>
-                <div className="rounded-xl border border-gray-200 p-4 bg-white shadow-sm">
-                  <div className="flex flex-col">
-                    <div className="flex justify-center items-center gap-4 mb-2 pb-2 border-b">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handlePreviousMonth}
-                        className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                      >
-                        <ChevronLeftIcon className="h-4 w-4" />
-                      </Button>
-                      <div className="text-sm font-medium text-gray-700">
-                        {format(currentMonth, "MMMM yyyy")}
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Date Range
+                  </label>
+                  <div className="rounded-xl border border-gray-200 p-4 bg-white shadow-sm">
+                    <div className="flex flex-col">
+                      <div className="flex justify-center items-center gap-4 mb-2 pb-2 border-b">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handlePreviousMonth}
+                          className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                        >
+                          <ChevronLeftIcon className="h-4 w-4" />
+                        </Button>
+                        <div className="text-sm font-medium text-gray-700">
+                          {format(currentMonth, "MMMM yyyy")}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleNextMonth}
+                          className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                        >
+                          <ChevronRightIcon className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleNextMonth}
-                        className="h-8 w-8 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                      >
-                        <ChevronRightIcon className="h-4 w-4" />
-                      </Button>
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={handleDateSelect}
+                        numberOfMonths={1}
+                        month={currentMonth}
+                        className="w-full"
+                        showOutsideDays={false}
+                        classNames={{
+                          months: "flex ",
+                          month: "space-y-2  w-full ",
+                          caption: "hidden",
+                          nav: "hidden",
+                          table: "w-full border-collapse space-y-1",
+                          head_row: "flex",
+                          head_cell:
+                            "text-gray-500 w-8 font-normal text-[0.8rem]",
+                          row: "flex w-full",
+                          cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent hover:bg-gray-100 rounded-lg transition-colors duration-200",
+                          day: "h-8 w-8  text-center p-0 font-normal hover:bg-blue-50 rounded-lg",
+                          day_range_end: "day-range-end",
+                          day_range_start: "day-range-start",
+                          day_selected:
+                            "bg-blue-600 text-white hover:bg-blue-700 hover:text-white rounded-lg",
+                        }}
+                      />
                     </div>
-                    <Calendar
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={handleDateSelect}
-                      numberOfMonths={1}
-                      month={currentMonth}
-                      className="w-full"
-                      showOutsideDays={false}
-                      classNames={{
-                        months: "flex",
-                        month: "space-y-2 w-full",
-                        caption: "hidden",
-                        nav: "hidden",
-                        table: "w-full border-collapse space-y-1",
-                        head_row: "flex",
-                        head_cell: "text-gray-500 w-8 font-normal text-[0.8rem]",
-                        row: "flex w-full",
-                        cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent hover:bg-gray-100 rounded-lg transition-colors duration-200",
-                        day: "h-8 w-8 p-0 font-normal hover:bg-blue-50 rounded-lg",
-                        day_range_end: "day-range-end",
-                        day_range_start: "day-range-start",
-                        day_selected: "bg-blue-600 text-white hover:bg-blue-700 hover:text-white rounded-lg",
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Reason
+                  </label>
+                  <Textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Please provide a reason for your leave request"
+                    className="min-h-[100px] bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                >
+                  Submit Application
+                </Button>
+              </form>
+            </Card>
+
+            <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+              <h2 className="text-lg font-semibold mb-4 text-gray-900">
+                Recent Applications
+              </h2>
+              <div className="space-y-4">
+                {recentApplications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto">
+                      <CalendarIcon className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                      No leave applications
+                    </h3>
+                    <p className="text-gray-500 mt-1">
+                      Your leave applications will appear here
+                    </p>
+                  </div>
+                ) : (
+                  recentApplications.map((application, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-blue-200 transition-all duration-200 ${
+                        application.reviewNotes
+                          ? "cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (application.reviewNotes) {
+                          setReviewDialog({
+                            open: true,
+                            notes: application.reviewNotes,
+                            status: application.status,
+                            type: application.type,
+                            from: application.from,
+                            to: application.to,
+                          });
+                        }
+                      }}
+                      role={application.reviewNotes ? "button" : undefined}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
+                          <CalendarIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {application.type}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {application.from} to {application.to}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
+                              application.status
+                            )}`}
+                          >
+                            {getStatusIcon(application.status)}
+                            <span>{application.status}</span>
+                          </div>
+                          <div className="flex items-center justify-end mt-1 gap-2">
+                            <p className="text-sm text-gray-500">
+                              {application.approvedBy}
+                            </p>
+                            {/* {application.reviewNotes && (
+                            <span className="text-xs text-blue-600 underline">View notes</span>
+                          )} */}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">
+              Leave Balance
+            </h2>
+            <div className="space-y-6">
+              {Object.entries(leaveBalance).map(([type, balance]) => (
+                <div key={type} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="capitalize text-gray-700">
+                      {type === "halfday" ? "Half Day" : type} Leave
+                    </span>
+                    <span className="font-semibold text-gray-900">
+                      {balance.total - balance.used} days
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${
+                          ((balance.used + balance.pending) / balance.total) *
+                          100
+                        }%`,
                       }}
                     />
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Reason
-                </label>
-                <Textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Please provide a reason for your leave request"
-                  className="min-h-[100px] bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                Submit Application
-              </Button>
-            </form>
-          </Card>
-
-          <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900">Recent Applications</h2>
-            <div className="space-y-4">
-              {recentApplications.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto">
-                    <CalendarIcon className="w-8 h-8 text-gray-400" />
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">
+                      Used: {balance.used} days
+                    </span>
+                    <span className="text-gray-500">
+                      Pending: {balance.pending} days
+                    </span>
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-gray-900">No leave applications</h3>
-                  <p className="text-gray-500 mt-1">Your leave applications will appear here</p>
                 </div>
-              ) : (
-                recentApplications.map((application, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-blue-200 transition-all duration-200 ${application.reviewNotes ? 'cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50' : ''}`}
-                    onClick={() => {
-                      if (application.reviewNotes) {
-                        setReviewDialog({
-                          open: true,
-                          notes: application.reviewNotes,
-                          status: application.status,
-                          type: application.type,
-                          from: application.from,
-                          to: application.to,
-                        });
-                      }
-                    }}
-                    role={application.reviewNotes ? 'button' : undefined}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg">
-                        <CalendarIcon className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{application.type}</p>
-                        <p className="text-sm text-gray-500">
-                          {application.from} to {application.to}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
-                            application.status
-                          )}`}
-                        >
-                          {getStatusIcon(application.status)}
-                          <span>{application.status}</span>
-                        </div>
-                        <div className="flex items-center justify-end mt-1 gap-2">
-                          <p className="text-sm text-gray-500">
-                            {application.approvedBy}
-                          </p>
-                          {/* {application.reviewNotes && (
-                            <span className="text-xs text-blue-600 underline">View notes</span>
-                          )} */}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+              ))}
             </div>
           </Card>
         </div>
-
-        <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900">Leave Balance</h2>
-          <div className="space-y-6">
-            {Object.entries(leaveBalance).map(([type, balance]) => (
-              <div key={type} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="capitalize text-gray-700">{type} Leave</span>
-                  <span className="font-semibold text-gray-900">
-                    {balance.total - balance.used} days
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${((balance.used + balance.pending) / balance.total) * 100}%`,
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Used: {balance.used} days</span>
-                  <span className="text-gray-500">Pending: {balance.pending} days</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
-    </div>
 
-    <Transition.Root show={reviewDialog.open} as={React.Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={() => setReviewDialog(prev => ({ ...prev, open: false }))}>
-        <Transition.Child
-          as={React.Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+      <Transition.Root show={reviewDialog.open} as={React.Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setReviewDialog((prev) => ({ ...prev, open: false }))}
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-        </Transition.Child>
+          <Transition.Child
+            as={React.Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
 
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <Transition.Child
-              as={React.Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-                  <button
-                    type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
-                    onClick={() => setReviewDialog(prev => ({ ...prev, open: false }))}
-                  >
-                    <span className="sr-only">Close</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
-                </div>
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <Transition.Child
+                as={React.Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                  <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
+                    <button
+                      type="button"
+                      className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                      onClick={() =>
+                        setReviewDialog((prev) => ({ ...prev, open: false }))
+                      }
+                    >
+                      <span className="sr-only">Close</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
 
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
-                      Review Notes
-                    </Dialog.Title>
-                    <div className="mt-2 text-sm text-gray-600">
-                      <p className="mb-1"><span className="font-medium text-gray-800">Type:</span> {reviewDialog.type}</p>
-                      <p className="mb-1"><span className="font-medium text-gray-800">Period:</span> {reviewDialog.from} to {reviewDialog.to}</p>
-                      <p className="mb-3"><span className="font-medium text-gray-800">Status:</span> {reviewDialog.status}</p>
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 whitespace-pre-wrap text-gray-800">
-                        {reviewDialog.notes}
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
+                      <Dialog.Title
+                        as="h3"
+                        className="text-lg font-semibold leading-6 text-gray-900"
+                      >
+                        Review Notes
+                      </Dialog.Title>
+                      <div className="mt-2 text-sm text-gray-600">
+                        <p className="mb-1">
+                          <span className="font-medium text-gray-800">
+                            Type:
+                          </span>{" "}
+                          {reviewDialog.type}
+                        </p>
+                        <p className="mb-1">
+                          <span className="font-medium text-gray-800">
+                            Period:
+                          </span>{" "}
+                          {reviewDialog.from} to {reviewDialog.to}
+                        </p>
+                        <p className="mb-3">
+                          <span className="font-medium text-gray-800">
+                            Status:
+                          </span>{" "}
+                          {reviewDialog.status}
+                        </p>
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 whitespace-pre-wrap text-gray-800">
+                          {reviewDialog.notes}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
-                    onClick={() => setReviewDialog(prev => ({ ...prev, open: false }))}
-                  >
-                    Close
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+                  <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                    <button
+                      type="button"
+                      className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto"
+                      onClick={() =>
+                        setReviewDialog((prev) => ({ ...prev, open: false }))
+                      }
+                    >
+                      Close
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
           </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+        </Dialog>
+      </Transition.Root>
     </>
   );
 };

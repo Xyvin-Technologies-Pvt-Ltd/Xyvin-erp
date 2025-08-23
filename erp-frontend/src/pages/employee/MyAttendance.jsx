@@ -76,7 +76,7 @@ const MyAttendance = () => {
       const { attendance, overallStats, monthlyStats } = response.data;
 
       setMonthlyAttendance(attendance);
-      
+
       // Use the current month and year to get the correct monthly stats
       const currentMonthYear = format(currentMonth, "MMMM yyyy");
       const currentMonthStats = monthlyStats[currentMonthYear] || overallStats;
@@ -88,7 +88,8 @@ const MyAttendance = () => {
         late: currentMonthStats.late || 0,
         halfDay: currentMonthStats.halfDay || 0,
         earlyLeave: currentMonthStats.earlyLeave || 0,
-        onLeave: currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
+        onLeave:
+          currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
         holiday: attendance.filter((a) => a.isHoliday).length,
         dayOff: attendance.filter((a) => a.isWeekend).length,
         totalWorkHours: currentMonthStats.totalWorkHours || 0,
@@ -216,9 +217,9 @@ const MyAttendance = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <Card className="p-2 sm:p-3">
-          <div className="flex justify-between items-center mb-2 px-2">
+      <div className="grid grid-cols-1  lg:grid-cols-5 gap-4 mb-4">
+        <Card className="p-2 lg:col-span-2 sm:p-3">
+          <div className="flex  justify-between items-center mb-2 px-2">
             <Button
               variant="ghost"
               size="icon"
@@ -253,7 +254,7 @@ const MyAttendance = () => {
             selected={selectedDate}
             onSelect={setSelectedDate}
             month={currentMonth}
-            className="w-full scale-90 origin-top"
+            className="w-full  scale-90 origin-top"
             classNames={{
               months: "flex",
               month: "w-full",
@@ -264,7 +265,7 @@ const MyAttendance = () => {
               head_cell: "text-gray-500 w-8 font-normal text-[0.6rem]",
               row: "flex w-full mt-1",
               cell: "text-center text-[0.6rem] p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-              day: "h-6 w-6 p-0 font-normal aria-selected:opacity-100",
+              day: "h-6 w-6 text-center p-0 font-normal aria-selected:opacity-100",
               day_selected:
                 "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground",
@@ -277,7 +278,7 @@ const MyAttendance = () => {
           />
         </Card>
 
-        <Card className="lg:col-span-2 p-2 sm:p-4">
+        <Card className="lg:col-span-3 p-2 sm:p-4">
           <h2 className="text-base sm:text-lg font-medium mb-4">
             Attendance Details - {format(selectedDate, "MMMM d, yyyy")}
           </h2>
@@ -309,7 +310,9 @@ const MyAttendance = () => {
                 <p className="text-xs sm:text-sm text-gray-500">Total Hours</p>
                 <p className="text-sm sm:text-base font-medium">
                   {selectedDayAttendance.workHours
-                    ? `${Math.round(selectedDayAttendance.workHours * 100) / 100}h`
+                    ? `${
+                        Math.round(selectedDayAttendance.workHours * 100) / 100
+                      }h`
                     : "-"}
                 </p>
               </div>
@@ -333,14 +336,14 @@ const MyAttendance = () => {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
             <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Date</th>
-                <th className="text-left p-2">Check In</th>
-                <th className="text-left p-2">Check Out</th>
-                <th className="text-left p-2">Work Hours</th>
-                <th className="text-left p-2">RT </th>
-                <th className="text-left p-2">OT </th>
-                <th className="text-left p-2">Status</th>
+              <tr className="border-b text-center">
+                <th className=" p-2">Date</th>
+                <th className=" p-2">Check In</th>
+                <th className=" p-2">Check Out</th>
+                <th className=" p-2">Work Hours</th>
+                <th className=" p-2">RT </th>
+                <th className=" p-2">OT </th>
+                <th className=" p-2">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -352,7 +355,10 @@ const MyAttendance = () => {
                 </tr>
               ) : paginatedData.length > 0 ? (
                 paginatedData.map((record, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
+                  <tr
+                    key={index}
+                    className="border-b text-center hover:bg-gray-50"
+                  >
                     <td className="p-2">
                       {format(parseISO(record.date), "MMM dd, yyyy")}
                     </td>
@@ -367,7 +373,9 @@ const MyAttendance = () => {
                         : "-"}
                     </td>
                     <td className="p-2">
-                      {record.workHours ? `${Math.round(record.workHours * 100) / 100}h` : "-"}
+                      {record.workHours
+                        ? `${Math.round(record.workHours * 100) / 100}h`
+                        : "-"}
                     </td>
                     <td className="p-2">
                       {(() => {
@@ -379,11 +387,28 @@ const MyAttendance = () => {
                     <td className="p-2">
                       {(() => {
                         const workHrs = Number(record.workHours || 0);
-                        const ot = Math.max(0, Math.round((workHrs - 8) * 100) / 100);
+                        const ot = Math.max(
+                          0,
+                          Math.round((workHrs - 8) * 100) / 100
+                        );
                         return ot ? `${ot}h` : "-";
                       })()}
                     </td>
-                    <td className="p-2">{record.status}</td>
+                    <td className="flex justify-center text-center">
+                      {statsCards.map(({ icon: Icon, title, color }) => {
+                        if (title === record.status) {
+                          return (
+                            <h2
+                              className={`${color} p-2 border rounded-md flex justify-evenly w-[65%]`}
+                            >
+                              {" "}
+                              <Icon className="h-5 w-5" />
+                              <span className="font-bold">{record.status}</span>
+                            </h2>
+                          );
+                        }
+                      })}
+                    </td>
                   </tr>
                 ))
               ) : (
