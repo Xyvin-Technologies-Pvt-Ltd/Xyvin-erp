@@ -55,6 +55,27 @@ const attendanceSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    sessions: [{
+        startTime: Date,
+        endTime: Date
+    }],
+    lastSessionCheckIn: {
+        type: Date,
+        default: null
+    },
+    pendingBreakStart: {
+        type: Date,
+        default: null
+    },
+    // Regular Time (RT) and Overtime (OT)
+    regularHours: {
+        type: Number,
+        default: 0
+    },
+    overtimeHours: {
+        type: Number,
+        default: 0
+    },
     overtime: {
         hours: {
             type: Number,
@@ -198,14 +219,23 @@ attendanceSchema.pre('save', function(next) {
     // Skip work hours calculation for leave records
     if (this.isLeave) {
         this.workHours = 0; // Leave records should have 0 work hours
+        this.regularHours = 0;
+        this.overtimeHours = 0;
+        if (!this.overtime) this.overtime = {};
+        this.overtime.hours = 0;
         return next();
     }
 
-    if (this.checkIn && this.checkOut) {
-        const checkInTime = new Date(this.checkIn.time);
-        const checkOutTime = new Date(this.checkOut.time);
-        
-        // Calculate total break duration
+    // Prefer session-based computation if sessions exist
+    if (Array.isArray(this.sessions) && this.sessions.length > 0) {
+        const totalHours = this.sessions.reduce((sum, s) => {
+            if (s.startTime && s.endTime) {
+                return sum + (new Date(s.endTime) - new Date(s.startTime)) / (1000 * 60 * 60);
+            }
+            return sum;
+        }, 0);
+
+        // Calculate total break duration (optional explicit breaks)
         const totalBreakDuration = this.breaks.reduce((total, breakItem) => {
             if (breakItem.startTime && breakItem.endTime) {
                 return total + (new Date(breakItem.endTime) - new Date(breakItem.startTime)) / (1000 * 60 * 60);
@@ -213,11 +243,18 @@ attendanceSchema.pre('save', function(next) {
             return total;
         }, 0);
 
-        // Calculate work hours excluding breaks
+        this.workHours = Math.max(0, Math.round((totalHours - totalBreakDuration) * 100) / 100);
+    } else if (this.checkIn && this.checkOut) {
+        const checkInTime = new Date(this.checkIn.time);
+        const checkOutTime = new Date(this.checkOut.time);
+        const totalBreakDuration = this.breaks.reduce((total, breakItem) => {
+            if (breakItem.startTime && breakItem.endTime) {
+                return total + (new Date(breakItem.endTime) - new Date(breakItem.startTime)) / (1000 * 60 * 60);
+            }
+            return total;
+        }, 0);
         this.workHours = (checkOutTime - checkInTime) / (1000 * 60 * 60) - totalBreakDuration;
-        
-        // Round to 2 decimal places
-        this.workHours = Math.round(this.workHours * 100) / 100;
+        this.workHours = Math.max(0, Math.round(this.workHours * 100) / 100);
     }
     next();
 });

@@ -195,7 +195,7 @@ const MyAttendance = () => {
     {
       icon: TimerIcon,
       title: "Work Hours",
-      value: `${Math.round(stats.totalWorkHours)}h`,
+      value: `${Math.round(stats.totalWorkHours * 100) / 100}h`,
       color: "bg-blue-100 text-blue-500",
     },
   ];
@@ -309,7 +309,7 @@ const MyAttendance = () => {
                 <p className="text-xs sm:text-sm text-gray-500">Total Hours</p>
                 <p className="text-sm sm:text-base font-medium">
                   {selectedDayAttendance.workHours
-                    ? `${selectedDayAttendance.workHours}h`
+                    ? `${Math.round(selectedDayAttendance.workHours * 100) / 100}h`
                     : "-"}
                 </p>
               </div>
@@ -338,13 +338,15 @@ const MyAttendance = () => {
                 <th className="text-left p-2">Check In</th>
                 <th className="text-left p-2">Check Out</th>
                 <th className="text-left p-2">Work Hours</th>
+                <th className="text-left p-2">RT </th>
+                <th className="text-left p-2">OT </th>
                 <th className="text-left p-2">Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center p-4">
+                  <td colSpan="7" className="text-center p-4">
                     Loading...
                   </td>
                 </tr>
@@ -365,14 +367,28 @@ const MyAttendance = () => {
                         : "-"}
                     </td>
                     <td className="p-2">
-                      {record.workHours ? `${record.workHours}h` : "-"}
+                      {record.workHours ? `${Math.round(record.workHours * 100) / 100}h` : "-"}
+                    </td>
+                    <td className="p-2">
+                      {(() => {
+                        const workHrs = Number(record.workHours || 0);
+                        const rt = Math.max(0, Math.min(8, workHrs));
+                        return rt ? `${Math.round(rt * 100) / 100}h` : "-";
+                      })()}
+                    </td>
+                    <td className="p-2">
+                      {(() => {
+                        const workHrs = Number(record.workHours || 0);
+                        const ot = Math.max(0, Math.round((workHrs - 8) * 100) / 100);
+                        return ot ? `${ot}h` : "-";
+                      })()}
                     </td>
                     <td className="p-2">{record.status}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center p-4">
+                  <td colSpan="7" className="text-center p-4">
                     No attendance records found
                   </td>
                 </tr>

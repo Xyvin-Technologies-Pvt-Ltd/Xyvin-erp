@@ -1,12 +1,34 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import useAuthStore from "@/stores/auth.store";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 const ProtectedRoute = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const isAuthenticated = localStorage.getItem("token");
   const location = useLocation();
+
+  // Check for daily session expiration
+  useEffect(() => {
+    const checkDailySession = () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const now = new Date();
+      const today = now.toDateString();
+      const lastLoginDate = localStorage.getItem("lastLoginDate");
+
+      if (!lastLoginDate || lastLoginDate !== today) {
+        console.log("New day detected, logging out user for fresh login");
+        toast.success("New day detected. You have been automatically logged out. Please login again.");
+        logout();
+        return;
+      }
+    };
+
+    checkDailySession();
+  }, [logout]);
 
   // If there's a token but no user in the store, try to load from localStorage
   useEffect(() => {
@@ -45,6 +67,7 @@ const ProtectedRoute = () => {
   if (!userFromStorage) {
     // If no user data is available, clear token and redirect to login
     localStorage.removeItem("token");
+    localStorage.removeItem("lastLoginDate");
     return <Navigate to="/login" replace />;
   }
 
