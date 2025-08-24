@@ -195,7 +195,7 @@ const MyAttendance = () => {
     {
       icon: TimerIcon,
       title: "Work Hours",
-      value: `${Math.round(stats.totalWorkHours)}h`,
+      value: `${Math.round(stats.totalWorkHours * 100) / 100}h`,
       color: "bg-blue-100 text-blue-500",
     },
   ];
@@ -309,7 +309,7 @@ const MyAttendance = () => {
                 <p className="text-xs sm:text-sm text-gray-500">Total Hours</p>
                 <p className="text-sm sm:text-base font-medium">
                   {selectedDayAttendance.workHours
-                    ? `${selectedDayAttendance.workHours}h`
+                    ? `${Math.round(selectedDayAttendance.workHours * 100) / 100}h`
                     : "-"}
                 </p>
               </div>
@@ -367,7 +367,7 @@ const MyAttendance = () => {
                         : "-"}
                     </td>
                     <td className="p-2">
-                      {record.workHours ? `${record.workHours}h` : "-"}
+                      {record.workHours ? `${Math.round(record.workHours * 100) / 100}h` : "-"}
                     </td>
                     <td className="p-2">
                       {(() => {

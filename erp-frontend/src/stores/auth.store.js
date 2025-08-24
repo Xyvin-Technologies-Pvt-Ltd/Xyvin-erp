@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'react-hot-toast';
 import * as authService from '../api/auth.service';
+import useHrmStore from './useHrmStore';
 
 const useAuthStore = create(
   persist(
@@ -56,9 +57,28 @@ const useAuthStore = create(
           // Store in localStorage
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(userData));
+          
+          // Set the last login date for daily session management
+          const today = new Date().toDateString();
+          localStorage.setItem("lastLoginDate", today);
 
           console.log("User data stored:", userData);
           console.log("Token stored:", token);
+
+          try {
+            const nowIso = new Date().toISOString();
+            const hrm = useHrmStore.getState();
+            await hrm.createBulkAttendance([
+              {
+                employee: userData.id,
+                date: nowIso,
+                status: 'Present',
+                checkIn: { time: nowIso, device: 'Web' }
+              }
+            ]);
+          } catch (e) {
+            console.warn('Auto check-in error:', e?.message || e);
+          }
 
           return { success: true, user: userData };
         } catch (error) {
@@ -88,11 +108,29 @@ const useAuthStore = create(
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        try {
+          const currentUser = get().user;
+          if (currentUser?.id) {
+            const nowIso = new Date().toISOString();
+            const hrm = useHrmStore.getState();
+            await hrm.createBulkAttendance([
+              {
+                employee: currentUser.id,
+                date: nowIso,
+                checkOut: { time: nowIso, device: 'Web' }
+              }
+            ]);
+          }
+        } catch (e) {
+          console.warn('Auto checkout error:', e?.message || e);
+        }
+
         authService.logout();
         // Clear localStorage items
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("lastLoginDate");
         // Reset store state
         set({
           user: null,
