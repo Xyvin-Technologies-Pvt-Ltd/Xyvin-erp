@@ -74,19 +74,19 @@ const MyAttendance = () => {
       const store = useHrmStore.getState();
       const response = await store.getMyAttendance({ startDate, endDate });
       const { attendance, overallStats, monthlyStats } = response.data;
-
+      console.log(response.data);
       setMonthlyAttendance(attendance);
 
       // Use the current month and year to get the correct monthly stats
       const currentMonthYear = format(currentMonth, "MMMM yyyy");
       const currentMonthStats = monthlyStats[currentMonthYear] || overallStats;
-
+      console.log(currentMonthStats);
       setStats({
         total: currentMonthStats.total || 0,
         present: currentMonthStats.present || 0,
         absent: currentMonthStats.absent || 0,
         late: currentMonthStats.late || 0,
-        halfDay: currentMonthStats.halfDay || 0,
+        halfDay: currentMonthStats.halfday || 0,
         earlyLeave: currentMonthStats.earlyLeave || 0,
         onLeave:
           currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
@@ -171,7 +171,7 @@ const MyAttendance = () => {
     },
     {
       icon: CalendarDaysIcon,
-      title: "Half-Day",
+      title: "Halfday",
       value: stats.halfDay,
       color: "bg-blue-100 text-blue-500",
     },
@@ -396,6 +396,7 @@ const MyAttendance = () => {
                     </td>
                     <td className="flex justify-center text-center">
                       {statsCards.map(({ icon: Icon, title, color }) => {
+                        console.log(title,record.status)
                         if (title === record.status) {
                           return (
                             <h2

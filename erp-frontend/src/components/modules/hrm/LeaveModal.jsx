@@ -162,6 +162,8 @@ const LeaveModal = ({ leave, onClose, onSuccess }) => {
                             <option value="">Select Type</option>
                             <option value="Annual">Annual Leave</option>
                             <option value="Sick">Sick Leave</option>
+                            <option value="Halfday">Half-Day Leave</option>
+                            <option value="Emergency">Emergency Leave</option>
                             <option value="Personal">Personal Leave</option>
                             <option value="Maternity">Maternity Leave</option>
                             <option value="Paternity">Paternity Leave</option>
