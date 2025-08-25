@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   XMarkIcon,
@@ -22,22 +22,24 @@ import {
   CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import useAuthStore from "@/stores/auth.store";
-
+import useHrmStore from "@/stores/useHrmStore";
 const frmNavigation = {
   name: "Financial Management",
   icon: BanknotesIcon,
   children: [
     { name: "Dashboard", href: "/frm/dashboard", icon: ChartBarIcon },
     { name: "Expenses", href: "/frm/expenses", icon: CurrencyRupeeIcon },
-    { name: "Personal Loans", href: "/frm/personal-loans", icon: CreditCardIcon },
+    {
+      name: "Personal Loans",
+      href: "/frm/personal-loans",
+      icon: CreditCardIcon,
+    },
     { name: "Office Loans", href: "/frm/office-loans", icon: BanknotesIcon },
     { name: "Revenue", href: "/frm/profits", icon: FolderIcon },
   ],
 };
 
-const baseNavigation = [
-  { name: "Events", href: "/dashboard", icon: HomeIcon },
-];
+const baseNavigation = [{ name: "Events", href: "/dashboard", icon: HomeIcon }];
 
 const employeeNavigation = {
   name: "Employee",
@@ -45,7 +47,11 @@ const employeeNavigation = {
   children: [
     { name: "Dashboard", href: "/employee/dashboard", icon: ChartBarIcon },
     { name: "Profile", href: "/employee/profile", icon: UserCircleIcon },
-    { name: "Leave Application", href: "/employee/leaveapplication", icon: CalendarIcon },
+    {
+      name: "Leave Application",
+      href: "/employee/leaveapplication",
+      icon: CalendarIcon,
+    },
     { name: "My Attendance", href: "/employee/myattendance", icon: ClockIcon },
     { name: "Pay Slip", href: "/employee/payslip", icon: DocumentTextIcon },
     { name: "My Projects", href: "/employee/projects", icon: FolderIcon },
@@ -92,26 +98,42 @@ const Sidebar = ({ open, setOpen }) => {
   const location = useLocation();
   const { user } = useAuthStore();
   const [openMenu, setOpenMenu] = useState(null);
-
+  const [sideBarMenu, setSideBarMenu] = useState("Events");
+  const { appliedLeaveViewed, eventViewed, updateUserData } = useHrmStore();
   // Get user from localStorage as fallback
+  useEffect(() => {
+    updateUserData();
+  }, [sideBarMenu]);
   const userFromStorage =
-    user || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null);
+    user ||
+    (localStorage.getItem("user")
+      ? JSON.parse(localStorage.getItem("user"))
+      : null);
 
   const userRolesArray = Array.isArray(userFromStorage?.roles)
     ? userFromStorage.roles
-    : (userFromStorage?.role ? [userFromStorage.role] : []);
+    : userFromStorage?.role
+    ? [userFromStorage.role]
+    : [];
   console.log("Sidebar - Current user roles:", userRolesArray);
 
   // Define role-based navigation permissions
   const navigationPermissions = {
     Employee: ["base", "employee"],
     Admin: ["base", "employee", "hrm", "clients", "projects", "frm"],
-    "ERP System Administrator": ["base", "employee", "hrm", "clients", "projects", "frm"],
+    "ERP System Administrator": [
+      "base",
+      "employee",
+      "hrm",
+      "clients",
+      "projects",
+      "frm",
+    ],
     "IT Manager": ["base", "employee", "projects"],
     "Project Manager": ["base", "employee", "projects"],
     "HR Manager": ["base", "employee", "hrm", "frm"],
     "Finance Manager": ["base", "employee", "frm"],
-    "Operation Officer": ["base", "employee",  "clients", "projects"],
+    "Operation Officer": ["base", "employee", "clients", "projects"],
   };
 
   // Get allowed navigation sections
@@ -129,7 +151,9 @@ const Sidebar = ({ open, setOpen }) => {
   console.log("Sidebar - Allowed sections:", allowedSections);
 
   // Build navigation array
-  const navigation = allowedSections.includes("base") ? [...baseNavigation] : [];
+  const navigation = allowedSections.includes("base")
+    ? [...baseNavigation]
+    : [];
   if (allowedSections.includes("employee")) navigation.push(employeeNavigation);
   if (allowedSections.includes("hrm")) navigation.push(hrmNavigation);
   if (allowedSections.includes("clients")) navigation.push(clientsNavigation);
@@ -149,6 +173,7 @@ const Sidebar = ({ open, setOpen }) => {
       return (
         <Link
           to={item.href}
+          onClick={setSideBarMenu(item.name)}
           className={classNames(
             location.pathname === item.href
               ? "bg-indigo-800 text-white"
@@ -156,16 +181,27 @@ const Sidebar = ({ open, setOpen }) => {
             "group flex gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium transition-all duration-200 ease-in-out"
           )}
         >
-          <item.icon
-            className={classNames(
-              location.pathname === item.href
-                ? "text-white"
-                : "text-gray-400 group-hover:text-white",
-              "h-5 w-5 shrink-0 transition-colors duration-200"
+          <div className="flex w-full">
+            <div className="flex gap-3">
+              <item.icon
+                className={classNames(
+                  location.pathname === item.href
+                    ? "text-white"
+                    : "text-gray-400 group-hover:text-white",
+                  "h-5 w-5 shrink-0 transition-colors duration-200"
+                )}
+                aria-hidden="true"
+              />
+              {item.name}
+            </div>
+            {item.name === "Events" && eventViewed === true ? (
+              <div className="flex justify-end w-full items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+              </div>
+            ) : (
+              ""
             )}
-            aria-hidden="true"
-          />
-          {item.name}
+          </div>
         </Link>
       );
     }
@@ -173,28 +209,45 @@ const Sidebar = ({ open, setOpen }) => {
     return (
       <div className="space-y-1">
         <button
-          onClick={() => toggleMenu(item.name)}
+          onClick={() => {
+            toggleMenu(item.name);
+            setSideBarMenu(item.name);
+          }}
           className={classNames(
-            isExpanded ? "bg-indigo-800 text-white" : "text-gray-200 hover:bg-indigo-700 hover:text-white",
+            isExpanded
+              ? "bg-indigo-800 text-white"
+              : "text-gray-200 hover:bg-indigo-700 hover:text-white",
             "w-full group flex items-center justify-between rounded-lg p-3 text-sm font-medium leading-6 transition-all duration-200 ease-in-out"
           )}
         >
           <div className="flex items-center gap-x-3">
             <item.icon
               className={classNames(
-                isExpanded ? "text-white" : "text-gray-400 group-hover:text-white",
+                isExpanded
+                  ? "text-white"
+                  : "text-gray-400 group-hover:text-white",
                 "h-5 w-5 shrink-0 transition-colors duration-200"
               )}
               aria-hidden="true"
             />
             {item.name}
           </div>
-          <ChevronDownIcon
-            className={classNames(
-              "h-4 w-4 shrink-0 text-gray-400 group-hover:text-white transition-transform duration-200",
-              isExpanded ? "transform rotate-180" : ""
+          <div className="flex items-center gap-3">
+            {item.name === "HRM" && appliedLeaveViewed === true ? (
+              <div className="flex justify-center items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+              </div>
+            ) : (
+              ""
             )}
-          />
+
+            <ChevronDownIcon
+              className={classNames(
+                "h-4 w-4 shrink-0 text-gray-400 group-hover:text-white transition-transform duration-200",
+                isExpanded ? "transform rotate-180" : ""
+              )}
+            />
+          </div>
         </button>
         <Transition
           show={isExpanded}
@@ -210,23 +263,33 @@ const Sidebar = ({ open, setOpen }) => {
               <li key={child.name}>
                 <Link
                   to={child.href}
+                  onClick={setSideBarMenu(child.name)}
                   className={classNames(
                     location.pathname === child.href
                       ? "bg-indigo-800 text-white"
                       : "text-gray-300 hover:bg-indigo-700 hover:text-white",
-                    "group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all duration-200 ease-in-out"
+                    "group flex justify-between gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all duration-200 ease-in-out"
                   )}
                 >
-                  <child.icon
-                    className={classNames(
-                      location.pathname === child.href
-                        ? "text-white"
-                        : "text-gray-400 group-hover:text-white",
-                      "h-5 w-5 shrink-0 transition-colors duration-200"
-                    )}
-                    aria-hidden="true"
-                  />
-                  {child.name}
+                  <div className="flex gap-4">
+                    <child.icon
+                      className={classNames(
+                        location.pathname === child.href
+                          ? "text-white"
+                          : "text-gray-400 group-hover:text-white",
+                        "h-5 w-5 shrink-0 transition-colors duration-200"
+                      )}
+                      aria-hidden="true"
+                    />
+                    {child.name}
+                  </div>
+                  {child.name === "Leave" && appliedLeaveViewed === true ? (
+                    <div className="flex justify-center items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+                    </div>
+                  ) : (
+                    ""
+                  )}
                 </Link>
               </li>
             ))}
@@ -280,7 +343,10 @@ const Sidebar = ({ open, setOpen }) => {
                       onClick={() => setOpen(false)}
                     >
                       <span className="sr-only">Close sidebar</span>
-                      <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                      <XMarkIcon
+                        className="h-6 w-6 text-white"
+                        aria-hidden="true"
+                      />
                     </button>
                   </div>
                 </Transition.Child>
@@ -317,7 +383,11 @@ const Sidebar = ({ open, setOpen }) => {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-[#1e2251] px-6 pb-4 shadow-lg border-r border-indigo-900">
           <div className="flex h-16 shrink-0 items-center">
-            <img className="h-10 w-18" src="https://www.xyvin.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2FLogo_white.7fa4e749.png&w=384&q=75" alt="Your Company" />
+            <img
+              className="h-10 w-18"
+              src="https://www.xyvin.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2FLogo_white.7fa4e749.png&w=384&q=75"
+              alt="Your Company"
+            />
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

@@ -49,7 +49,9 @@ const useHrmStore = create(
       events: [],
       eventsLoading: false,
       eventsError: null,
-
+      //hrm leave notifiaction state
+      appliedLeaveViewed: false,
+      eventViewed: false,
       // Employee Actions
       fetchEmployees: async (params) => {
         set({ employeesLoading: true, employeesError: null });
@@ -88,7 +90,43 @@ const useHrmStore = create(
           });
         }
       },
-
+      updateUserData: async () => {
+        // set({ employeesLoading: true, employeesError: null });
+        try {
+          console.log("OK,called");
+          const employee = await hrmService.updateEmployeeData(56);
+          console.log(employee);
+          if (employee.status === "success") {
+            set({ eventViewed: employee.result.needToViewEvent });
+          }
+          // set({ selectedEmployee: employee, employeesLoading: false });
+        } catch (error) {
+          set({
+            employeesError:
+              error.response?.data?.error?.message ||
+              "Failed to fetch employee",
+            employeesLoading: false,
+          });
+        }
+      },
+      getUserData: async () => {
+        // set({ employeesLoading: true, employeesError: null });
+        try {
+          const employee = await hrmService.getEmployeeData(56);
+          console.log(employee);
+          if (employee.status === "success") {
+            set({ eventViewed: employee.result.needToViewEvent });
+          }
+          // set({ selectedEmployee: employee, employeesLoading: false });
+        } catch (error) {
+          set({
+            employeesError:
+              error.response?.data?.error?.message ||
+              "Failed to fetch employee",
+            employeesLoading: false,
+          });
+        }
+      },
       fetchEmployee: async (id) => {
         set({ employeesLoading: true, employeesError: null });
         try {
@@ -831,11 +869,44 @@ const useHrmStore = create(
           });
         }
       },
-
+      unReadLeaves: async () => {
+        try {
+          const res = await hrmService.getUnreadLeavesCount();
+          console.log(res);
+          if (res.status === "success" && res.length > 0) {
+            set({
+              appliedLeaveViewed: true,
+            });
+          } else {
+            set({
+              appliedLeaveViewed: false,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching leaves:", error);
+        }
+      },
+      appliedLeavesViewing: async () => {
+        try {
+          const res = await hrmService.viewLeave();
+          if (res.data.status === "success") {
+            set({
+              appliedLeaveViewed: false,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching leaves:", error);
+        }
+      },
       createLeave: async (data) => {
         set({ leavesLoading: true, leavesError: null });
         try {
           const leave = await hrmService.createLeave(data);
+          if (leave.status === "success") {
+            set({
+              appliedLeaveViewed: true,
+            });
+          }
           set((state) => ({
             leaves: [...state.leaves, leave],
             leavesLoading: false,
@@ -1139,6 +1210,10 @@ const useHrmStore = create(
         set({ eventsLoading: true, eventsError: null });
         try {
           const event = await hrmService.createEvent(data);
+          console.log(event);
+          if (event.success === true) {
+            set({ eventViewed: true });
+          }
           set((state) => ({
             events: [...state.events, event],
             eventsLoading: false,

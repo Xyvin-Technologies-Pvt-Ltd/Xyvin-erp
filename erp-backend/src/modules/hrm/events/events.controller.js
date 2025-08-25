@@ -1,9 +1,8 @@
 // controllers/eventController.js
-const Event = require('./event.model');
-const Notification = require('../../notification/Notification.model');
-const websocketService = require('../../../utils/websocket');
-const Employee = require('../../hrm/employee/employee.model');
-
+const Event = require("./event.model");
+const Notification = require("../../notification/Notification.model");
+const websocketService = require("../../../utils/websocket");
+const Employee = require("../../hrm/employee/employee.model");
 
 // @desc    Create a new event
 // @route   POST /api/hrm/events
@@ -11,21 +10,19 @@ const Employee = require('../../hrm/employee/employee.model');
 const createEvent = async (req, res, next) => {
   try {
     const { title, description, startDate, endDate } = req.body;
-
+    await Employee.updateMany({}, { $set: { needToViewEvent: true } });
     const event = new Event({
       title,
       description,
       startDate,
       endDate,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
 
     const createdEvent = await event.save();
 
-
     //notification
-    const allEmployees = await Employee.find({}, '_id');
-
+    const allEmployees = await Employee.find({}, "_id");
 
     for (const emp of allEmployees) {
       const notification = await Notification.create({
@@ -33,12 +30,12 @@ const createEvent = async (req, res, next) => {
         sender: req.user._id,
         title: `New Event: ${title}`,
         message: `An event "${title}" has been scheduled.`,
-        type: 'EVENT_CREATED'
+        type: "EVENT_CREATED",
       });
 
       // Send real-time notification
       websocketService.sendToUser(emp._id.toString(), {
-        type: 'notification',
+        type: "notification",
         data: {
           _id: notification._id,
           title: notification.title,
@@ -50,18 +47,16 @@ const createEvent = async (req, res, next) => {
             _id: req.user._id,
             firstName: req.user.firstName,
             lastName: req.user.lastName,
-            email: req.user.email
+            email: req.user.email,
           },
-          eventId: event._id
-        }
+          eventId: event._id,
+        },
       });
-
     }
 
-    
     res.status(201).json({
       success: true,
-      event: createdEvent
+      event: createdEvent,
     });
   } catch (error) {
     next(error);
@@ -74,12 +69,12 @@ const createEvent = async (req, res, next) => {
 const getEvents = async (req, res, next) => {
   try {
     const events = await Event.find()
-      .populate('createdBy', 'name email')
+      .populate("createdBy", "name email")
       .sort({ startDate: 1 });
 
     res.status(200).json({
       success: true,
-      events
+      events,
     });
   } catch (error) {
     next(error);
@@ -91,19 +86,21 @@ const getEvents = async (req, res, next) => {
 // @access  Private
 const getEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id)
-      .populate('createdBy', 'name email');
+    const event = await Event.findById(req.params.id).populate(
+      "createdBy",
+      "name email"
+    );
 
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found'
+        message: "Event not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      event
+      event,
     });
   } catch (error) {
     next(error);
@@ -122,7 +119,7 @@ const updateEvent = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found'
+        message: "Event not found",
       });
     }
 
@@ -132,12 +129,12 @@ const updateEvent = async (req, res, next) => {
         title,
         description,
         startDate,
-        endDate
+        endDate,
       },
       { new: true, runValidators: true }
-    ).populate('createdBy', 'name email');
+    ).populate("createdBy", "name email");
 
-    const allEmployees = await Employee.find({}, '_id');
+    const allEmployees = await Employee.find({}, "_id");
 
     for (const emp of allEmployees) {
       const notification = await Notification.create({
@@ -145,12 +142,12 @@ const updateEvent = async (req, res, next) => {
         sender: req.user._id,
         title: `Event Updated: ${updatedEvent.title}`,
         message: `The event "${updatedEvent.title}" has been updated.`,
-        type: 'EVENT_UPDATED'
+        type: "EVENT_UPDATED",
       });
 
       // Real-time WebSocket push
       websocketService.sendToUser(emp._id.toString(), {
-        type: 'notification',
+        type: "notification",
         data: {
           _id: notification._id,
           title: notification.title,
@@ -162,16 +159,16 @@ const updateEvent = async (req, res, next) => {
             _id: req.user._id,
             firstName: req.user.firstName,
             lastName: req.user.lastName,
-            email: req.user.email
+            email: req.user.email,
           },
-          eventId: updatedEvent._id
-        }
+          eventId: updatedEvent._id,
+        },
       });
     }
 
     res.status(200).json({
       success: true,
-      event: updatedEvent
+      event: updatedEvent,
     });
   } catch (error) {
     next(error);
@@ -188,7 +185,7 @@ const deleteEvent = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found'
+        message: "Event not found",
       });
     }
 
@@ -196,7 +193,7 @@ const deleteEvent = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Event deleted successfully'
+      message: "Event deleted successfully",
     });
   } catch (error) {
     next(error);
@@ -208,5 +205,5 @@ module.exports = {
   getEvents,
   getEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
 };

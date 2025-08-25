@@ -9,6 +9,10 @@ const employeeSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    needToViewEvent: {
+      type: Boolean,
+      default: false,
+    },
     firstName: {
       type: String,
       required: [true, "First name is required"],
@@ -74,15 +78,15 @@ const employeeSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: [
-        'ERP System Administrator',
-        'IT Manager',
-        'Project Manager',
-        'HR Manager',
-        'Finance Manager',
-        'Employee',
-        'Sales Manager',
-        'Admin',
-        'Operation Officer'
+        "ERP System Administrator",
+        "IT Manager",
+        "Project Manager",
+        "HR Manager",
+        "Finance Manager",
+        "Employee",
+        "Sales Manager",
+        "Admin",
+        "Operation Officer",
       ],
       default: "Employee",
     },
@@ -92,36 +96,36 @@ const employeeSchema = new mongoose.Schema(
         {
           type: String,
           enum: [
-            'ERP System Administrator',
-            'IT Manager',
-            'Project Manager',
-            'HR Manager',
-            'Finance Manager',
-            'Employee',
-            'Sales Manager',
-            'Admin',
-            'Operation Officer'
-          ]
-        }
+            "ERP System Administrator",
+            "IT Manager",
+            "Project Manager",
+            "HR Manager",
+            "Finance Manager",
+            "Employee",
+            "Sales Manager",
+            "Admin",
+            "Operation Officer",
+          ],
+        },
       ],
-      default: undefined
+      default: undefined,
     },
     // New: support multiple roles while keeping backward compatibility with single role
     roles: [
       {
         type: String,
         enum: [
-          'ERP System Administrator',
-          'IT Manager',
-          'Project Manager',
-          'HR Manager',
-          'Finance Manager',
-          'Employee',
-          'Sales Manager',
-          'Admin',
-          'Operation Officer'
-        ]
-      }
+          "ERP System Administrator",
+          "IT Manager",
+          "Project Manager",
+          "HR Manager",
+          "Finance Manager",
+          "Employee",
+          "Sales Manager",
+          "Admin",
+          "Operation Officer",
+        ],
+      },
     ],
     bankDetails: {
       accountName: String,
@@ -151,20 +155,20 @@ const employeeSchema = new mongoose.Schema(
         type: {
           type: String,
           required: true,
-          enum: ['aadhaar','pan','passport']
+          enum: ["aadhaar", "pan", "passport"],
         },
         title: {
           type: String,
-          required: true
+          required: true,
         },
         url: {
           type: String,
-          required: true
+          required: true,
         },
         uploadedAt: {
           type: Date,
-          default: Date.now
-        }
+          default: Date.now,
+        },
       },
     ],
     emergencyContact: {
@@ -209,12 +213,12 @@ const employeeSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     updatedAt: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   },
   {
     timestamps: true,
@@ -245,21 +249,21 @@ employeeSchema.virtual("leaves", {
 // Match password
 employeeSchema.methods.matchPassword = async function (enteredPassword) {
   try {
-    console.log('Matching password...');
-    console.log('Entered password:', enteredPassword);
-    console.log('Stored hashed password:', this.password);
-    
+    console.log("Matching password...");
+    console.log("Entered password:", enteredPassword);
+    console.log("Stored hashed password:", this.password);
+
     if (!this.password) {
-      console.log('No password stored for user');
+      console.log("No password stored for user");
       return false;
     }
 
     // Use bcrypt.compare to safely compare the passwords
     const isMatch = await bcrypt.compare(enteredPassword, this.password);
-    console.log('Password match result:', isMatch);
+    console.log("Password match result:", isMatch);
     return isMatch;
   } catch (error) {
-    console.error('Error matching password:', error);
+    console.error("Error matching password:", error);
     return false;
   }
 };
@@ -267,22 +271,22 @@ employeeSchema.methods.matchPassword = async function (enteredPassword) {
 // Encrypt password using bcrypt
 employeeSchema.pre("save", async function (next) {
   try {
-    console.log('Pre-save middleware running...');
-    console.log('Password modified:', this.isModified("password"));
-    
+    console.log("Pre-save middleware running...");
+    console.log("Password modified:", this.isModified("password"));
+
     // Skip hashing if password hasn't changed or if we have a custom flag to skip
     if (!this.isModified("password") || this.$__skipPasswordHashing) {
-      console.log('Skipping password hash');
+      console.log("Skipping password hash");
       return next();
     }
 
-    console.log('Hashing password...');
+    console.log("Hashing password...");
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log('Password hashed successfully');
+    console.log("Password hashed successfully");
     next();
   } catch (error) {
-    console.error('Error in password hashing:', error);
+    console.error("Error in password hashing:", error);
     next(error);
   }
 });
@@ -292,10 +296,13 @@ employeeSchema.pre("save", function (next) {
   try {
     // If roles is provided, ensure legacy role reflects the first entry
     if (Array.isArray(this.roles) && this.roles.length > 0) {
-      if (!this.role || this.isModified('roles')) {
+      if (!this.role || this.isModified("roles")) {
         this.role = this.roles[0];
       }
-    } else if (this.role && (!Array.isArray(this.roles) || this.roles.length === 0)) {
+    } else if (
+      this.role &&
+      (!Array.isArray(this.roles) || this.roles.length === 0)
+    ) {
       // If only legacy role provided, initialize roles array
       this.roles = [this.role];
     }
@@ -390,7 +397,10 @@ employeeSchema.pre("findOneAndUpdate", function (next) {
       if (!setObj.role) {
         setObj.role = setObj.roles[0];
       }
-    } else if (setObj.role && (!Array.isArray(setObj.roles) || setObj.roles.length === 0)) {
+    } else if (
+      setObj.role &&
+      (!Array.isArray(setObj.roles) || setObj.roles.length === 0)
+    ) {
       setObj.roles = [setObj.role];
     }
     if (update.$set) {

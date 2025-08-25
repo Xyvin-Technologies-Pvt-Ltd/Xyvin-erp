@@ -201,6 +201,7 @@ exports.createLeave = catchAsync(async (req, res) => {
     duration,
     leaveType,
     status,
+    leaveReqViewed: false,
     createdBy: req.user.id,
   });
 
@@ -251,7 +252,31 @@ exports.createLeave = catchAsync(async (req, res) => {
     data: { leave },
   });
 });
-
+//view leave request
+exports.viewLeaveReq = catchAsync(async (req, res) => {
+  await Leave.updateMany(
+    {},
+    {
+      $set: {
+        leaveReqViewed: true,
+      },
+    } // update field
+  );
+  res.status(200).json({
+    status: "success",
+  });
+});
+exports.getUnreadLeavesCount = catchAsync(async (req, res) => {
+  console.log("CALLED");
+  const result = await Leave.find({
+    leaveReqViewed: false,
+  });
+  console.log(result);
+  res.status(200).json({
+    status: "success",
+    length: result.length,
+  });
+});
 // Update leave request
 exports.updateLeave = catchAsync(async (req, res) => {
   const { type, startDate, endDate, reason, status, reviewNotes } = req.body;

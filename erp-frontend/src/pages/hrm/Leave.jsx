@@ -22,7 +22,14 @@ import DeleteConfirmationModal from "../../components/common/DeleteConfirmationM
 const Leave = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
-  const { leaves, leavesLoading, leavesError, fetchLeaves, deleteLeave } = useHrmStore();
+  const {
+    leaves,
+    leavesLoading,
+    leavesError,
+    fetchLeaves,
+    deleteLeave,
+    appliedLeavesViewing,
+  } = useHrmStore();
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     leave: null,
@@ -32,6 +39,9 @@ const Leave = () => {
     console.log("Leaves state:", leaves); // Debug log
     fetchLeaves();
   }, [fetchLeaves]);
+  useEffect(() => {
+    appliedLeavesViewing();
+  }, []);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -48,23 +58,34 @@ const Leave = () => {
 
   const getStatusStyle = (status) => {
     const statusMap = {
-      'Approved': 'bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border border-emerald-200',
-      'Rejected': 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200',
-      'Pending': 'bg-gradient-to-r from-yellow-50 to-amber-50 text-amber-700 border border-amber-200',
+      Approved:
+        "bg-gradient-to-r from-green-50 to-emerald-50 text-emerald-700 border border-emerald-200",
+      Rejected:
+        "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200",
+      Pending:
+        "bg-gradient-to-r from-yellow-50 to-amber-50 text-amber-700 border border-amber-200",
     };
-    return statusMap[status] || 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border border-gray-200';
+    return (
+      statusMap[status] ||
+      "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border border-gray-200"
+    );
   };
 
   const getLeaveTypeStyle = (type) => {
     const typeMap = {
-      'sick': 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700',
-      'vacation': 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700',
-      'personal': 'bg-gradient-to-r from-purple-100 to-violet-100 text-purple-700',
-      'emergency': 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700',
-      'maternity': 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700',
-      'paternity': 'bg-gradient-to-r from-cyan-100 to-blue-100 text-cyan-700',
+      sick: "bg-gradient-to-r from-red-100 to-rose-100 text-red-700",
+      vacation: "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700",
+      personal:
+        "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-700",
+      emergency:
+        "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700",
+      maternity: "bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700",
+      paternity: "bg-gradient-to-r from-cyan-100 to-blue-100 text-cyan-700",
     };
-    return typeMap[type?.toLowerCase()] || 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700';
+    return (
+      typeMap[type?.toLowerCase()] ||
+      "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700"
+    );
   };
 
   const columns = useMemo(
@@ -88,7 +109,6 @@ const Leave = () => {
               <span className="text-sm font-semibold text-gray-900 truncate">
                 {value}
               </span>
-              
             </div>
           </div>
         ),
@@ -98,7 +118,9 @@ const Leave = () => {
         accessor: "type",
         Cell: ({ value }) => (
           <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${getLeaveTypeStyle(value)}`}
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${getLeaveTypeStyle(
+              value
+            )}`}
           >
             <div className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></div>
             {value?.charAt(0).toUpperCase() + value?.slice(1) || "N/A"}
@@ -112,11 +134,13 @@ const Leave = () => {
           <div className="flex items-center space-x-2">
             <div className="flex-shrink-0 w-1.5 h-1.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"></div>
             <span className="text-sm font-medium text-gray-900">
-              {value ? new Date(value).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: '2-digit' 
-              }) : "N/A"}
+              {value
+                ? new Date(value).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "2-digit",
+                  })
+                : "N/A"}
             </span>
           </div>
         ),
@@ -128,11 +152,13 @@ const Leave = () => {
           <div className="flex items-center space-x-2">
             <div className="flex-shrink-0 w-1.5 h-1.5 bg-gradient-to-r from-red-400 to-rose-500 rounded-full"></div>
             <span className="text-sm font-medium text-gray-900">
-              {value ? new Date(value).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: '2-digit' 
-              }) : "N/A"}
+              {value
+                ? new Date(value).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "2-digit",
+                  })
+                : "N/A"}
             </span>
           </div>
         ),
@@ -144,7 +170,7 @@ const Leave = () => {
           <div className="flex items-center space-x-2">
             <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-900">
-              {value ? `${value} ${value === 1 ? 'day' : 'days'}` : "N/A"}
+              {value ? `${value} ${value === 1 ? "day" : "days"}` : "N/A"}
             </span>
           </div>
         ),
@@ -154,10 +180,12 @@ const Leave = () => {
         accessor: "status",
         Cell: ({ value }) => (
           <span
-            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${getStatusStyle(value)}`}
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${getStatusStyle(
+              value
+            )}`}
           >
             {getStatusIcon(value)}
-            <span className="ml-1.5">{value || 'Pending'}</span>
+            <span className="ml-1.5">{value || "Pending"}</span>
           </span>
         ),
       },
@@ -233,13 +261,13 @@ const Leave = () => {
   };
 
   const handleDeleteClick = (leaveId) => {
-    const leave = leaves.find(l => l._id === leaveId);
+    const leave = leaves.find((l) => l._id === leaveId);
     setDeleteModal({ isOpen: true, leave });
   };
 
   const handleDelete = async () => {
     if (!deleteModal.leave?._id) return;
-    
+
     try {
       await deleteLeave(deleteModal.leave._id);
       toast.success("Leave request deleted successfully");
@@ -277,7 +305,9 @@ const Leave = () => {
             <XCircleIcon className="w-8 h-8 text-red-500" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-red-900">Error Loading Leave Requests</h3>
+            <h3 className="text-lg font-semibold text-red-900">
+              Error Loading Leave Requests
+            </h3>
             <p className="text-red-600 mt-1">{leavesError}</p>
           </div>
         </div>
@@ -295,7 +325,9 @@ const Leave = () => {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                 Leave Requests
               </h1>
-              <p className="text-gray-600">Manage and track employee leave requests</p>
+              <p className="text-gray-600">
+                Manage and track employee leave requests
+              </p>
             </div>
             <button
               onClick={handleAdd}
@@ -366,8 +398,12 @@ const Leave = () => {
                           <CalendarDaysIcon className="w-8 h-8 text-gray-400" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">No leave requests found</h3>
-                          <p className="text-gray-500 mt-1">Get started by creating your first leave request</p>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            No leave requests found
+                          </h3>
+                          <p className="text-gray-500 mt-1">
+                            Get started by creating your first leave request
+                          </p>
                         </div>
                         {/* <button
                           onClick={handleAdd}
@@ -384,11 +420,11 @@ const Leave = () => {
                     prepareRow(row);
                     const { key, ...rowProps } = row.getRowProps();
                     return (
-                      <tr 
-                        key={key} 
+                      <tr
+                        key={key}
                         {...rowProps}
                         className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                         }`}
                       >
                         {row.cells.map((cell) => {
@@ -420,8 +456,8 @@ const Leave = () => {
                   disabled={!canPreviousPage}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     !canPreviousPage
-                      ? 'text-gray-300 cursor-not-allowed bg-gray-100'
-                      : 'text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200'
+                      ? "text-gray-300 cursor-not-allowed bg-gray-100"
+                      : "text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200"
                   }`}
                 >
                   <ChevronLeftIcon className="h-5 w-5 mr-1" />
@@ -432,8 +468,8 @@ const Leave = () => {
                   disabled={!canNextPage}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     !canNextPage
-                      ? 'text-gray-300 cursor-not-allowed bg-gray-100'
-                      : 'text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200'
+                      ? "text-gray-300 cursor-not-allowed bg-gray-100"
+                      : "text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200"
                   }`}
                 >
                   Next
@@ -443,9 +479,14 @@ const Leave = () => {
               <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div className="flex items-center space-x-4">
                   <p className="text-sm font-medium text-gray-700">
-                    Showing page{' '}
-                    <span className="font-bold text-blue-600">{pageIndex + 1}</span> of{' '}
-                    <span className="font-bold text-blue-600">{pageOptions.length}</span>
+                    Showing page{" "}
+                    <span className="font-bold text-blue-600">
+                      {pageIndex + 1}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-bold text-blue-600">
+                      {pageOptions.length}
+                    </span>
                   </p>
                   <div className="text-sm text-gray-500">
                     ({data.length} total requests)
@@ -457,8 +498,8 @@ const Leave = () => {
                     disabled={!canPreviousPage}
                     className={`relative inline-flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
                       !canPreviousPage
-                        ? 'text-gray-300 cursor-not-allowed bg-gray-100'
-                        : 'text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200 hover:shadow-md'
+                        ? "text-gray-300 cursor-not-allowed bg-gray-100"
+                        : "text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200 hover:shadow-md"
                     }`}
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
@@ -468,8 +509,8 @@ const Leave = () => {
                     disabled={!canNextPage}
                     className={`relative inline-flex items-center px-3 py-2 rounded-lg transition-all duration-200 ${
                       !canNextPage
-                        ? 'text-gray-300 cursor-not-allowed bg-gray-100'
-                        : 'text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200 hover:shadow-md'
+                        ? "text-gray-300 cursor-not-allowed bg-gray-100"
+                        : "text-gray-700 bg-white hover:bg-gray-50 shadow-sm border border-gray-200 hover:shadow-md"
                     }`}
                   >
                     <ChevronRightIcon className="h-5 w-5" />
@@ -487,8 +528,10 @@ const Leave = () => {
         onConfirm={handleDelete}
         title="Delete Leave Request"
         message={`Are you sure you want to delete this leave request for ${
-          deleteModal.leave?.employee?.firstName || 'Unknown'
-        } ${deleteModal.leave?.employee?.lastName || 'Employee'}? This action cannot be undone.`}
+          deleteModal.leave?.employee?.firstName || "Unknown"
+        } ${
+          deleteModal.leave?.employee?.lastName || "Employee"
+        }? This action cannot be undone.`}
         itemName="leave request"
       />
 
