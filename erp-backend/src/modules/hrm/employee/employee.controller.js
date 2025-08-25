@@ -49,7 +49,10 @@ const getAllEmployees = catchAsync(async (req, res) => {
     if (req.query.department) filter.department = req.query.department;
     if (req.query.position) filter.position = req.query.position;
     if (req.query.status) filter.status = req.query.status;
-    if (req.query.role) filter.role = req.query.role;
+    if (req.query.role) filter.$or = [
+      { role: req.query.role },
+      { roles: req.query.role }
+    ];
 
     console.log('Fetching employees with filter:', filter);
 
@@ -114,6 +117,7 @@ const getAllEmployees = catchAsync(async (req, res) => {
               description: emp.position?.description
             },
             role: emp.role || 'Employee',
+            roles: Array.isArray(emp.roles) && emp.roles.length ? emp.roles : (emp.role ? [emp.role] : ['Employee']),
             status: emp.status || 'active',
             isActive: emp.isActive !== false,
             joiningDate: emp.joiningDate,
@@ -270,6 +274,7 @@ const createEmployee = catchAsync(async (req, res) => {
     department,
     position,
     role,
+    roles,
     salary,
     joiningDate,
     address,
@@ -296,6 +301,10 @@ const createEmployee = catchAsync(async (req, res) => {
     throw createError(404, 'Position not found');
   }
 
+  // Normalize roles: accept roles array, or fallback to single role
+  const normalizedRoles = Array.isArray(roles) ? roles : (role ? [role] : ['Employee']);
+  const primaryRole = role || normalizedRoles[0] || 'Employee';
+
   const employee = await Employee.create({
     employeeId, // Auto-generated ID
     firstName,
@@ -305,7 +314,8 @@ const createEmployee = catchAsync(async (req, res) => {
     phone,
     department,
     position,
-    role,
+    role: primaryRole,
+    roles: normalizedRoles,
     salary,
     joiningDate,
     address,
@@ -325,6 +335,7 @@ const createEmployee = catchAsync(async (req, res) => {
     data: { 
       employee: {
         ...employee.toObject(),
+        roles: Array.isArray(employee.roles) && employee.roles.length ? employee.roles : (employee.role ? [employee.role] : ['Employee']),
         fullName: `${employee.firstName} ${employee.lastName}`
       }
     }
@@ -348,6 +359,7 @@ const updateEmployee = catchAsync(async (req, res) => {
     department,
     position,
     role,
+    roles,
     salary,
     status,
     address,
@@ -371,6 +383,13 @@ const updateEmployee = catchAsync(async (req, res) => {
   if (phone) employee.phone = phone;
   if (department) employee.department = department;
   if (position) employee.position = position;
+  if (roles) {
+    employee.roles = Array.isArray(roles) ? roles : [roles];
+    // Keep primary role in sync with first roles entry if not explicitly set
+    if (!role && employee.roles.length) {
+      employee.role = employee.roles[0];
+    }
+  }
   if (role) employee.role = role;
   if (salary) employee.salary = salary;
   if (status) {
@@ -413,6 +432,7 @@ const updateEmployee = catchAsync(async (req, res) => {
     data: { 
       employee: {
         ...updatedEmployee.toObject(),
+        roles: Array.isArray(updatedEmployee.roles) && updatedEmployee.roles.length ? updatedEmployee.roles : (updatedEmployee.role ? [updatedEmployee.role] : ['Employee']),
         fullName: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`
       }
     }

@@ -35,6 +35,13 @@ const Header = ({ onMenuClick }) => {
     return user.username || user.email?.split("@")[0] || "User";
   };
 
+  const getDisplayRoles = () => {
+    if (!user) return "user";
+    const rolesArray = Array.isArray(user.roles) ? user.roles : (user.role ? [user.role] : []);
+    if (rolesArray.length === 0) return "user";
+    return rolesArray.join(", ");
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -88,7 +95,7 @@ const Header = ({ onMenuClick }) => {
                   {getDisplayName()}
                 </span>
                 <span className="ml-2 text-sm text-gray-600">
-                  ({user?.role || "user"})
+                  ({getDisplayRoles()})
                 </span>
               </span>
             </Menu.Button>

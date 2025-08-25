@@ -76,7 +76,8 @@ exports.login = async (req, res) => {
     // Create token payload
     const tokenPayload = {
       id: employee._id,
-      role: employee.role
+      role: employee.role,
+      roles: Array.isArray(employee.roles) && employee.roles.length ? employee.roles : (employee.role ? [employee.role] : ['Employee'])
     };
     console.log('Creating token with payload:', tokenPayload);
 
@@ -109,6 +110,7 @@ exports.login = async (req, res) => {
         email: employee.email,
         profilePicture: employee.profilePicture,
         role: employee.role,
+        roles: Array.isArray(employee.roles) && employee.roles.length ? employee.roles : (employee.role ? [employee.role] : ['Employee']),
         department: employee.department,
         position: employee.position
       }
@@ -142,7 +144,8 @@ exports.register = async (req, res) => {
       phone,
       joiningDate,
       salary,
-      role
+      role,
+      roles
     } = req.body;
 
     // Check if employee already exists
@@ -182,7 +185,8 @@ exports.register = async (req, res) => {
         firstName: employee.firstName,
         lastName: employee.lastName,
         email: employee.email,
-        role: employee.role
+        role: employee.role,
+        roles: Array.isArray(employee.roles) && employee.roles.length ? employee.roles : (employee.role ? [employee.role] : ['Employee'])
       }
     });
   } catch (error) {

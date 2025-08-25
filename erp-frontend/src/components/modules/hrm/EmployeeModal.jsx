@@ -52,7 +52,10 @@ const validationSchema = Yup.object({
   phone: Yup.string().required("Phone number is required"),
   department: Yup.string().required("Department is required"),
   position: Yup.mixed().required("Position is required"),
-  role: Yup.string().required("Role is required"),
+  roles: Yup.array()
+    .of(Yup.string().oneOf(EMPLOYEE_ROLES))
+    .min(1, "Select at least one role")
+    .required("Roles are required"),
   joiningDate: Yup.date().required("Joining date is required"),
   status: Yup.string().required("Status is required"),
   salary: Yup.number()
@@ -113,7 +116,10 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
       phone: employee?.phone || "",
       department: employee?.department?._id || employee?.department || "",
       position: employee?.position?._id || employee?.position?.id || "",
-      role: employee?.role || "Employee",
+      // Keep legacy single role for compatibility
+      role: employee?.role || employee?.roles?.[0] || "Employee",
+      // New: roles array for multi-select
+      roles: Array.isArray(employee?.roles) && employee.roles.length > 0 ? employee.roles : [employee?.role || "Employee"],
       joiningDate: employee?.joiningDate ? new Date(employee.joiningDate).toISOString().split("T")[0] : "",
       status: employee?.status || "active",
       salary: employee?.salary || "",
@@ -612,25 +618,70 @@ const EmployeeModal = ({ employee, onClose, onSuccess }) => {
                       </div>
 
                       <div className="space-y-1">
-                        <label htmlFor="role" className="flex items-center text-sm font-medium text-gray-700">
+                        <label htmlFor="roles" className="flex items-center text-sm font-medium text-gray-700">
                           <UserGroupIcon className="w-4 h-4 mr-1.5 text-gray-500" />
-                          Role
+                          Roles
                         </label>
+                        {/* Selected roles as chips */}
+                        <div className="flex flex-wrap gap-2 p-2 border rounded-lg border-gray-300">
+                          {(watch('roles') || []).map((roleName) => (
+                            <span
+                              key={roleName}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200"
+                            >
+                              {roleName}
+                              <button
+                                type="button"
+                                className="ml-1 text-indigo-600 hover:text-indigo-800"
+                                onClick={() => {
+                                  const current = watch('roles') || [];
+                                  const updated = current.filter((r) => r !== roleName);
+                                  setValue('roles', updated, { shouldValidate: true, shouldDirty: true });
+                                  setValue('role', updated[0] || 'Employee');
+                                }}
+                                aria-label={`Remove ${roleName}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                          {(!watch('roles') || watch('roles').length === 0) && (
+                            <span className="text-xs text-gray-400">No roles selected</span>
+                          )}
+                        </div>
+
+                        {/* Dropdown to add next role */}
                         <select
-                          id="role"
-                          className="w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
-                          {...register("role")}
+                          id="roles"
+                          className="mt-2 w-full px-3 py-2 rounded-lg border transition-all duration-200 focus:outline-none text-sm border-gray-300 focus:border-purple-500 hover:border-gray-400"
+                          onChange={(e) => {
+                            const selectedValue = e.target.value;
+                            if (!selectedValue) return;
+                            const current = watch('roles') || [];
+                            if (!current.includes(selectedValue)) {
+                              const updated = [...current, selectedValue];
+                              setValue('roles', updated, { shouldValidate: true, shouldDirty: true });
+                              // keep legacy single role synced to first selected
+                              setValue('role', updated[0]);
+                            }
+                            // reset dropdown back to placeholder
+                            e.target.value = '';
+                          }}
                         >
-                          {EMPLOYEE_ROLES.map((role) => (
-                            <option key={role} value={role}>{role}</option>
+                          <option value="">Select a role to add</option>
+                          {EMPLOYEE_ROLES.filter((r) => !(watch('roles') || []).includes(r)).map((roleName) => (
+                            <option key={roleName} value={roleName}>{roleName}</option>
                           ))}
                         </select>
-                        {errors.role && (
+
+                        {errors.roles && (
                           <p className="text-xs text-red-600 flex items-center">
                             <span className="w-1 h-1 bg-red-500 rounded-full mr-1.5"></span>
-                            {errors.role.message}
+                            {errors.roles.message}
                           </p>
                         )}
+                        {/* Hidden legacy single role field for backend compatibility */}
+                        <input type="hidden" {...register('role')} />
                       </div>
 
                       <div className="space-y-1">

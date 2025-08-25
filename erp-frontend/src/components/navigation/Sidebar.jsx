@@ -97,8 +97,10 @@ const Sidebar = ({ open, setOpen }) => {
   const userFromStorage =
     user || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null);
 
-  const userRoles = userFromStorage?.role || "";
-  console.log("Sidebar - Current user role:", userRoles);
+  const userRolesArray = Array.isArray(userFromStorage?.roles)
+    ? userFromStorage.roles
+    : (userFromStorage?.role ? [userFromStorage.role] : []);
+  console.log("Sidebar - Current user roles:", userRolesArray);
 
   // Define role-based navigation permissions
   const navigationPermissions = {
@@ -108,16 +110,20 @@ const Sidebar = ({ open, setOpen }) => {
     "IT Manager": ["base", "employee", "projects"],
     "Project Manager": ["base", "employee", "projects"],
     "HR Manager": ["base", "employee", "hrm", "frm"],
+    "Finance Manager": ["base", "employee", "frm"],
     "Operation Officer": ["base", "employee",  "clients", "projects"],
   };
 
   // Get allowed navigation sections
   let allowedSections = ["base", "employee"];
-  const roleSections = navigationPermissions[userRoles] || [];
-  roleSections.forEach((section) => {
-    if (!allowedSections.includes(section)) {
-      allowedSections.push(section);
-    }
+  // Union allowed sections across all roles
+  userRolesArray.forEach((role) => {
+    const roleSections = navigationPermissions[role] || [];
+    roleSections.forEach((section) => {
+      if (!allowedSections.includes(section)) {
+        allowedSections.push(section);
+      }
+    });
   });
 
   console.log("Sidebar - Allowed sections:", allowedSections);

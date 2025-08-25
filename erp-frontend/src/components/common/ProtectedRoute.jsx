@@ -72,7 +72,7 @@ const ProtectedRoute = () => {
   }
 
   // Ensure user has a role property
-  if (!userFromStorage.role) {
+  if (!userFromStorage.role && !Array.isArray(userFromStorage.roles)) {
     // Assign default Employee role
     userFromStorage.role = "Employee";
 
@@ -80,17 +80,21 @@ const ProtectedRoute = () => {
     localStorage.setItem("user", JSON.stringify(userFromStorage));
   }
 
+  const userRolesArray = Array.isArray(userFromStorage.roles)
+    ? userFromStorage.roles
+    : [userFromStorage.role];
+
   // Check role-based access
   const path = location.pathname.toLowerCase();
   const userRole = userFromStorage.role;
 
   // Log for debugging
   console.log("Current user:", userFromStorage);
-  console.log("Current user role:", userRole);
+  console.log("Current user roles:", userRolesArray);
   console.log("Current path:", path);
 
   // If user has no role, grant access to at least basic routes
-  if (!userRole) {
+  if (!userRolesArray || userRolesArray.length === 0) {
     if (path === "/" || path === "/dashboard" || path === "/profile") {
       return <Outlet />;
     }
@@ -266,8 +270,13 @@ const ProtectedRoute = () => {
     ],
   };
 
-  // Check if user has access to the current path based on their role
-  const allowedPaths = routePermissions[userRole] || [];
+  const allowedPaths = userRolesArray.reduce((acc, role) => {
+    const rolePaths = routePermissions[role] || [];
+    rolePaths.forEach((p) => {
+      if (!acc.includes(p)) acc.push(p);
+    });
+    return acc;
+  }, []);
   const hasAccess = allowedPaths.some((allowedPath) => {
     const normalizedPath = path.toLowerCase();
     const normalizedAllowedPath = allowedPath.toLowerCase();

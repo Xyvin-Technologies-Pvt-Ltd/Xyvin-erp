@@ -70,6 +70,7 @@ const employeeSchema = new mongoose.Schema(
       required: [true, "Salary is required"],
       min: [0, "Salary cannot be negative"],
     },
+    // Primary role kept for backward compatibility
     role: {
       type: String,
       enum: [
@@ -85,6 +86,43 @@ const employeeSchema = new mongoose.Schema(
       ],
       default: "Employee",
     },
+    // New: support multiple roles
+    roles: {
+      type: [
+        {
+          type: String,
+          enum: [
+            'ERP System Administrator',
+            'IT Manager',
+            'Project Manager',
+            'HR Manager',
+            'Finance Manager',
+            'Employee',
+            'Sales Manager',
+            'Admin',
+            'Operation Officer'
+          ]
+        }
+      ],
+      default: undefined
+    },
+    // New: support multiple roles while keeping backward compatibility with single role
+    roles: [
+      {
+        type: String,
+        enum: [
+          'ERP System Administrator',
+          'IT Manager',
+          'Project Manager',
+          'HR Manager',
+          'Finance Manager',
+          'Employee',
+          'Sales Manager',
+          'Admin',
+          'Operation Officer'
+        ]
+      }
+    ],
     bankDetails: {
       accountName: String,
       accountNumber: String,
@@ -249,6 +287,24 @@ employeeSchema.pre("save", async function (next) {
   }
 });
 
+// Ensure roles <-> role stay in sync for backward compatibility
+employeeSchema.pre("save", function (next) {
+  try {
+    // If roles is provided, ensure legacy role reflects the first entry
+    if (Array.isArray(this.roles) && this.roles.length > 0) {
+      if (!this.role || this.isModified('roles')) {
+        this.role = this.roles[0];
+      }
+    } else if (this.role && (!Array.isArray(this.roles) || this.roles.length === 0)) {
+      // If only legacy role provided, initialize roles array
+      this.roles = [this.role];
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Pre-save middleware to update department and position employee counts
 employeeSchema.pre("save", async function (next) {
   if (
@@ -325,6 +381,24 @@ employeeSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate();
   if (update && update.status) {
     this.set({ isActive: update.status === "active" });
+  }
+  // Sync roles and role for update operations
+  if (update) {
+    // Handle direct set in $set as well as top-level
+    const setObj = update.$set || update;
+    if (Array.isArray(setObj.roles) && setObj.roles.length > 0) {
+      if (!setObj.role) {
+        setObj.role = setObj.roles[0];
+      }
+    } else if (setObj.role && (!Array.isArray(setObj.roles) || setObj.roles.length === 0)) {
+      setObj.roles = [setObj.role];
+    }
+    if (update.$set) {
+      update.$set = setObj;
+    } else {
+      Object.assign(update, setObj);
+    }
+    this.setUpdate(update);
   }
   next();
 });
