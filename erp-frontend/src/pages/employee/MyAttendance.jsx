@@ -66,6 +66,17 @@ const MyAttendance = () => {
     totalWorkHours: 0,
   });
 
+  const formatHoursToHM = (hoursDecimal) => {
+    if (hoursDecimal === null || hoursDecimal === undefined) return "-";
+    const num = Number(hoursDecimal);
+    if (isNaN(num)) return "-";
+    const totalMinutes = Math.round(num * 60);
+    if (totalMinutes === 0) return "-";
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${String(minutes).padStart(2, "0")}`;
+  };
+
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
@@ -196,7 +207,7 @@ const MyAttendance = () => {
     {
       icon: TimerIcon,
       title: "Work Hours",
-      value: `${Math.round(stats.totalWorkHours * 100) / 100}h`,
+      value: formatHoursToHM(stats.totalWorkHours),
       color: "bg-blue-100 text-blue-500",
     },
   ];
@@ -309,11 +320,7 @@ const MyAttendance = () => {
               <div>
                 <p className="text-xs sm:text-sm text-gray-500">Total Hours</p>
                 <p className="text-sm sm:text-base font-medium">
-                  {selectedDayAttendance.workHours
-                    ? `${
-                        Math.round(selectedDayAttendance.workHours * 100) / 100
-                      }h`
-                    : "-"}
+                  {formatHoursToHM(selectedDayAttendance.workHours)}
                 </p>
               </div>
               <div>
@@ -373,15 +380,13 @@ const MyAttendance = () => {
                         : "-"}
                     </td>
                     <td className="p-2">
-                      {record.workHours
-                        ? `${Math.round(record.workHours * 100) / 100}h`
-                        : "-"}
+                      {formatHoursToHM(record.workHours)}
                     </td>
                     <td className="p-2">
                       {(() => {
                         const workHrs = Number(record.workHours || 0);
                         const rt = Math.max(0, Math.min(8, workHrs));
-                        return rt ? `${Math.round(rt * 100) / 100}h` : "-";
+                        return rt ? formatHoursToHM(rt) : "-";
                       })()}
                     </td>
                     <td className="p-2">
@@ -391,7 +396,7 @@ const MyAttendance = () => {
                           0,
                           Math.round((workHrs - 8) * 100) / 100
                         );
-                        return ot ? `${ot}h` : "-";
+                        return ot ? formatHoursToHM(ot) : "-";
                       })()}
                     </td>
                     <td className="flex justify-center text-center">
