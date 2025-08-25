@@ -48,7 +48,7 @@ const attendanceSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Present', 'Absent', 'Half-Day', 'Late', 'Early-Leave', 'Holiday', 'On-Leave', "Day-Off"],
+        enum: ['Present', 'Absent', 'Halfday', 'Late', 'Early-Leave', 'Holiday', 'On-Leave', "Day-Off"],
         required: true
     },
     workHours: {
@@ -131,7 +131,7 @@ const attendanceSchema = new mongoose.Schema({
     },
     leaveType: {
         type: String,
-        enum: ['Annual', 'Sick', 'Personal', 'Maternity', 'Paternity', 'Unpaid'],
+        enum: ['Annual', 'Sick', 'Personal', 'Maternity','Halfday','Emergency', 'Paternity', 'Unpaid'],
         required: function() {
             return this.isLeave === true;
         }
