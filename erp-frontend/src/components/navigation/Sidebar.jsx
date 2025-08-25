@@ -108,7 +108,7 @@ const Sidebar = ({ open, setOpen }) => {
     "IT Manager": ["base", "employee", "projects"],
     "Project Manager": ["base", "employee", "projects"],
     "HR Manager": ["base", "employee", "hrm", "frm"],
-    "Operation Officer": ["base", "employee", "hrm", "clients", "projects"],
+    "Operation Officer": ["base", "employee",  "clients", "projects"],
   };
 
   // Get allowed navigation sections
