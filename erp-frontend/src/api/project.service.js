@@ -1,6 +1,6 @@
-import api from './api';
+import api from "./api";
 
-const BASE_URL = '/projects';
+const BASE_URL = "/projects";
 
 export const projectService = {
   createProject: async (projectData) => {
@@ -11,7 +11,24 @@ export const projectService = {
       throw error;
     }
   },
-
+  updatePendingToViewProjectIsAvailable: async (id) => {
+    try {
+      const response = await api.post(
+        `hrm/employees/updateProjectViewPending/${id}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getPendingToViewProjectIsAvailable: async (id) => {
+    try {
+      const response = await api.get(`hrm/employees/user/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
   getProjects: async () => {
     try {
       const response = await api.get(`${BASE_URL}`);
@@ -24,7 +41,9 @@ export const projectService = {
 
   getProject: async (id) => {
     try {
-      const response = await api.get(`${BASE_URL}/${id}?populate=client,team,tasks`);
+      const response = await api.get(
+        `${BASE_URL}/${id}?populate=client,team,tasks`
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -52,7 +71,7 @@ export const projectService = {
   assignEmployees: async (projectId, employeeIds) => {
     try {
       const response = await api.post(`${BASE_URL}/${projectId}/assign-team`, {
-        employees: employeeIds
+        employees: employeeIds,
       });
       return response.data;
     } catch (error) {
@@ -67,5 +86,5 @@ export const projectService = {
     } catch (error) {
       throw error;
     }
-  }
-}; 
+  },
+};

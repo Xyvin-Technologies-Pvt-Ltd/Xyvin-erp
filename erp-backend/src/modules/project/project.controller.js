@@ -1,178 +1,218 @@
-const Project = require('./project.model');
-const { validateProject } = require('./project.validation');
-const Task = require('./task/task.model');
-const Notification = require('../notification/Notification.model');
-const websocketService = require('../../utils/websocket');
-
-console.log('Project controller loaded, Notification model:', Notification);
-console.log('WebSocket service loaded:', websocketService);
+const Project = require("./project.model");
+const { validateProject } = require("./project.validation");
+const Task = require("./task/task.model");
+const Notification = require("../notification/Notification.model");
+const websocketService = require("../../utils/websocket");
+const Employee = require("../hrm/employee/employee.model");
+const mongoose = require("mongoose");
+console.log("Project controller loaded, Notification model:", Notification);
+console.log("WebSocket service loaded:", websocketService);
 
 // Create new project
 exports.createProject = async (req, res) => {
   try {
     const { error } = validateProject(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    console.log(req.body.manager);
+    await Employee.updateOne(
+      {
+        _id: new mongoose.Types.ObjectId(req.body.manager),
+      },
+      { $set: { projectViewPending: true } }
+    );
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
 
     const project = new Project({
       ...req.body,
       manager: req.body.manager || undefined,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
 
     await project.save();
 
-    console.log('Project created successfully:', {
+    console.log("Project created successfully:", {
       projectId: project._id,
       projectName: project.name,
       manager: project.manager,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
 
     if (project.manager) {
-      console.log('Attempting to create notification for manager:', project.manager);
-      console.log('Notification data:', {
+      console.log(
+        "Attempting to create notification for manager:",
+        project.manager
+      );
+      console.log("Notification data:", {
         user: project.manager,
         sender: req.user._id,
         title: `New Project Assignment: ${project.name}`,
         message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
-        type: 'PROJECT_ASSIGNED'
+        type: "PROJECT_ASSIGNED",
       });
-      
+
       try {
         if (!project.manager || !req.user._id || !project.name) {
-          throw new Error('Missing required notification data');
+          throw new Error("Missing required notification data");
         }
 
-        console.log('Testing notification creation...');
+        console.log("Testing notification creation...");
         const testNotification = await Notification.create({
           user: project.manager,
           sender: req.user._id,
-          title: 'Test Notification',
-          message: 'This is a test notification',
-          type: 'TASK_ASSIGNED' 
+          title: "Test Notification",
+          message: "This is a test notification",
+          type: "TASK_ASSIGNED",
         });
-        console.log('Test notification created successfully:', testNotification._id);
+        console.log(
+          "Test notification created successfully:",
+          testNotification._id
+        );
 
         const notification = await Notification.create({
           user: project.manager,
           sender: req.user._id,
           title: `New Project Assignment: ${project.name}`,
           message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
-          type: 'PROJECT_ASSIGNED'
+          type: "PROJECT_ASSIGNED",
         });
 
-        console.log(`Notification created successfully for manager ${project.manager} for project ${project._id}:`, notification._id);
+        console.log(
+          `Notification created successfully for manager ${project.manager} for project ${project._id}:`,
+          notification._id
+        );
 
         // Send WebSocket notification
-        console.log('Attempting to send WebSocket notification to user:', project.manager.toString());
-        console.log('WebSocket service state:', {
+        console.log(
+          "Attempting to send WebSocket notification to user:",
+          project.manager.toString()
+        );
+        console.log("WebSocket service state:", {
           hasWss: !!websocketService.getWss(),
-          wss: websocketService.getWss()
+          wss: websocketService.getWss(),
         });
-        
-        const wsResult = websocketService.sendToUser(project.manager.toString(), {
-          type: 'notification',
-          data: {
-            _id: notification._id,
-            title: notification.title,
-            message: notification.message,
-            type: notification.type,
-            read: notification.read,
-            createdAt: notification.createdAt,
-            sender: {
-              _id: req.user._id,
-              firstName: req.user.firstName,
-              lastName: req.user.lastName,
-              email: req.user.email,
-              role: req.user.role
+
+        const wsResult = websocketService.sendToUser(
+          project.manager.toString(),
+          {
+            type: "notification",
+            data: {
+              _id: notification._id,
+              title: notification.title,
+              message: notification.message,
+              type: notification.type,
+              read: notification.read,
+              createdAt: notification.createdAt,
+              sender: {
+                _id: req.user._id,
+                firstName: req.user.firstName,
+                lastName: req.user.lastName,
+                email: req.user.email,
+                role: req.user.role,
+              },
+              projectId: project._id,
+              projectName: project.name,
             },
-            projectId: project._id,
-            projectName: project.name
           }
-        });
-        console.log('WebSocket notification sent successfully, result:', wsResult);
+        );
+        console.log(
+          "WebSocket notification sent successfully, result:",
+          wsResult
+        );
       } catch (notificationError) {
-        console.error('Failed to create project assignment notification:', notificationError);
-        console.error('Error details:', {
+        console.error(
+          "Failed to create project assignment notification:",
+          notificationError
+        );
+        console.error("Error details:", {
           message: notificationError.message,
           stack: notificationError.stack,
-          name: notificationError.name
+          name: notificationError.name,
         });
       }
     } else {
-      console.log('No manager assigned to project, skipping notification');
+      console.log("No manager assigned to project, skipping notification");
     }
 
     // Populate after save
     const populatedProject = await Project.findById(project._id)
-      .populate('client', 'name company')
+      .populate("client", "name company")
       .populate({
-        path: 'manager',
-        select: 'firstName lastName email position department',
+        path: "manager",
+        select: "firstName lastName email position department",
         populate: [
-          { path: 'position', select: 'title' },
-          { path: 'department', select: 'name' }
-        ]
+          { path: "position", select: "title" },
+          { path: "department", select: "name" },
+        ],
       })
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       });
 
     // Transform project data
     const transformedProject = {
       ...populatedProject.toObject(),
-      manager: populatedProject.manager ? {
-        id: populatedProject.manager._id,
-        _id: populatedProject.manager._id,
-        name: `${populatedProject.manager.firstName} ${populatedProject.manager.lastName}`,
-        firstName: populatedProject.manager.firstName,
-        lastName: populatedProject.manager.lastName,
-        email: populatedProject.manager.email,
-        position: populatedProject.manager.position ? {
-          id: populatedProject.manager.position._id,
-          title: populatedProject.manager.position.title
-        } : null,
-        department: populatedProject.manager.department ? {
-          id: populatedProject.manager.department._id,
-          name: populatedProject.manager.department.name
-        } : null,
-      } : null,
-      team: populatedProject.team.map(member => ({
+      manager: populatedProject.manager
+        ? {
+            id: populatedProject.manager._id,
+            _id: populatedProject.manager._id,
+            name: `${populatedProject.manager.firstName} ${populatedProject.manager.lastName}`,
+            firstName: populatedProject.manager.firstName,
+            lastName: populatedProject.manager.lastName,
+            email: populatedProject.manager.email,
+            position: populatedProject.manager.position
+              ? {
+                  id: populatedProject.manager.position._id,
+                  title: populatedProject.manager.position.title,
+                }
+              : null,
+            department: populatedProject.manager.department
+              ? {
+                  id: populatedProject.manager.department._id,
+                  name: populatedProject.manager.department.name,
+                }
+              : null,
+          }
+        : null,
+      team: populatedProject.team.map((member) => ({
         id: member._id,
         _id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         firstName: member.firstName,
         lastName: member.lastName,
         email: member.email,
-        position: member.position ? {
-          id: member.position._id,
-          title: member.position.title,
-          code: member.position.code,
-          description: member.position.description
-        } : null,
-        department: member.department ? {
-          id: member.department._id,
-          name: member.department.name
-        } : null,
+        position: member.position
+          ? {
+              id: member.position._id,
+              title: member.position.title,
+              code: member.position.code,
+              description: member.position.description,
+            }
+          : null,
+        department: member.department
+          ? {
+              id: member.department._id,
+              name: member.department.name,
+            }
+          : null,
         role: member.role,
-        status: member.status
-      }))
+        status: member.status,
+      })),
     };
 
     res.status(201).json(transformedProject);
   } catch (error) {
-    console.error('Error in createProject:', error);
+    console.error("Error in createProject:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -182,10 +222,8 @@ exports.createProject = async (req, res) => {
 //   try {
 //     const userId = req.user._id;
 
-    
-
 //     const isAdmin = req.user.role === 'ERP System Administrator';
-   
+
 //     const isProjectManager = req.user.role === 'Project Manager';
 //     let query = {};
 
@@ -298,9 +336,11 @@ exports.createProject = async (req, res) => {
 exports.getProjects = async (req, res) => {
   try {
     const userId = req.user._id;
-    
-    const isAdmin = req.user.role === 'ERP System Administrator' || req.user.role === 'Operation Officer';
-    const isProjectManager = req.user.role === 'Project Manager';
+
+    const isAdmin =
+      req.user.role === "ERP System Administrator" ||
+      req.user.role === "Operation Officer";
+    const isProjectManager = req.user.role === "Project Manager";
     let query = {};
 
     // If not admin, filter projects based on user's role
@@ -308,150 +348,161 @@ exports.getProjects = async (req, res) => {
       if (isProjectManager) {
         // Project managers can see projects they manage or are part of the team
         query = {
-          $or: [
-            { manager: userId },
-            { team: userId },
-            { createdBy: userId }
-          ]
+          $or: [{ manager: userId }, { team: userId }, { createdBy: userId }],
         };
       } else {
         // For regular employees, we need to find projects where they have assigned tasks
         // First, find all tasks assigned to this user
-        const userTasks = await Task.find({ assignee: userId }).select('project');
-        const projectIds = userTasks.map(task => task.project);
-        
+        const userTasks = await Task.find({ assignee: userId }).select(
+          "project"
+        );
+        const projectIds = userTasks.map((task) => task.project);
+
         // Include projects where user is in team OR has assigned tasks
         query = {
-          $or: [
-            { team: userId },
-            { _id: { $in: projectIds } }
-          ]
+          $or: [{ team: userId }, { _id: { $in: projectIds } }],
         };
       }
     }
 
     // Debug: Print the query being used
-    console.log('Project query:', JSON.stringify(query));
+    console.log("Project query:", JSON.stringify(query));
 
     const projects = await Project.find(query)
-      .populate('client', 'name company email phone')
+      .populate("client", "name company email phone")
       .populate({
-        path: 'manager',
-        select: 'firstName lastName email position department',
+        path: "manager",
+        select: "firstName lastName email position department",
         populate: [
-          { path: 'position', select: 'title' },
-          { path: 'department', select: 'name' }
-        ]
+          { path: "position", select: "title" },
+          { path: "department", select: "name" },
+        ],
       })
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
-        path: 'tasks',
+        path: "tasks",
         populate: [
           {
-            path: 'assignee',
-            select: 'firstName lastName email position'
+            path: "assignee",
+            select: "firstName lastName email position",
           },
           {
-            path: 'comments.author',
-            select: 'firstName lastName email'
-          }
-        ]
+            path: "comments.author",
+            select: "firstName lastName email",
+          },
+        ],
       })
       .sort({ createdAt: -1 });
 
     // Rest of your transformation code remains the same...
     console.log(`Found ${projects.length} projects`);
-    
+
     // Transform team data for all projects
-    const transformedProjects = projects.map(project => {
+    const transformedProjects = projects.map((project) => {
       const transformedProject = {
         ...project.toObject(),
-        manager: project.manager ? {
-          id: project.manager._id,
-          _id: project.manager._id,
-          name: `${project.manager.firstName} ${project.manager.lastName}`,
-          firstName: project.manager.firstName,
-          lastName: project.manager.lastName,
-          email: project.manager.email,
-          position: project.manager.position ? {
-            id: project.manager.position._id,
-            title: project.manager.position.title
-          } : null,
-          department: project.manager.department ? {
-            id: project.manager.department._id,
-            name: project.manager.department.name
-          } : null,
-        } : null,
-        team: project.team.map(member => ({
+        manager: project.manager
+          ? {
+              id: project.manager._id,
+              _id: project.manager._id,
+              name: `${project.manager.firstName} ${project.manager.lastName}`,
+              firstName: project.manager.firstName,
+              lastName: project.manager.lastName,
+              email: project.manager.email,
+              position: project.manager.position
+                ? {
+                    id: project.manager.position._id,
+                    title: project.manager.position.title,
+                  }
+                : null,
+              department: project.manager.department
+                ? {
+                    id: project.manager.department._id,
+                    name: project.manager.department.name,
+                  }
+                : null,
+            }
+          : null,
+        team: project.team.map((member) => ({
           id: member._id,
           _id: member._id,
           name: `${member.firstName} ${member.lastName}`,
           firstName: member.firstName,
           lastName: member.lastName,
           email: member.email,
-          position: member.position ? {
-            id: member.position._id,
-            title: member.position.title,
-            code: member.position.code,
-            description: member.position.description
-          } : null,
-          department: member.department ? {
-            id: member.department._id,
-            name: member.department.name
-          } : null,
+          position: member.position
+            ? {
+                id: member.position._id,
+                title: member.position.title,
+                code: member.position.code,
+                description: member.position.description,
+              }
+            : null,
+          department: member.department
+            ? {
+                id: member.department._id,
+                name: member.department.name,
+              }
+            : null,
           role: member.role,
-          status: member.status
-        }))
+          status: member.status,
+        })),
       };
-      
+
       if (project.tasks && Array.isArray(project.tasks)) {
-        transformedProject.tasks = project.tasks.map(task => {
-          if (!task) return null;
-          
-          return {
-            ...task.toObject(),
-            assignee: task.assignee ? {
-              id: task.assignee._id.toString(),
-              _id: task.assignee._id,
-              name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-              firstName: task.assignee.firstName,
-              lastName: task.assignee.lastName,
-              email: task.assignee.email,
-              position: task.assignee.position
-            } : null,
-            comments: (task.comments || []).map(comment => ({
-              ...comment.toObject(),
-              author: comment.author ? {
-                id: comment.author._id,
-                name: `${comment.author.firstName} ${comment.author.lastName}`,
-                email: comment.author.email
-              } : null
-            }))
-          };
-        }).filter(Boolean);
+        transformedProject.tasks = project.tasks
+          .map((task) => {
+            if (!task) return null;
+
+            return {
+              ...task.toObject(),
+              assignee: task.assignee
+                ? {
+                    id: task.assignee._id.toString(),
+                    _id: task.assignee._id,
+                    name: `${task.assignee.firstName} ${task.assignee.lastName}`,
+                    firstName: task.assignee.firstName,
+                    lastName: task.assignee.lastName,
+                    email: task.assignee.email,
+                    position: task.assignee.position,
+                  }
+                : null,
+              comments: (task.comments || []).map((comment) => ({
+                ...comment.toObject(),
+                author: comment.author
+                  ? {
+                      id: comment.author._id,
+                      name: `${comment.author.firstName} ${comment.author.lastName}`,
+                      email: comment.author.email,
+                    }
+                  : null,
+              })),
+            };
+          })
+          .filter(Boolean);
       } else {
         transformedProject.tasks = [];
       }
-      
+
       return transformedProject;
     });
 
     res.json(transformedProjects);
   } catch (error) {
-    console.error('Error in getProjects:', error);
+    console.error("Error in getProjects:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -459,84 +510,94 @@ exports.getProjects = async (req, res) => {
 exports.getProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate('client', 'name company email phone')
+      .populate("client", "name company email phone")
       .populate({
-        path: 'manager',
-        select: 'firstName lastName email position department',
+        path: "manager",
+        select: "firstName lastName email position department",
         populate: [
-          { path: 'position', select: 'title' },
-          { path: 'department', select: 'name' }
-        ]
+          { path: "position", select: "title" },
+          { path: "department", select: "name" },
+        ],
       })
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
-        path: 'tasks',
-        select: 'title description status priority dueDate assignee',
+        path: "tasks",
+        select: "title description status priority dueDate assignee",
         populate: {
-          path: 'assignee',
-          select: 'firstName lastName email'
-        }
+          path: "assignee",
+          select: "firstName lastName email",
+        },
       });
 
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project) return res.status(404).json({ message: "Project not found" });
 
     // Transform team data to match expected format
     const transformedProject = {
       ...project.toObject(),
-      manager: project.manager ? {
-        id: project.manager._id,
-        _id: project.manager._id,
-        name: `${project.manager.firstName} ${project.manager.lastName}`,
-        firstName: project.manager.firstName,
-        lastName: project.manager.lastName,
-        email: project.manager.email,
-        position: project.manager.position ? {
-          id: project.manager.position._id,
-          title: project.manager.position.title
-        } : null,
-        department: project.manager.department ? {
-          id: project.manager.department._id,
-          name: project.manager.department.name
-        } : null,
-      } : null,
-      team: project.team.map(member => ({
+      manager: project.manager
+        ? {
+            id: project.manager._id,
+            _id: project.manager._id,
+            name: `${project.manager.firstName} ${project.manager.lastName}`,
+            firstName: project.manager.firstName,
+            lastName: project.manager.lastName,
+            email: project.manager.email,
+            position: project.manager.position
+              ? {
+                  id: project.manager.position._id,
+                  title: project.manager.position.title,
+                }
+              : null,
+            department: project.manager.department
+              ? {
+                  id: project.manager.department._id,
+                  name: project.manager.department.name,
+                }
+              : null,
+          }
+        : null,
+      team: project.team.map((member) => ({
         id: member._id,
         _id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         firstName: member.firstName,
         lastName: member.lastName,
         email: member.email,
-        position: member.position ? {
-          id: member.position._id,
-          title: member.position.title,
-          code: member.position.code,
-          description: member.position.description
-        } : null,
-        department: member.department ? {
-          id: member.department._id,
-          name: member.department.name
-        } : null,
+        position: member.position
+          ? {
+              id: member.position._id,
+              title: member.position.title,
+              code: member.position.code,
+              description: member.position.description,
+            }
+          : null,
+        department: member.department
+          ? {
+              id: member.department._id,
+              name: member.department.name,
+            }
+          : null,
         role: member.role,
-        status: member.status
-      }))
+        status: member.status,
+      })),
     };
 
     res.json(transformedProject);
   } catch (error) {
-    console.error('Error in getProject:', error);
+    console.error("Error in getProject:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -545,12 +606,13 @@ exports.getProject = async (req, res) => {
 exports.updateProject = async (req, res) => {
   try {
     const { error } = validateProject(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
 
     // Get the old project to check for manager changes
     const oldProject = await Project.findById(req.params.id);
     if (!oldProject) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     const project = await Project.findByIdAndUpdate(
@@ -558,47 +620,52 @@ exports.updateProject = async (req, res) => {
       { ...req.body },
       { new: true }
     )
-      .populate('client', 'name company')
+      .populate("client", "name company")
       .populate({
-        path: 'manager',
-        select: 'firstName lastName email position department',
+        path: "manager",
+        select: "firstName lastName email position department",
         populate: [
-          { path: 'position', select: 'title' },
-          { path: 'department', select: 'name' }
-        ]
+          { path: "position", select: "title" },
+          { path: "department", select: "name" },
+        ],
       })
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       });
 
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project) return res.status(404).json({ message: "Project not found" });
 
-    if (req.body.manager && req.body.manager !== oldProject.manager?.toString()) {
+    if (
+      req.body.manager &&
+      req.body.manager !== oldProject.manager?.toString()
+    ) {
       try {
         const notification = await Notification.create({
           user: req.body.manager,
           sender: req.user._id,
           title: `Project Manager Assignment: ${project.name}`,
           message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you as the manager for project "${project.name}"`,
-          type: 'PROJECT_ASSIGNED'
+          type: "PROJECT_ASSIGNED",
         });
 
-        console.log(`Notification created for new manager ${req.body.manager} for project ${project._id}`);
+        console.log(
+          `Notification created for new manager ${req.body.manager} for project ${project._id}`
+        );
 
         // Send WebSocket notification
         websocketService.sendToUser(req.body.manager.toString(), {
-          type: 'notification',
+          type: "notification",
           data: {
             _id: notification._id,
             title: notification.title,
@@ -611,61 +678,74 @@ exports.updateProject = async (req, res) => {
               firstName: req.user.firstName,
               lastName: req.user.lastName,
               email: req.user.email,
-              role: req.user.role
+              role: req.user.role,
             },
             projectId: project._id,
-            projectName: project.name
-          }
+            projectName: project.name,
+          },
         });
       } catch (notificationError) {
-        console.error('Failed to create project manager assignment notification:', notificationError);
+        console.error(
+          "Failed to create project manager assignment notification:",
+          notificationError
+        );
       }
     }
 
     // Transform project data
     const transformedProject = {
       ...project.toObject(),
-      manager: project.manager ? {
-        id: project.manager._id,
-        _id: project.manager._id,
-        name: `${project.manager.firstName} ${project.manager.lastName}`,
-        firstName: project.manager.firstName,
-        lastName: project.manager.lastName,
-        email: project.manager.email,
-        position: project.manager.position ? {
-          id: project.manager.position._id,
-          title: project.manager.position.title
-        } : null,
-        department: project.manager.department ? {
-          id: project.manager.department._id,
-          name: project.manager.department.name
-        } : null,
-      } : null,
-      team: project.team.map(member => ({
+      manager: project.manager
+        ? {
+            id: project.manager._id,
+            _id: project.manager._id,
+            name: `${project.manager.firstName} ${project.manager.lastName}`,
+            firstName: project.manager.firstName,
+            lastName: project.manager.lastName,
+            email: project.manager.email,
+            position: project.manager.position
+              ? {
+                  id: project.manager.position._id,
+                  title: project.manager.position.title,
+                }
+              : null,
+            department: project.manager.department
+              ? {
+                  id: project.manager.department._id,
+                  name: project.manager.department.name,
+                }
+              : null,
+          }
+        : null,
+      team: project.team.map((member) => ({
         id: member._id,
         _id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         firstName: member.firstName,
         lastName: member.lastName,
         email: member.email,
-        position: member.position ? {
-          id: member.position._id,
-          title: member.position.title,
-          code: member.position.code,
-          description: member.position.description
-        } : null,
-        department: member.department ? {
-          id: member.department._id,
-          name: member.department.name
-        } : null,
+        position: member.position
+          ? {
+              id: member.position._id,
+              title: member.position.title,
+              code: member.position.code,
+              description: member.position.description,
+            }
+          : null,
+        department: member.department
+          ? {
+              id: member.department._id,
+              name: member.department.name,
+            }
+          : null,
         role: member.role,
-        status: member.status
-      }))
+        status: member.status,
+      })),
     };
 
     res.json(transformedProject);
   } catch (error) {
-    console.error('Error in updateProject:', error);
+    console.error("Error in updateProject:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -674,8 +754,8 @@ exports.updateProject = async (req, res) => {
 exports.deleteProject = async (req, res) => {
   try {
     const project = await Project.findByIdAndDelete(req.params.id);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-    res.json({ message: 'Project deleted successfully' });
+    if (!project) return res.status(404).json({ message: "Project not found" });
+    res.json({ message: "Project deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -687,7 +767,9 @@ exports.assignTeam = async (req, res) => {
     const { employees } = req.body;
 
     if (!Array.isArray(employees)) {
-      return res.status(400).json({ message: 'Employees must be an array of IDs' });
+      return res
+        .status(400)
+        .json({ message: "Employees must be an array of IDs" });
     }
 
     const project = await Project.findByIdAndUpdate(
@@ -695,24 +777,24 @@ exports.assignTeam = async (req, res) => {
       { team: employees },
       { new: true }
     )
-      .populate('client', 'name company')
+      .populate("client", "name company")
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       });
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     if (employees && employees.length > 0) {
@@ -723,13 +805,15 @@ exports.assignTeam = async (req, res) => {
             sender: req.user._id,
             title: `Project Team Assignment: ${project.name}`,
             message: `${req.user.firstName} ${req.user.lastName} (${req.user.role}) has assigned you to the project "${project.name}"`,
-            type: 'PROJECT_TEAM_ASSIGNED'
+            type: "PROJECT_TEAM_ASSIGNED",
           });
 
-          console.log(`Notification created for team member ${employeeId} for project ${project._id}`);
+          console.log(
+            `Notification created for team member ${employeeId} for project ${project._id}`
+          );
 
           websocketService.sendToUser(employeeId.toString(), {
-            type: 'notification',
+            type: "notification",
             data: {
               _id: notification._id,
               title: notification.title,
@@ -742,46 +826,53 @@ exports.assignTeam = async (req, res) => {
                 firstName: req.user.firstName,
                 lastName: req.user.lastName,
                 email: req.user.email,
-                role: req.user.role
+                role: req.user.role,
               },
               projectId: project._id,
-              projectName: project.name
-            }
+              projectName: project.name,
+            },
           });
         }
       } catch (notificationError) {
-        console.error('Failed to create team assignment notifications:', notificationError);
+        console.error(
+          "Failed to create team assignment notifications:",
+          notificationError
+        );
       }
     }
 
     // Transform team data to match expected format
     const transformedProject = {
       ...project.toObject(),
-      team: project.team.map(member => ({
+      team: project.team.map((member) => ({
         id: member._id,
         _id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         firstName: member.firstName,
         lastName: member.lastName,
         email: member.email,
-        position: member.position ? {
-          id: member.position._id,
-          title: member.position.title,
-          code: member.position.code,
-          description: member.position.description
-        } : null,
-        department: member.department ? {
-          id: member.department._id,
-          name: member.department.name
-        } : null,
+        position: member.position
+          ? {
+              id: member.position._id,
+              title: member.position.title,
+              code: member.position.code,
+              description: member.position.description,
+            }
+          : null,
+        department: member.department
+          ? {
+              id: member.department._id,
+              name: member.department.name,
+            }
+          : null,
         role: member.role,
-        status: member.status
-      }))
+        status: member.status,
+      })),
     };
 
     res.json(transformedProject);
   } catch (error) {
-    console.error('Error in assignTeam:', error);
+    console.error("Error in assignTeam:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -790,109 +881,124 @@ exports.assignTeam = async (req, res) => {
 exports.getProjectDetails = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
-      .populate('client', 'name company email phone')
+      .populate("client", "name company email phone")
       .populate({
-        path: 'manager',
-        select: 'firstName lastName email position department',
+        path: "manager",
+        select: "firstName lastName email position department",
         populate: [
-          { path: 'position', select: 'title' },
-          { path: 'department', select: 'name' }
-        ]
+          { path: "position", select: "title" },
+          { path: "department", select: "name" },
+        ],
       })
       .populate({
-        path: 'team',
-        select: 'firstName lastName email position department role status',
+        path: "team",
+        select: "firstName lastName email position department role status",
         populate: [
           {
-            path: 'position',
-            select: 'title code description'
+            path: "position",
+            select: "title code description",
           },
           {
-            path: 'department',
-            select: 'name'
-          }
-        ]
+            path: "department",
+            select: "name",
+          },
+        ],
       })
       .populate({
-        path: 'tasks',
-        select: 'title description status priority dueDate assignee comments attachments',
+        path: "tasks",
+        select:
+          "title description status priority dueDate assignee comments attachments",
         populate: [
           {
-            path: 'assignee',
-            select: 'firstName lastName email position'
+            path: "assignee",
+            select: "firstName lastName email position",
           },
           {
-            path: 'comments.author',
-            select: 'firstName lastName email'
-          }
-        ]
+            path: "comments.author",
+            select: "firstName lastName email",
+          },
+        ],
       });
 
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project) return res.status(404).json({ message: "Project not found" });
 
     // Transform project data
     const transformedProject = {
       ...project.toObject(),
-      manager: project.manager ? {
-        id: project.manager._id,
-        _id: project.manager._id,
-        name: `${project.manager.firstName} ${project.manager.lastName}`,
-        firstName: project.manager.firstName,
-        lastName: project.manager.lastName,
-        email: project.manager.email,
-        position: project.manager.position ? {
-          id: project.manager.position._id,
-          title: project.manager.position.title
-        } : null,
-        department: project.manager.department ? {
-          id: project.manager.department._id,
-          name: project.manager.department.name
-        } : null,
-      } : null,
-      team: project.team.map(member => ({
+      manager: project.manager
+        ? {
+            id: project.manager._id,
+            _id: project.manager._id,
+            name: `${project.manager.firstName} ${project.manager.lastName}`,
+            firstName: project.manager.firstName,
+            lastName: project.manager.lastName,
+            email: project.manager.email,
+            position: project.manager.position
+              ? {
+                  id: project.manager.position._id,
+                  title: project.manager.position.title,
+                }
+              : null,
+            department: project.manager.department
+              ? {
+                  id: project.manager.department._id,
+                  name: project.manager.department.name,
+                }
+              : null,
+          }
+        : null,
+      team: project.team.map((member) => ({
         id: member._id,
         _id: member._id,
         name: `${member.firstName} ${member.lastName}`,
         firstName: member.firstName,
         lastName: member.lastName,
         email: member.email,
-        position: member.position ? {
-          id: member.position._id,
-          title: member.position.title,
-          code: member.position.code,
-          description: member.position.description
-        } : null,
-        department: member.department ? {
-          id: member.department._id,
-          name: member.department.name
-        } : null,
+        position: member.position
+          ? {
+              id: member.position._id,
+              title: member.position.title,
+              code: member.position.code,
+              description: member.position.description,
+            }
+          : null,
+        department: member.department
+          ? {
+              id: member.department._id,
+              name: member.department.name,
+            }
+          : null,
         role: member.role,
-        status: member.status
+        status: member.status,
       })),
-      tasks: project.tasks.map(task => ({
+      tasks: project.tasks.map((task) => ({
         ...task,
-        assignee: task.assignee ? {
-          id: task.assignee._id,
-          name: `${task.assignee.firstName} ${task.assignee.lastName}`,
-          firstName: task.assignee.firstName,
-          lastName: task.assignee.lastName,
-          email: task.assignee.email,
-          position: task.assignee.position
-        } : null,
-        comments: task.comments?.map(comment => ({
+        assignee: task.assignee
+          ? {
+              id: task.assignee._id,
+              name: `${task.assignee.firstName} ${task.assignee.lastName}`,
+              firstName: task.assignee.firstName,
+              lastName: task.assignee.lastName,
+              email: task.assignee.email,
+              position: task.assignee.position,
+            }
+          : null,
+        comments: task.comments?.map((comment) => ({
           ...comment,
-          author: comment.author ? {
-            id: comment.author._id,
-            name: `${comment.author.firstName} ${comment.author.lastName}`,
-            email: comment.author.email
-          } : null
-        }))
-      }))
+          author: comment.author
+            ? {
+                id: comment.author._id,
+                name: `${comment.author.firstName} ${comment.author.lastName}`,
+                email: comment.author.email,
+              }
+            : null,
+        })),
+      })),
     };
 
     res.json(transformedProject);
   } catch (error) {
-    console.error('Error in getProjectDetails:', error);
+    console.error("Error in getProjectDetails:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -908,7 +1014,7 @@ exports.testProjectAccess = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'You have access to this project',
+      message: "You have access to this project",
       user: {
         id: req.user._id,
         name: `${req.user.firstName} ${req.user.lastName}`,
@@ -919,14 +1025,14 @@ exports.testProjectAccess = async (req, res) => {
         // }))
         roles: req.user.role,
       },
-      projectId
+      projectId,
     });
   } catch (error) {
-    console.error('Error in testProjectAccess:', error);
+    console.error("Error in testProjectAccess:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
-}; 
+};

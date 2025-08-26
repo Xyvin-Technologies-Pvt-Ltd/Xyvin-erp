@@ -13,6 +13,14 @@ const employeeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    taskViewPending: {
+      type: Boolean,
+      default: false,
+    },
+    projectViewPending: {
+      type: Boolean,
+      default: false,
+    },
     firstName: {
       type: String,
       required: [true, "First name is required"],

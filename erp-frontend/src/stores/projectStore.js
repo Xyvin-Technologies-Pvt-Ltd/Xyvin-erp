@@ -1,26 +1,57 @@
-import { create } from 'zustand';
-import { projectService } from '../api/project.service';
+import { create } from "zustand";
+import { projectService } from "../api/project.service";
 
 const useProjectStore = create((set, get) => ({
   projects: [],
   selectedProject: null,
   loading: false,
   error: null,
-
+  //project alert
+  pendingToViewProject: false,
+  pendingToViewProjectIsAvailable: async () => {
+    try {
+      const result=await projectService.getPendingToViewProjectIsAvailable(67)
+      console.log(result)
+       if (result.status === "success") {
+            set({
+              pendingToViewProject: result.result.projectViewPending,
+            });
+          }
+    } catch (error) {
+      console.log(error)
+    }
+  },
+  updateProjectViewPending : async () => {
+    try {
+      const result=await projectService.updatePendingToViewProjectIsAvailable(67)
+      console.log(result)
+       if (result.status === "success") {
+            set({
+              pendingToViewProject: result.result.projectViewPending,
+            });
+          }
+    } catch (error) {
+      console.log(error)
+    }
+  },
   // Fetch all projects
   fetchProjects: async () => {
     set({ loading: true, error: null });
     try {
       const response = await projectService.getProjects();
-      console.log('fetchProjects raw response:', response);
-  
+      console.log("fetchProjects raw response:", response);
+
       // Ensure we have an array of projects
-      const projectsArray = Array.isArray(response) ? response :
-        Array.isArray(response?.projects) ? response.projects :
-          Array.isArray(response?.data) ? response.data : [];
-  
+      const projectsArray = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.projects)
+        ? response.projects
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
       // Format each project - PRESERVE the populated data from backend
-      const formattedProjects = projectsArray.map(project => ({
+      const formattedProjects = projectsArray.map((project) => ({
         ...project,
         id: project._id || project.id,
         _id: project._id || project.id,
@@ -31,19 +62,19 @@ const useProjectStore = create((set, get) => ({
         // Keep the populated tasks with assignee data
         tasks: project.tasks || [],
         // Keep status as-is, just ensure lowercase
-        status: (project.status || 'planning').toLowerCase()
+        status: (project.status || "planning").toLowerCase(),
       }));
-  
-      console.log('Setting formatted projects in store:', formattedProjects);
-  
+
+      console.log("Setting formatted projects in store:", formattedProjects);
+
       set({
         projects: formattedProjects,
-        loading: false
+        loading: false,
       });
-  
+
       return formattedProjects;
     } catch (error) {
-      console.error('Error in fetchProjects:', error);
+      console.error("Error in fetchProjects:", error);
       set({ error: error.message, loading: false });
       throw error;
     }
@@ -65,7 +96,7 @@ const useProjectStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const newProject = await projectService.createProject(projectData);
-      console.log('New project created:', newProject);
+      console.log("New project created:", newProject);
 
       if (newProject) {
         // Format the new project data consistently
@@ -73,19 +104,27 @@ const useProjectStore = create((set, get) => ({
           ...newProject,
           id: newProject._id || newProject.id,
           _id: newProject._id || newProject.id,
-          client: newProject.client?.$oid || newProject.client?._id || newProject.client?.id || newProject.client || newProject.clientId,
-          team: (newProject.team || newProject.assignedEmployees || []).map(member =>
-            typeof member === 'object' ? (member.$oid || member._id || member.id) : member
+          client:
+            newProject.client?.$oid ||
+            newProject.client?._id ||
+            newProject.client?.id ||
+            newProject.client ||
+            newProject.clientId,
+          team: (newProject.team || newProject.assignedEmployees || []).map(
+            (member) =>
+              typeof member === "object"
+                ? member.$oid || member._id || member.id
+                : member
           ),
-          status: (newProject.status || 'planning').toLowerCase()
+          status: (newProject.status || "planning").toLowerCase(),
         };
 
         set((state) => {
           const updatedProjects = [...state.projects, formattedProject];
-          console.log('Updated projects list:', updatedProjects);
+          console.log("Updated projects list:", updatedProjects);
           return {
             projects: updatedProjects,
-            loading: false
+            loading: false,
           };
         });
 
@@ -94,7 +133,7 @@ const useProjectStore = create((set, get) => ({
 
       return newProject;
     } catch (error) {
-      console.error('Error in createProject:', error);
+      console.error("Error in createProject:", error);
       set({ error: error.message, loading: false });
       throw error;
     }
@@ -108,7 +147,7 @@ const useProjectStore = create((set, get) => ({
   // Update project
   updateProject: async (id, data) => {
     try {
-      console.log('Updating project:', { id, data });
+      console.log("Updating project:", { id, data });
 
       // Remove _id from the data before sending to API
       const { _id, id: projectId, ...updateData } = data;
@@ -118,13 +157,13 @@ const useProjectStore = create((set, get) => ({
       if (response) {
         set((state) => ({
           projects: state.projects.map((p) =>
-            (p._id === id || p.id === id) ? response : p
-          )
+            p._id === id || p.id === id ? response : p
+          ),
         }));
         return response;
       }
     } catch (error) {
-      console.error('Error in updateProject:', error);
+      console.error("Error in updateProject:", error);
       throw error?.response?.data || error;
     }
   },
@@ -132,26 +171,26 @@ const useProjectStore = create((set, get) => ({
   // Delete project
   deleteProject: async (id) => {
     if (!id) {
-      throw new Error('Project ID is required for deletion');
+      throw new Error("Project ID is required for deletion");
     }
 
     set({ loading: true, error: null });
     try {
       const result = await projectService.deleteProject(id);
-      console.log('Project deletion result:', result);
+      console.log("Project deletion result:", result);
 
       set((state) => {
-        const updatedProjects = state.projects.filter((project) =>
-          project._id !== id && project.id !== id
+        const updatedProjects = state.projects.filter(
+          (project) => project._id !== id && project.id !== id
         );
-        console.log('Updated projects list after deletion:', updatedProjects);
+        console.log("Updated projects list after deletion:", updatedProjects);
         return {
           projects: updatedProjects,
-          loading: false
+          loading: false,
         };
       });
     } catch (error) {
-      console.error('Error in deleteProject:', error);
+      console.error("Error in deleteProject:", error);
       set({ error: error.message, loading: false });
       throw error;
     }
@@ -168,10 +207,10 @@ const useProjectStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const project = await projectService.getProject(id);
-      console.log('Get project result:', project);
+      console.log("Get project result:", project);
       return project;
     } catch (error) {
-      console.error('Error in getProject:', error);
+      console.error("Error in getProject:", error);
       set({ error: error.message, loading: false });
       throw error;
     } finally {
@@ -183,28 +222,33 @@ const useProjectStore = create((set, get) => ({
   assignEmployees: async (projectId, employeeIds) => {
     set({ loading: true, error: null });
     try {
-      const updatedProject = await projectService.assignEmployees(projectId, employeeIds);
-      console.log('Project assignment result:', updatedProject);
+      const updatedProject = await projectService.assignEmployees(
+        projectId,
+        employeeIds
+      );
+      console.log("Project assignment result:", updatedProject);
 
       set((state) => {
         const updatedProjects = state.projects.map((project) =>
-          (project._id === projectId || project.id === projectId) ? updatedProject : project
+          project._id === projectId || project.id === projectId
+            ? updatedProject
+            : project
         );
-        console.log('Updated projects list after assignment:', updatedProjects);
+        console.log("Updated projects list after assignment:", updatedProjects);
         return {
           projects: updatedProjects,
           selectedProject: updatedProject,
-          loading: false
+          loading: false,
         };
       });
 
       return updatedProject;
     } catch (error) {
-      console.error('Error in assignEmployees:', error);
+      console.error("Error in assignEmployees:", error);
       set({ error: error.message, loading: false });
       throw error;
     }
-  }
+  },
 }));
 
 export { useProjectStore };

@@ -207,7 +207,7 @@ exports.createLeave = catchAsync(async (req, res) => {
 
   try {
     const hrUsers = await Employee.find({
-      role: { $regex: "hr", $options: "i" },
+      role: { $regex: "HR Manager", $options: "i" },
     }).select("_id firstName lastName");
     console.log("HR Users:", hrUsers);
 

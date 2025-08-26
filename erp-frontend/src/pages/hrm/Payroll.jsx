@@ -167,7 +167,7 @@ const Payroll = () => {
       {
         Header: "Salary",
         accessor: "netSalary",
-        Cell: ({ value }) => `$${value?.toLocaleString() || "0"}`,
+        Cell: ({ value }) => `₹${value?.toLocaleString() || "0"}`,
       },
       {
         Header: "Status",

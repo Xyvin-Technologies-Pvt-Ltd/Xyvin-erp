@@ -52,6 +52,8 @@ const useHrmStore = create(
       //hrm leave notifiaction state
       appliedLeaveViewed: false,
       eventViewed: false,
+      //hrm task,project alert
+      taskViewPending: false,
       // Employee Actions
       fetchEmployees: async (params) => {
         set({ employeesLoading: true, employeesError: null });
@@ -97,7 +99,10 @@ const useHrmStore = create(
           const employee = await hrmService.updateEmployeeData(56);
           console.log(employee);
           if (employee.status === "success") {
-            set({ eventViewed: employee.result.needToViewEvent });
+            set({
+              eventViewed: employee.result.needToViewEvent,
+              taskViewPending: employee.result.taskViewPending,
+            });
           }
           // set({ selectedEmployee: employee, employeesLoading: false });
         } catch (error) {
@@ -107,6 +112,17 @@ const useHrmStore = create(
               "Failed to fetch employee",
             employeesLoading: false,
           });
+        }
+      },
+      updateTaskViwed: async () => {
+        try {
+          const result = await hrmService.updateTaskViwed(99);
+          console.log(result);
+          if (result.status === "success") {
+            set({ taskViewPending: result?.result?.taskViewPending });
+          }
+        } catch (error) {
+          console.log(error);
         }
       },
       getUserData: async () => {

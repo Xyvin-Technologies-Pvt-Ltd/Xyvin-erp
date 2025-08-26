@@ -15,7 +15,9 @@ const {
   downloadDocument,
   deleteDocument,
   getEmployeedata,
-  updateEmployeedata
+  updateEmployeedata,
+  updateUserTaskViewed,
+  updateProjectViewPending
 } = require("./employee.controller");
 const { protect, authorize } = require("../../../middleware/authMiddleware");
 const upload = require("../../../middleware/upload");
@@ -51,7 +53,8 @@ router.get("/", getAllEmployees);
 // Get employee by ID
 router.get("/:id", getEmployeeById);
 router.route("/user/:id").get(getEmployeedata).post( updateEmployeedata);
-
+router.route("/updateProjectViewPending/:id").post(updateProjectViewPending)
+router.route("/updateTaskViewed/:id").post(updateUserTaskViewed)
 
 // Create new employee
 router.post("/", createEmployee);

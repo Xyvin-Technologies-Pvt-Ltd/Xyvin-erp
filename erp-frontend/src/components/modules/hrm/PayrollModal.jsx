@@ -352,7 +352,7 @@ const PayrollModal = ({ payroll, onClose, onSuccess }) => {
                               Total Net Salary
                             </span>
                             <span className="text-base font-medium text-gray-900">
-                              ${calculateTotal().toLocaleString()}
+                              ₹{calculateTotal().toLocaleString()}
                             </span>
                           </div>
                         </div>

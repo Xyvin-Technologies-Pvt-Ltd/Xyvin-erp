@@ -23,6 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import useAuthStore from "@/stores/auth.store";
 import useHrmStore from "@/stores/useHrmStore";
+import { useProjectStore } from "@/stores/projectStore";
 const frmNavigation = {
   name: "Financial Management",
   icon: BanknotesIcon,
@@ -99,10 +100,14 @@ const Sidebar = ({ open, setOpen }) => {
   const { user } = useAuthStore();
   const [openMenu, setOpenMenu] = useState(null);
   const [sideBarMenu, setSideBarMenu] = useState("Events");
-  const { appliedLeaveViewed, eventViewed, updateUserData } = useHrmStore();
+  const { appliedLeaveViewed, eventViewed, updateUserData, taskViewPending } =
+    useHrmStore();
+  const { pendingToViewProjectIsAvailable, pendingToViewProject } =
+    useProjectStore();
   // Get user from localStorage as fallback
   useEffect(() => {
     updateUserData();
+    pendingToViewProjectIsAvailable();
   }, [sideBarMenu]);
   const userFromStorage =
     user ||
@@ -237,6 +242,15 @@ const Sidebar = ({ open, setOpen }) => {
               <div className="flex justify-center items-center">
                 <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
               </div>
+            ) : item.name === "Employee" && taskViewPending === true ? (
+              <div className="flex justify-center items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+              </div>
+            ) : item.name === "Project Management" &&
+              pendingToViewProject === true ? (
+              <div className="flex justify-center items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+              </div>
             ) : (
               ""
             )}
@@ -284,6 +298,16 @@ const Sidebar = ({ open, setOpen }) => {
                     {child.name}
                   </div>
                   {child.name === "Leave" && appliedLeaveViewed === true ? (
+                    <div className="flex justify-center items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+                    </div>
+                  ) : child.name === "My Projects" &&
+                    taskViewPending === true ? (
+                    <div className="flex justify-center items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
+                    </div>
+                  ) : child.name === "All Projects" &&
+                    pendingToViewProject === true ? (
                     <div className="flex justify-center items-center">
                       <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
                     </div>

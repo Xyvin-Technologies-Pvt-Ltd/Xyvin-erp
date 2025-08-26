@@ -27,6 +27,11 @@ export const updateEmployeeData = async (id) => {
   console.log(response);
   return response.data;
 };
+export const updateTaskViwed = async (id) => {
+  const response = await api.post(`hrm/employees/updateTaskViewed/${id}`);
+  console.log(response);
+  return response.data;
+};
 export const createEmployee = async (data) => {
   const response = await api.post("hrm/employees", data);
   return response.data;

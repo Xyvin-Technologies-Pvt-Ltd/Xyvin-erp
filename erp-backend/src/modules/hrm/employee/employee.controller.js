@@ -151,7 +151,39 @@ const getAllEmployees = catchAsync(async (req, res) => {
     throw error;
   }
 });
+//updateTaskViewed
+const updateUserTaskViewed = catchAsync(async (req, res) => {
+  const response = await Employee.findOneAndUpdate(
+    { _id: new mongoose.Types.ObjectId(req.user.id) }, // filter condition
+    { $set: { taskViewPending: false } },
+    { new: true } // update operation
+  );
+  console.log(response);
+  res.status(200).json({
+    status: "success",
+    result: response,
+  });
+});
 
+//update project view status
+
+const updateProjectViewPending = catchAsync(async (req, res) => {
+  
+  const response = await Employee.findOneAndUpdate(
+    { _id: new mongoose.Types.ObjectId(req.user.id) }, // filter condition
+    {
+      $set: {
+        projectViewPending: false,
+      },
+    },
+    { new: true } // update operation
+  );
+  console.log(response);
+  res.status(200).json({
+    status: "success",
+    result: response,
+  });
+});
 /**
  * Get employee by ID
  */
@@ -933,6 +965,8 @@ module.exports = {
   createEmployee,
   getEmployeedata,
   updateEmployeedata,
+  updateUserTaskViewed,
+  updateProjectViewPending,
   updateEmployee,
   deleteEmployee,
   uploadDocument,

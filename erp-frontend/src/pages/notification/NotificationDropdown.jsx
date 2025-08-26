@@ -1,9 +1,9 @@
-import React, { Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
-import { BellIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { formatDistanceToNow } from 'date-fns';
-import useNotificationStore from "../../stores/useNotificationsStore"
-import { Link } from 'react-router-dom';
+import React, { Fragment } from "react";
+import { Menu, Transition } from "@headlessui/react";
+import { BellIcon, CheckIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { formatDistanceToNow } from "date-fns";
+import useNotificationStore from "../../stores/useNotificationsStore";
+import { Link } from "react-router-dom";
 
 const NotificationDropdown = () => {
   const {
@@ -27,7 +27,7 @@ const NotificationDropdown = () => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch (error) {
-      return 'Unknown date';
+      return "Unknown date";
     }
   };
   // console.log(notifications,"notification");
@@ -40,7 +40,7 @@ const NotificationDropdown = () => {
           <BellIcon className="h-6 w-6" aria-hidden="true" />
           {unreadCount > 0 && (
             <span className="absolute top-1 block h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center transform -translate-y-1/2 translate-x-1/2">
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Menu.Button>
@@ -58,7 +58,9 @@ const NotificationDropdown = () => {
         <Menu.Items className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
           <div className="py-1">
             <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+              <h3 className="text-sm font-medium text-gray-900">
+                Notifications
+              </h3>
               {unreadCount > 0 && (
                 <button
                   type="button"
@@ -71,69 +73,89 @@ const NotificationDropdown = () => {
             </div>
 
             {isLoading ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">Loading...</div>
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                Loading...
+              </div>
             ) : error ? (
-              <div className="px-4 py-3 text-sm text-red-500 text-center">{error}</div>
+              <div className="px-4 py-3 text-sm text-red-500 text-center">
+                {error}
+              </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">No notifications</div>
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                No notifications
+              </div>
             ) : (
               <div className="max-h-96 overflow-y-auto">
-                {notifications.slice(0, 5).map((notification) => (
-                  <Menu.Item key={notification._id}>
-                    {({ active }) => (
-                      <div
-                        className={`
-                          ${active ? 'bg-gray-50' : ''}
-                          ${!notification.read ? 'bg-blue-50' : ''}
+                {notifications.slice(0, 5).map((notification) => {
+                  if (notification?.read === false) {
+                    return (
+                      <Menu.Item key={notification._id}>
+                        {({ active }) => (
+                          <div
+                            className={`
+                          ${active ? "bg-gray-50" : ""}
+                          ${!notification.read ? "bg-blue-50" : ""}
                           px-4 py-2 border-b border-gray-100 last:border-b-0
                         `}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <Link
-                              to={notification.link || '#'}
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600"
-                            >
-                              {notification.title}
-                            </Link>
-                            <p className="text-sm text-gray-600 mt-0.5">
-                              {notification.type === 'TASK_UPDATED' 
-                                ? notification.message.split('Changes:')[0] + '...'
-                                : notification.message}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {formatDate(notification.createdAt)}
-                            </p>
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <Link
+                                  to={notification.link || "#"}
+                                  className="text-sm font-medium text-gray-900 hover:text-blue-600"
+                                >
+                                  {notification.title}
+                                </Link>
+                                <p className="text-sm text-gray-600 mt-0.5">
+                                  {notification.type === "TASK_UPDATED"
+                                    ? notification.message.split(
+                                        "Changes:"
+                                      )[0] + "..."
+                                    : notification.message}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {formatDate(notification.createdAt)}
+                                </p>
+                              </div>
+                              <div className="flex space-x-1 ml-2">
+                                {!notification.read && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markAsRead(notification._id);
+                                    }}
+                                    className="p-1 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50"
+                                  >
+                                    <span className="sr-only">
+                                      Mark as read
+                                    </span>
+                                    <CheckIcon
+                                      className="h-4 w-4"
+                                      aria-hidden="true"
+                                    />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNotification(notification._id);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                                >
+                                  <span className="sr-only">Delete</span>
+                                  <TrashIcon
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                  />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex space-x-1 ml-2">
-                            {!notification.read && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  markAsRead(notification._id);
-                                }}
-                                className="p-1 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50"
-                              >
-                                <span className="sr-only">Mark as read</span>
-                                <CheckIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotification(notification._id);
-                              }}
-                              className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
-                            >
-                              <span className="sr-only">Delete</span>
-                              <TrashIcon className="h-4 w-4" aria-hidden="true" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Menu.Item>
-                ))}
+                        )}
+                      </Menu.Item>
+                    );
+                  }
+                })}
               </div>
             )}
 
