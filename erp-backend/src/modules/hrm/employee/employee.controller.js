@@ -168,7 +168,6 @@ const updateUserTaskViewed = catchAsync(async (req, res) => {
 //update project view status
 
 const updateProjectViewPending = catchAsync(async (req, res) => {
-  
   const response = await Employee.findOneAndUpdate(
     { _id: new mongoose.Types.ObjectId(req.user.id) }, // filter condition
     {

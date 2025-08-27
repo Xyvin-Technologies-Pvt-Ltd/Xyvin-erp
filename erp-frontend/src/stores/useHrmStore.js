@@ -50,7 +50,7 @@ const useHrmStore = create(
       eventsLoading: false,
       eventsError: null,
       //hrm leave notifiaction state
-      appliedLeaveViewed: false,
+      appliedLeaveViewed: true,
       eventViewed: false,
       //hrm task,project alert
       taskViewPending: false,
@@ -889,15 +889,9 @@ const useHrmStore = create(
         try {
           const res = await hrmService.getUnreadLeavesCount();
           console.log(res);
-          if (res.status === "success" && res.length > 0) {
-            set({
-              appliedLeaveViewed: true,
-            });
-          } else {
-            set({
-              appliedLeaveViewed: false,
-            });
-          }
+          set({
+            appliedLeaveViewed: res.data,
+          });
         } catch (error) {
           console.error("Error fetching leaves:", error);
         }
@@ -907,7 +901,7 @@ const useHrmStore = create(
           const res = await hrmService.viewLeave();
           if (res.data.status === "success") {
             set({
-              appliedLeaveViewed: false,
+              appliedLeaveViewed: true,
             });
           }
         } catch (error) {

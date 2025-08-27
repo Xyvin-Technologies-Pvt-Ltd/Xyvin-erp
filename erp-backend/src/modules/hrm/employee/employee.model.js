@@ -17,6 +17,10 @@ const employeeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    leaveReqViewed: {
+      type: Boolean,
+      default: true,
+    },
     projectViewPending: {
       type: Boolean,
       default: false,

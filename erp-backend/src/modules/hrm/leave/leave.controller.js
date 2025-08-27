@@ -5,7 +5,7 @@ const catchAsync = require("../../../utils/catchAsync");
 const websocketService = require("../../../utils/websocket");
 const Notification = require("../../notification/Notification.model");
 const { createError } = require("../../../utils/errors");
-
+const mongoose = require("mongoose");
 // Get all leave requests
 exports.getAllLeaves = catchAsync(async (req, res) => {
   const { status, employeeId, departmentId, startDate, endDate, userId } =
@@ -201,7 +201,6 @@ exports.createLeave = catchAsync(async (req, res) => {
     duration,
     leaveType,
     status,
-    leaveReqViewed: false,
     createdBy: req.user.id,
   });
 
@@ -212,6 +211,14 @@ exports.createLeave = catchAsync(async (req, res) => {
     console.log("HR Users:", hrUsers);
 
     for (const hr of hrUsers) {
+      await Employee.updateOne(
+        { _id: new mongoose.Types.ObjectId(hr._id) },
+        {
+          $set: {
+            leaveReqViewed: false,
+          },
+        }
+      );
       const notification = await Notification.create({
         user: hr._id,
         sender: req.user._id,
@@ -254,13 +261,13 @@ exports.createLeave = catchAsync(async (req, res) => {
 });
 //view leave request
 exports.viewLeaveReq = catchAsync(async (req, res) => {
-  await Leave.updateMany(
-    {},
+  await Employee.updateOne(
+    { _id: new mongoose.Types.ObjectId(req.user.id) },
     {
       $set: {
         leaveReqViewed: true,
       },
-    } // update field
+    }
   );
   res.status(200).json({
     status: "success",
@@ -268,13 +275,13 @@ exports.viewLeaveReq = catchAsync(async (req, res) => {
 });
 exports.getUnreadLeavesCount = catchAsync(async (req, res) => {
   console.log("CALLED");
-  const result = await Leave.find({
-    leaveReqViewed: false,
+  const result = await Employee.findOne({
+    _id: new mongoose.Types.ObjectId(req.user.id),
   });
   console.log(result);
   res.status(200).json({
     status: "success",
-    length: result.length,
+    data: result.leaveReqViewed,
   });
 });
 // Update leave request

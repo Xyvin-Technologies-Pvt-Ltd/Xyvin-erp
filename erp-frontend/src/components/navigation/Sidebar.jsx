@@ -100,7 +100,7 @@ const Sidebar = ({ open, setOpen }) => {
   const { user } = useAuthStore();
   const [openMenu, setOpenMenu] = useState(null);
   const [sideBarMenu, setSideBarMenu] = useState("Events");
-  const { appliedLeaveViewed, eventViewed, updateUserData, taskViewPending } =
+  const { appliedLeaveViewed, eventViewed, updateUserData,unReadLeaves, taskViewPending } =
     useHrmStore();
   const { pendingToViewProjectIsAvailable, pendingToViewProject } =
     useProjectStore();
@@ -108,6 +108,7 @@ const Sidebar = ({ open, setOpen }) => {
   useEffect(() => {
     updateUserData();
     pendingToViewProjectIsAvailable();
+    unReadLeaves()
   }, [sideBarMenu]);
   const userFromStorage =
     user ||
@@ -138,7 +139,7 @@ const Sidebar = ({ open, setOpen }) => {
     "Project Manager": ["base", "employee", "projects"],
     "HR Manager": ["base", "employee", "hrm", "frm"],
     "Finance Manager": ["base", "employee", "frm"],
-    "Operation Officer": ["base", "employee", "clients", "projects"],
+    "Operation Officer": ["base", "employee", "clients", "projects","hrm"],
   };
 
   // Get allowed navigation sections
@@ -238,7 +239,7 @@ const Sidebar = ({ open, setOpen }) => {
             {item.name}
           </div>
           <div className="flex items-center gap-3">
-            {item.name === "HRM" && appliedLeaveViewed === true ? (
+            {item.name === "HRM" && appliedLeaveViewed === false ? (
               <div className="flex justify-center items-center">
                 <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
               </div>
@@ -297,7 +298,7 @@ const Sidebar = ({ open, setOpen }) => {
                     />
                     {child.name}
                   </div>
-                  {child.name === "Leave" && appliedLeaveViewed === true ? (
+                  {child.name === "Leave" && appliedLeaveViewed === false ? (
                     <div className="flex justify-center items-center">
                       <span className="inline-block w-2 h-2 rounded-full bg-red-600"></span>
                     </div>

@@ -12,10 +12,6 @@ const leaveSchema = new mongoose.Schema(
       ref: "User",
       // required: true
     },
-    leaveReqViewed: {
-      type: Boolean,
-      default: false,
-    },
     leaveType: {
       type: String,
       enum: [
