@@ -605,6 +605,7 @@ useEffect(() => {
       setAttendanceToDelete(null);
     }
   };
+  
 
   const handleNextMonth = async () => {
     try {
