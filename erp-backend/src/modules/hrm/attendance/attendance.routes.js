@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const {
   getAllAttendance,
@@ -11,39 +11,41 @@ const {
   updateAttendance,
   getEmployeeAttendance,
   getAttendanceByEmployeeId,
-  getAttendanceFilters
-} = require('./attendance.controller');
-const { protect } = require('../../../middleware/authMiddleware');
+  getAttendanceFilters,
+  updateSundayDayoffState,
+  getSundayDayOff,
+} = require("./attendance.controller");
+const { protect } = require("../../../middleware/authMiddleware");
 
 router.use(protect);
 
 // Employee attendance routes (must come before /:id routes)
-router.get('/my-attendance', getEmployeeAttendance);
+router.get("/my-attendance", getEmployeeAttendance);
 
 // Get attendance by employee ID
-router.get('/employee/:employeeId',  getAttendanceByEmployeeId);
+router.get("/employee/:employeeId", getAttendanceByEmployeeId);
 
 // Get attendance filters (departments and positions)
-router.get('/filters', getAttendanceFilters);
+router.get("/filters", getAttendanceFilters);
 
 // Bulk attendance route
-router.post('/bulk',  createBulkAttendance);
-
+router.post("/bulk", createBulkAttendance);
+//sundayDayOff
+router.route("/sundayOff").get(getSundayDayOff).post(updateSundayDayoffState);
 // Statistics route
-router.get('/stats',  getAttendanceStats);
+router.get("/stats", getAttendanceStats);
 
 // Basic routes
-router.route('/')
-  .get( getAllAttendance)
-  .post( createAttendance);
+router.route("/").get(getAllAttendance).post(createAttendance);
 
 // ID-based routes should come last
-router.route('/:id')
-  .get( getAttendance)
-  .put( updateAttendance)
-  .delete( deleteAttendance);
+router
+  .route("/:id")
+  .get(getAttendance)
+  .put(updateAttendance)
+  .delete(deleteAttendance);
 
 // Checkout route
-router.post('/:id/checkout',  checkOut);
+router.post("/:id/checkout", checkOut);
 
-module.exports = router; 
+module.exports = router;

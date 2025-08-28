@@ -1,93 +1,110 @@
-const Attendance = require('./attendance.model');
-const Employee = require('../employee/employee.model');
-const catchAsync = require('../../../utils/catchAsync');
-const { createError } = require('../../../utils/errors');
-
+const Attendance = require("./attendance.model");
+const Employee = require("../employee/employee.model");
+const catchAsync = require("../../../utils/catchAsync");
+const { createError } = require("../../../utils/errors");
+const Sunday = require("../SundayModel");
+const { job } = require("../../../config/cronJob");
+// const cron = require("node-cron");
 // Get all attendance records
 exports.getAllAttendance = catchAsync(async (req, res) => {
-  const { startDate, endDate, employeeId, departmentId, positionId, employeeName, date } = req.query;
-  
+  const {
+    startDate,
+    endDate,
+    employeeId,
+    departmentId,
+    positionId,
+    employeeName,
+    date,
+  } = req.query;
+
   let query = { isDeleted: false };
-  
+
   if (date) {
     const selectedDate = new Date(date);
     if (isNaN(selectedDate.getTime())) {
-      throw createError(400, 'Invalid date format provided');
+      throw createError(400, "Invalid date format provided");
     }
     const dayStart = new Date(selectedDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(selectedDate);
     dayEnd.setHours(23, 59, 59, 999);
-    
+
     query.date = {
       $gte: dayStart,
-      $lte: dayEnd
+      $lte: dayEnd,
     };
   }
   // Date range filter (only if single date not provided)
   else if (startDate && endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      throw createError(400, 'Invalid date range format provided');
+      throw createError(400, "Invalid date range format provided");
     }
-    
+
     if (start > end) {
-      throw createError(400, 'Start date cannot be after end date');
+      throw createError(400, "Start date cannot be after end date");
     }
-    
+
     query.date = {
       $gte: start,
-      $lte: end
+      $lte: end,
     };
   }
-  
+
   // Employee filter
   if (employeeId) {
     if (!employeeId.match(/^[0-9a-fA-F]{24}$/)) {
-      throw createError(400, 'Invalid employee ID format');
+      throw createError(400, "Invalid employee ID format");
     }
     query.employee = employeeId;
   }
-  
+
   // Department filter
   if (departmentId) {
     if (!departmentId.match(/^[0-9a-fA-F]{24}$/)) {
-      throw createError(400, 'Invalid department ID format');
+      throw createError(400, "Invalid department ID format");
     }
-    const employees = await Employee.find({ department: departmentId }).select('_id');
+    const employees = await Employee.find({ department: departmentId }).select(
+      "_id"
+    );
     if (employees.length === 0) {
-      throw createError(404, 'No employees found in the specified department');
+      throw createError(404, "No employees found in the specified department");
     }
-    query.employee = { $in: employees.map(emp => emp._id) };
+    query.employee = { $in: employees.map((emp) => emp._id) };
   }
 
   // Position filter
   if (positionId) {
     if (!positionId.match(/^[0-9a-fA-F]{24}$/)) {
-      throw createError(400, 'Invalid position ID format');
+      throw createError(400, "Invalid position ID format");
     }
-    const employees = await Employee.find({ position: positionId }).select('_id');
+    const employees = await Employee.find({ position: positionId }).select(
+      "_id"
+    );
     if (employees.length === 0) {
-      throw createError(404, 'No employees found with the specified position');
+      throw createError(404, "No employees found with the specified position");
     }
-    
+
     if (query.employee && query.employee.$in) {
       // If department filter is also applied, intersect the results
       const departmentEmployees = query.employee.$in;
-      const positionEmployees = employees.map(emp => emp._id);
-      const intersection = departmentEmployees.filter(id => 
-        positionEmployees.some(posId => posId.toString() === id.toString())
+      const positionEmployees = employees.map((emp) => emp._id);
+      const intersection = departmentEmployees.filter((id) =>
+        positionEmployees.some((posId) => posId.toString() === id.toString())
       );
-      
+
       if (intersection.length === 0) {
-        throw createError(404, 'No employees found matching both department and position filters');
+        throw createError(
+          404,
+          "No employees found matching both department and position filters"
+        );
       }
-      
+
       query.employee = { $in: intersection };
     } else {
-      query.employee = { $in: employees.map(emp => emp._id) };
+      query.employee = { $in: employees.map((emp) => emp._id) };
     }
   }
 
@@ -95,87 +112,101 @@ exports.getAllAttendance = catchAsync(async (req, res) => {
   if (employeeName && employeeName.trim()) {
     const trimmedName = employeeName.trim();
     if (trimmedName.length < 2) {
-      throw createError(400, 'Employee name must be at least 2 characters long');
+      throw createError(
+        400,
+        "Employee name must be at least 2 characters long"
+      );
     }
-    
-    const nameRegex = new RegExp(trimmedName, 'i');
+
+    const nameRegex = new RegExp(trimmedName, "i");
     const matchingEmployees = await Employee.find({
       $or: [
         { firstName: { $regex: nameRegex } },
-        { lastName: { $regex: nameRegex } }
-      ]
-    }).select('_id');
-    
+        { lastName: { $regex: nameRegex } },
+      ],
+    }).select("_id");
+
     if (matchingEmployees.length === 0) {
-      throw createError(404, `No employees found matching the name "${trimmedName}"`);
+      throw createError(
+        404,
+        `No employees found matching the name "${trimmedName}"`
+      );
     }
-    
+
     if (query.employee && query.employee.$in) {
       // If other filters are applied, intersect the results
       const existingEmployees = query.employee.$in;
-      const nameEmployees = matchingEmployees.map(emp => emp._id);
-      const intersection = existingEmployees.filter(id => 
-        nameEmployees.some(nameId => nameId.toString() === id.toString())
+      const nameEmployees = matchingEmployees.map((emp) => emp._id);
+      const intersection = existingEmployees.filter((id) =>
+        nameEmployees.some((nameId) => nameId.toString() === id.toString())
       );
-      
+
       if (intersection.length === 0) {
-        throw createError(404, 'No employees found matching all applied filters');
+        throw createError(
+          404,
+          "No employees found matching all applied filters"
+        );
       }
-      
+
       query.employee = { $in: intersection };
     } else {
-      query.employee = { $in: matchingEmployees.map(emp => emp._id) };
+      query.employee = { $in: matchingEmployees.map((emp) => emp._id) };
     }
   }
 
   const attendance = await Attendance.find(query)
     .populate({
-      path: 'employee',
-      select: 'firstName lastName department position',
+      path: "employee",
+      select: "firstName lastName department position",
       populate: [
-        { path: 'department', select: 'name' },
-        { path: 'position', select: 'title' }
-      ]
+        { path: "department", select: "name" },
+        { path: "position", select: "title" },
+      ],
     })
-    .sort('-date');
+    .sort("-date");
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     results: attendance.length,
-    data: { attendance }
+    data: { attendance },
   });
 });
 
 // Get single attendance record
 exports.getAttendance = catchAsync(async (req, res) => {
-  const attendance = await Attendance.findById(req.params.id)
-    .populate({
-      path: 'employee',
-      select: 'firstName lastName department position',
-      populate: [
-        { path: 'department', select: 'name' },
-        { path: 'position', select: 'title' }
-      ]
-    });
+  const attendance = await Attendance.findById(req.params.id).populate({
+    path: "employee",
+    select: "firstName lastName department position",
+    populate: [
+      { path: "department", select: "name" },
+      { path: "position", select: "title" },
+    ],
+  });
 
   if (!attendance) {
-    throw createError(404, 'No attendance record found with that ID');
+    throw createError(404, "No attendance record found with that ID");
   }
 
   res.status(200).json({
-    status: 'success',
-    data: { attendance }
+    status: "success",
+    data: { attendance },
   });
 });
 
 // Create attendance record
 exports.createAttendance = catchAsync(async (req, res) => {
-  const { employee, date, checkIn, status, notes, shift = 'Morning' } = req.body;
-
+  const {
+    employee,
+    date,
+    checkIn,
+    status,
+    notes,
+    shift = "Morning",
+  } = req.body;
   // Normalize date to day range and prevent duplicates
   const providedDate = new Date(date);
   if (isNaN(providedDate.getTime())) {
-    throw createError(400, 'Invalid date format');
+    throw createError(400, "Invalid date format");
   }
   const dayStart = new Date(providedDate);
   dayStart.setHours(0, 0, 0, 0);
@@ -185,128 +216,201 @@ exports.createAttendance = catchAsync(async (req, res) => {
   const existingAttendance = await Attendance.findOne({
     employee,
     date: { $gte: dayStart, $lte: dayEnd },
-    isDeleted: false
+    isDeleted: false,
   });
 
   if (existingAttendance) {
-    if (!['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status || existingAttendance.status)) {
+    if (
+      !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(
+        status || existingAttendance.status
+      )
+    ) {
       if (!existingAttendance.lastSessionCheckIn) {
-        const sessionStart = checkIn?.time ? new Date(checkIn.time) : new Date();
+        const sessionStart = checkIn?.time
+          ? new Date(checkIn.time)
+          : new Date();
         await Attendance.findByIdAndUpdate(existingAttendance._id, {
           $set: {
             lastSessionCheckIn: sessionStart,
-            'checkIn.time': existingAttendance.checkIn?.time || sessionStart,
-            'checkIn.device': existingAttendance.checkIn?.device || checkIn?.device || 'Web',
-            'checkIn.ipAddress': existingAttendance.checkIn?.ipAddress || checkIn?.ipAddress,
-            updatedBy: req.user._id
-          }
+            "checkIn.time": existingAttendance.checkIn?.time || sessionStart,
+            "checkIn.device":
+              existingAttendance.checkIn?.device || checkIn?.device || "Web",
+            "checkIn.ipAddress":
+              existingAttendance.checkIn?.ipAddress || checkIn?.ipAddress,
+            updatedBy: req.user._id,
+          },
         });
       }
-      const populated = await Attendance.findById(existingAttendance._id)
-        .populate({
-          path: 'employee',
-          select: 'firstName lastName department position',
-          populate: [
-            { path: 'department', select: 'name' },
-            { path: 'position', select: 'title' }
-          ]
-        });
-      return res.status(200).json({ status: 'success', data: { attendance: populated } });
+      const populated = await Attendance.findById(
+        existingAttendance._id
+      ).populate({
+        path: "employee",
+        select: "firstName lastName department position",
+        populate: [
+          { path: "department", select: "name" },
+          { path: "position", select: "title" },
+        ],
+      });
+      return res
+        .status(200)
+        .json({ status: "success", data: { attendance: populated } });
     }
-    throw createError(400, 'Attendance record already exists for this date');
+    throw createError(400, "Attendance record already exists for this date");
   }
 
   const isAttendanceRequired = (status) => {
-    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+    return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
   };
 
   let attendanceData = {
     employee,
     date: providedDate,
-    status: status || 'Present',
+    status: status || "Present",
     notes,
     shift,
-    workHours: 0
+    workHours: 0,
   };
 
   if (isAttendanceRequired(status)) {
     attendanceData.checkIn = {
       time: checkIn?.time || new Date(),
-      device: checkIn?.device || 'Web',
-      ipAddress: checkIn?.ipAddress
+      device: checkIn?.device || "Web",
+      ipAddress: checkIn?.ipAddress,
     };
     attendanceData.lastSessionCheckIn = new Date(attendanceData.checkIn.time);
   }
 
   const attendance = await Attendance.create(attendanceData);
 
-  const populatedAttendance = await Attendance.findById(attendance._id)
-    .populate({
-      path: 'employee',
-      select: 'firstName lastName department position',
-      populate: [
-        { path: 'department', select: 'name' },
-        { path: 'position', select: 'title' }
-      ]
-    });
+  const populatedAttendance = await Attendance.findById(
+    attendance._id
+  ).populate({
+    path: "employee",
+    select: "firstName lastName department position",
+    populate: [
+      { path: "department", select: "name" },
+      { path: "position", select: "title" },
+    ],
+  });
 
   res.status(201).json({
-    status: 'success',
-    data: { attendance: populatedAttendance }
+    status: "success",
+    data: { attendance: populatedAttendance },
   });
 });
 
+//get sunday day off
+
+exports.getSundayDayOff = catchAsync(async (req, res) => {
+  console.log("OK");
+  const sundayData = await Sunday.findOne({ sundayLeaveAvailable: true });
+  console.log(sundayData);
+  res.status(200).json({
+    status: true,
+    sundayData,
+  });
+});
+//updateSunday day off state
+
+exports.updateSundayDayoffState = catchAsync(async (req, res) => {
+  console.log(req.body.state);
+  const available = await Sunday.findOne({
+    sundayLeaveAvailable: true,
+  });
+  console.log(available);
+  if (available === null) {
+    const updatedData = await Sunday.create({
+      sundayLeaveAvailable: true,
+      sundayDayOff: true,
+    });
+    console.log(updatedData);
+    job.start();
+    res.status(200).json({
+      status: true,
+      updatedData,
+    });
+  } else {
+    if (req.body.state === true) {
+      console.log("ACTIVE");
+      job.start();
+    } else {
+      console.log("NOT ACTIVE");
+      job.stop();
+    }
+    const updatedData = await Sunday.findOneAndUpdate(
+      { sundayLeaveAvailable: true }, // filter
+      { $set: { sundayDayOff: req.body.state } }, // update
+      { new: true } // return updated doc instead of old one
+    );
+    console.log(updatedData);
+    res.status(200).json({
+      status: true,
+      updatedData,
+    });
+  }
+});
 // Create bulk attendance records
 exports.createBulkAttendance = catchAsync(async (req, res) => {
   const attendanceRecords = req.body;
 
   // Validate input
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
-    throw createError(400, 'Please provide an array of attendance records');
+    throw createError(400, "Please provide an array of attendance records");
   }
 
   // Validate each record has required fields and proper date format
   attendanceRecords.forEach((record, index) => {
     if (!record.employee) {
-      throw createError(400, `Employee ID is required for record at index ${index}`);
+      throw createError(
+        400,
+        `Employee ID is required for record at index ${index}`
+      );
     }
     if (!record.date) {
       throw createError(400, `Date is required for record at index ${index}`);
     }
-    
+
     // Validate date format
     const date = new Date(record.date);
     if (isNaN(date.getTime())) {
-      throw createError(400, `Invalid date format for record at index ${index}`);
+      throw createError(
+        400,
+        `Invalid date format for record at index ${index}`
+      );
     }
   });
 
-  const employeeIds = [...new Set(attendanceRecords.map(record => record.employee))];
+  const employeeIds = [
+    ...new Set(attendanceRecords.map((record) => record.employee)),
+  ];
 
   if (employeeIds.length === 0) {
-    throw createError(400, 'No valid employee IDs provided');
+    throw createError(400, "No valid employee IDs provided");
   }
 
   // Check if employees exist and are active
   const employees = await Employee.find({
-    _id: { $in: employeeIds }
-  }).select('_id status');
+    _id: { $in: employeeIds },
+  }).select("_id status");
 
   if (employees.length !== employeeIds.length) {
-    throw createError(400, 'One or more employees not found');
+    throw createError(400, "One or more employees not found");
   }
 
   // Verify all employees are active
-  const inactiveEmployees = employees.filter(emp => emp.status !== 'active');
+  const inactiveEmployees = employees.filter((emp) => emp.status !== "active");
   if (inactiveEmployees.length > 0) {
-    throw createError(400, `Found ${inactiveEmployees.length} inactive employee(s)`);
+    throw createError(
+      400,
+      `Found ${inactiveEmployees.length} inactive employee(s)`
+    );
   }
 
   const results = [];
   const errors = [];
 
   const isAttendanceRequired = (status) => {
-    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+    return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
   };
 
   // Process each attendance record
@@ -315,7 +419,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
       // Parse and validate date
       const ProvidedDate = new Date(record.date);
       if (isNaN(ProvidedDate.getTime())) {
-        throw createError(400, 'Invalid date format');
+        throw createError(400, "Invalid date format");
       }
       const dayStart = new Date(ProvidedDate);
       dayStart.setHours(0, 0, 0, 0);
@@ -326,7 +430,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
       const existingAttendance = await Attendance.findOne({
         employee: record.employee,
         date: { $gte: dayStart, $lte: dayEnd },
-        isDeleted: false
+        isDeleted: false,
       });
 
       // If an attendance record exists for that day
@@ -335,7 +439,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
           errors.push({
             employee: record.employee,
             date: record.date,
-            error: 'Attendance already marked for this date'
+            error: "Attendance already marked for this date",
           });
           continue;
         }
@@ -350,25 +454,33 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
                 $set: {
                   lastSessionCheckIn: sessionStart,
                   // ensure the day's first checkIn is preserved or set if missing
-                  'checkIn.time': existingAttendance.checkIn?.time || sessionStart,
-                  'checkIn.device': record.checkIn.device || existingAttendance.checkIn?.device || 'Web',
-                  'checkIn.ipAddress': record.checkIn.ipAddress || existingAttendance.checkIn?.ipAddress || undefined,
-                  updatedBy: req.user._id
-                }
+                  "checkIn.time":
+                    existingAttendance.checkIn?.time || sessionStart,
+                  "checkIn.device":
+                    record.checkIn.device ||
+                    existingAttendance.checkIn?.device ||
+                    "Web",
+                  "checkIn.ipAddress":
+                    record.checkIn.ipAddress ||
+                    existingAttendance.checkIn?.ipAddress ||
+                    undefined,
+                  updatedBy: req.user._id,
+                },
               },
               { new: true }
             );
           }
           // return current state
-          const populated = await Attendance.findById(existingAttendance._id)
-            .populate({
-              path: 'employee',
-              select: 'firstName lastName department position',
-              populate: [
-                { path: 'department', select: 'name' },
-                { path: 'position', select: 'title' }
-              ]
-            });
+          const populated = await Attendance.findById(
+            existingAttendance._id
+          ).populate({
+            path: "employee",
+            select: "firstName lastName department position",
+            populate: [
+              { path: "department", select: "name" },
+              { path: "position", select: "title" },
+            ],
+          });
           results.push(populated);
           continue;
         }
@@ -382,7 +494,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
             errors.push({
               employee: record.employee,
               date: record.date,
-              error: 'No active session to checkout'
+              error: "No active session to checkout",
             });
             continue;
           }
@@ -397,27 +509,27 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
                 // Keep the last checkout of the day
                 checkOut: {
                   time: checkOutTime,
-                  device: record.checkOut.device || 'Web',
-                  ipAddress: record.checkOut.ipAddress
+                  device: record.checkOut.device || "Web",
+                  ipAddress: record.checkOut.ipAddress,
                 },
                 $push: {
-                  sessions: { startTime: sessionStart, endTime: checkOutTime }
+                  sessions: { startTime: sessionStart, endTime: checkOutTime },
                 },
                 updatedBy: req.user._id,
-                lastSessionCheckIn: null
+                lastSessionCheckIn: null,
               },
               $inc: {
-                workHours: increment
-              }
+                workHours: increment,
+              },
             },
             { new: true }
           ).populate({
-            path: 'employee',
-            select: 'firstName lastName department position',
+            path: "employee",
+            select: "firstName lastName department position",
             populate: [
-              { path: 'department', select: 'name' },
-              { path: 'position', select: 'title' }
-            ]
+              { path: "department", select: "name" },
+              { path: "position", select: "title" },
+            ],
           });
 
           results.push(updatedAttendance);
@@ -428,7 +540,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
         errors.push({
           employee: record.employee,
           date: record.date,
-          error: 'Invalid attendance payload'
+          error: "Invalid attendance payload",
         });
         continue;
       }
@@ -439,7 +551,7 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
         errors.push({
           employee: record.employee,
           date: record.date,
-          error: 'Cannot checkout without an existing check-in'
+          error: "Cannot checkout without an existing check-in",
         });
         continue;
       }
@@ -450,104 +562,111 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
           date: ProvidedDate,
           status: record.status,
           notes: record.notes,
-          shift: record.shift || 'Morning',
+          shift: record.shift || "Morning",
           workHours: 0,
           createdBy: req.user._id,
-          updatedBy: req.user._id
+          updatedBy: req.user._id,
         };
 
         const newAttendance = await Attendance.create(attendanceData);
 
-        const populatedAttendance = await Attendance.findById(newAttendance._id)
-          .populate({
-            path: 'employee',
-            select: 'firstName lastName department position',
-            populate: [
-              { path: 'department', select: 'name' },
-              { path: 'position', select: 'title' }
-            ]
-          });
+        const populatedAttendance = await Attendance.findById(
+          newAttendance._id
+        ).populate({
+          path: "employee",
+          select: "firstName lastName department position",
+          populate: [
+            { path: "department", select: "name" },
+            { path: "position", select: "title" },
+          ],
+        });
 
         results.push(populatedAttendance);
         continue;
       }
 
       // Create new attendance record for check-in with proper status
-      const checkInTime = record.checkIn?.time ? new Date(record.checkIn.time) : new Date();
+      const checkInTime = record.checkIn?.time
+        ? new Date(record.checkIn.time)
+        : new Date();
       if (isNaN(checkInTime.getTime())) {
-        throw createError(400, 'Invalid check-in time format');
+        throw createError(400, "Invalid check-in time format");
       }
 
       const attendanceData = {
         employee: record.employee,
         date: ProvidedDate,
-        status: record.status || 'Present',
+        status: record.status || "Present",
         notes: record.notes,
-        shift: record.shift || 'Morning',
+        shift: record.shift || "Morning",
         workHours: 0,
         createdBy: req.user._id,
         updatedBy: req.user._id,
         checkIn: {
           time: checkInTime,
-          device: record.checkIn?.device || 'Web',
-          ipAddress: record.checkIn?.ipAddress
+          device: record.checkIn?.device || "Web",
+          ipAddress: record.checkIn?.ipAddress,
         },
-        lastSessionCheckIn: checkInTime
+        lastSessionCheckIn: checkInTime,
       };
 
       const newAttendance = await Attendance.create(attendanceData);
 
-      const populatedAttendance = await Attendance.findById(newAttendance._id)
-        .populate({
-          path: 'employee',
-          select: 'firstName lastName department position',
-          populate: [
-            { path: 'department', select: 'name' },
-            { path: 'position', select: 'title' }
-          ]
-        });
+      const populatedAttendance = await Attendance.findById(
+        newAttendance._id
+      ).populate({
+        path: "employee",
+        select: "firstName lastName department position",
+        populate: [
+          { path: "department", select: "name" },
+          { path: "position", select: "title" },
+        ],
+      });
 
       results.push(populatedAttendance);
     } catch (error) {
-      console.error(`Error processing record for employee ${record.employee}:`, error);
+      console.error(
+        `Error processing record for employee ${record.employee}:`,
+        error
+      );
       errors.push({
         employee: record.employee,
         date: record.date,
-        error: error.message
+        error: error.message,
       });
       continue;
     }
   }
 
   res.status(201).json({
-    status: 'success',
+    status: "success",
     results: results.length,
-    data: { 
+    data: {
       attendance: results,
-      errors: errors.length > 0 ? errors : undefined
-    }
+      errors: errors.length > 0 ? errors : undefined,
+    },
   });
 });
 
 // Helper function to calculate work hours
 const calculateWorkHours = (checkInTime, checkOutTime) => {
   if (!checkInTime || !checkOutTime) return 0;
-  
+
   const checkIn = new Date(checkInTime);
   const checkOut = new Date(checkOutTime);
-  
+
   // Validate dates
   if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
     return 0;
   }
-  
+
   // Ensure checkOut is after checkIn
   if (checkOut <= checkIn) {
     return 0;
   }
-  
+
   const diffInHours = (checkOut - checkIn) / (1000 * 60 * 60); // Convert milliseconds to hours
-  return Math.max(0, Math.round(diffInHours * 100) / 100); 
+  return Math.max(0, Math.round(diffInHours * 100) / 100);
 };
 
 // Update attendance for checkout
@@ -559,11 +678,11 @@ exports.checkOut = catchAsync(async (req, res) => {
   const attendance = await Attendance.findById(id);
 
   if (!attendance) {
-    throw createError(404, 'No attendance record found with that ID');
+    throw createError(404, "No attendance record found with that ID");
   }
 
   if (!attendance.checkIn || !attendance.checkIn.time) {
-    throw createError(400, 'Cannot checkout without a check-in record');
+    throw createError(400, "Cannot checkout without a check-in record");
   }
 
   // Allow multiple sessions; do not block repeated checkout. We will add to workHours and set last checkout.
@@ -574,7 +693,7 @@ exports.checkOut = catchAsync(async (req, res) => {
 
   // Validate checkout time is after checkin
   if (checkOutTime <= checkInTime) {
-    throw createError(400, 'Check-out time must be after check-in time');
+    throw createError(400, "Check-out time must be after check-in time");
   }
 
   // Calculate work hours
@@ -587,33 +706,37 @@ exports.checkOut = catchAsync(async (req, res) => {
       $set: {
         checkOut: {
           time: checkOutTime,
-          device: checkOut?.device || 'Web',
-          ipAddress: checkOut?.ipAddress
+          device: checkOut?.device || "Web",
+          ipAddress: checkOut?.ipAddress,
         },
-        status: determineStatus(attendance.checkIn.time, checkOutTime, attendance.workHours + increment),
-        lastSessionCheckIn: null
+        status: determineStatus(
+          attendance.checkIn.time,
+          checkOutTime,
+          attendance.workHours + increment
+        ),
+        lastSessionCheckIn: null,
       },
       $push: { sessions: { startTime: checkInTime, endTime: checkOutTime } },
       $inc: {
-        workHours: increment
-      }
+        workHours: increment,
+      },
     },
     {
       new: true,
-      runValidators: true
+      runValidators: true,
     }
   ).populate({
-    path: 'employee',
-    select: 'firstName lastName department position',
+    path: "employee",
+    select: "firstName lastName department position",
     populate: [
-      { path: 'department', select: 'name' },
-      { path: 'position', select: 'title' }
-    ]
+      { path: "department", select: "name" },
+      { path: "position", select: "title" },
+    ],
   });
 
   res.status(200).json({
-    status: 'success',
-    data: { attendance: updatedAttendance }
+    status: "success",
+    data: { attendance: updatedAttendance },
   });
 });
 
@@ -622,15 +745,15 @@ const determineStatus = (checkInTime, checkOutTime, workHours) => {
   // You can customize these thresholds based on your requirements
   const fullDayHours = 8; // Standard work hours for a full day
   const halfDayHours = 4; // Standard work hours for a half day
-  
+
   if (workHours >= fullDayHours) {
-    return 'Present';
+    return "Present";
   } else if (workHours >= halfDayHours) {
-    return 'Half-Day';
+    return "Half-Day";
   } else if (workHours > 0) {
-    return 'Early-Leave';
+    return "Early-Leave";
   } else {
-    return 'Absent';
+    return "Absent";
   }
 };
 
@@ -639,7 +762,7 @@ exports.deleteAttendance = catchAsync(async (req, res) => {
   const attendance = await Attendance.findById(req.params.id);
 
   if (!attendance) {
-    throw createError(404, 'No attendance record found with that ID');
+    throw createError(404, "No attendance record found with that ID");
   }
 
   // Implement soft delete
@@ -647,8 +770,8 @@ exports.deleteAttendance = catchAsync(async (req, res) => {
   await attendance.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Attendance record deleted successfully'
+    status: "success",
+    message: "Attendance record deleted successfully",
   });
 });
 
@@ -660,72 +783,72 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
     // Validate and set date range for current month
     const validStartDate = startDate ? new Date(startDate) : new Date();
     validStartDate.setHours(0, 0, 0, 0);
-    
+
     const validEndDate = endDate ? new Date(endDate) : new Date();
     validEndDate.setHours(23, 59, 59, 999);
 
     if (isNaN(validStartDate.getTime()) || isNaN(validEndDate.getTime())) {
-      throw createError(400, 'Invalid date format provided');
+      throw createError(400, "Invalid date format provided");
     }
 
     // Get total active employees count
-    let employeeQuery = { status: 'active' };
+    let employeeQuery = { status: "active" };
     if (departmentId) {
       employeeQuery.department = departmentId;
     }
     const totalEmployees = await Employee.countDocuments(employeeQuery);
-    const employees = await Employee.find(employeeQuery).select('_id');
-    const employeeIds = employees.map(emp => emp._id);
+    const employees = await Employee.find(employeeQuery).select("_id");
+    const employeeIds = employees.map((emp) => emp._id);
 
     // Build base match stage for attendance queries
-    let baseMatchStage = { 
+    let baseMatchStage = {
       isDeleted: false,
-      employee: { $in: employeeIds }
+      employee: { $in: employeeIds },
     };
 
     // Get current period stats with employee details
-    let currentPeriodMatch = { 
+    let currentPeriodMatch = {
       ...baseMatchStage,
       date: {
         $gte: validStartDate,
-        $lte: validEndDate
-      }
+        $lte: validEndDate,
+      },
     };
 
     const currentPeriodStats = await Attendance.aggregate([
       {
-        $match: currentPeriodMatch
+        $match: currentPeriodMatch,
       },
       {
         $lookup: {
-          from: 'employees',
-          localField: 'employee',
-          foreignField: '_id',
-          as: 'employeeDetails'
-        }
+          from: "employees",
+          localField: "employee",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
       },
       {
-        $unwind: '$employeeDetails'
+        $unwind: "$employeeDetails",
       },
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
-          uniqueEmployees: { $addToSet: '$employee' },
-          totalWorkHours: { $sum: '$workHours' },
+          uniqueEmployees: { $addToSet: "$employee" },
+          totalWorkHours: { $sum: "$workHours" },
           records: {
             $push: {
-              _id: '$_id',
-              date: '$date',
-              employee: '$employeeDetails',
-              checkIn: '$checkIn',
-              checkOut: '$checkOut',
-              status: '$status',
-              workHours: '$workHours'
-            }
-          }
-        }
-      }
+              _id: "$_id",
+              date: "$date",
+              employee: "$employeeDetails",
+              checkIn: "$checkIn",
+              checkOut: "$checkOut",
+              status: "$status",
+              workHours: "$workHours",
+            },
+          },
+        },
+      },
     ]);
 
     // Calculate previous period dates
@@ -738,37 +861,37 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
     prevPeriodEnd.setHours(23, 59, 59, 999);
 
     // Get previous period stats
-    let prevPeriodMatch = { 
+    let prevPeriodMatch = {
       ...baseMatchStage,
       date: {
         $gte: prevPeriodStart,
-        $lte: prevPeriodEnd
-      }
+        $lte: prevPeriodEnd,
+      },
     };
 
     const prevPeriodStats = await Attendance.aggregate([
       {
-        $match: prevPeriodMatch
+        $match: prevPeriodMatch,
       },
       {
         $lookup: {
-          from: 'employees',
-          localField: 'employee',
-          foreignField: '_id',
-          as: 'employeeDetails'
-        }
+          from: "employees",
+          localField: "employee",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
       },
       {
-        $unwind: '$employeeDetails'
+        $unwind: "$employeeDetails",
       },
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
-          uniqueEmployees: { $addToSet: '$employee' },
-          totalWorkHours: { $sum: '$workHours' }
-        }
-      }
+          uniqueEmployees: { $addToSet: "$employee" },
+          totalWorkHours: { $sum: "$workHours" },
+        },
+      },
     ]);
 
     // Process current period stats
@@ -782,43 +905,43 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
       holiday: 0,
       dayOff: 0,
       totalWorkHours: 0,
-      records: [] // Store all attendance records
+      records: [], // Store all attendance records
     };
 
     // Process stats and collect records
-    currentPeriodStats.forEach(stat => {
+    currentPeriodStats.forEach((stat) => {
       if (!stat._id) return;
-      
-      switch(stat._id) {
-        case 'Present':
+
+      switch (stat._id) {
+        case "Present":
           processedStats.present = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Absent':
+        case "Absent":
           processedStats.absent = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Late':
+        case "Late":
           processedStats.late = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Half-Day':
+        case "Half-Day":
           processedStats.halfDay = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Early-Leave':
+        case "Early-Leave":
           processedStats.earlyLeave = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'On-Leave':
+        case "On-Leave":
           processedStats.onLeave = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Holiday':
+        case "Holiday":
           processedStats.holiday = stat.count;
           processedStats.records.push(...stat.records);
           break;
-        case 'Day-Off':
+        case "Day-Off":
           processedStats.dayOff = stat.count;
           processedStats.records.push(...stat.records);
           break;
@@ -836,34 +959,34 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
       onLeave: 0,
       holiday: 0,
       dayOff: 0,
-      totalWorkHours: 0
+      totalWorkHours: 0,
     };
 
-    prevPeriodStats.forEach(stat => {
+    prevPeriodStats.forEach((stat) => {
       if (!stat._id) return;
-      switch(stat._id) {
-        case 'Present':
+      switch (stat._id) {
+        case "Present":
           prevStats.present = stat.count;
           break;
-        case 'Absent':
+        case "Absent":
           prevStats.absent = stat.count;
           break;
-        case 'Late':
+        case "Late":
           prevStats.late = stat.count;
           break;
-        case 'Half-Day':
+        case "Half-Day":
           prevStats.halfDay = stat.count;
           break;
-        case 'Early-Leave':
+        case "Early-Leave":
           prevStats.earlyLeave = stat.count;
           break;
-        case 'On-Leave':
+        case "On-Leave":
           prevStats.onLeave = stat.count;
           break;
-        case 'Holiday':
+        case "Holiday":
           prevStats.holiday = stat.count;
           break;
-        case 'Day-Off':
+        case "Day-Off":
           prevStats.dayOff = stat.count;
           break;
       }
@@ -872,9 +995,9 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
 
     // Calculate percentage changes
     const calculateChange = (currentValue, prevValue) => {
-      if (prevValue === 0) return currentValue > 0 ? '+100%' : '0%';
+      if (prevValue === 0) return currentValue > 0 ? "+100%" : "0%";
       const change = ((currentValue - prevValue) / prevValue) * 100;
-      return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
+      return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
     };
 
     // Calculate changes
@@ -883,45 +1006,51 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
       absent: calculateChange(processedStats.absent, prevStats.absent),
       late: calculateChange(processedStats.late, prevStats.late),
       halfDay: calculateChange(processedStats.halfDay, prevStats.halfDay),
-      earlyLeave: calculateChange(processedStats.earlyLeave, prevStats.earlyLeave),
+      earlyLeave: calculateChange(
+        processedStats.earlyLeave,
+        prevStats.earlyLeave
+      ),
       onLeave: calculateChange(processedStats.onLeave, prevStats.onLeave),
       holiday: calculateChange(processedStats.holiday, prevStats.holiday),
       dayOff: calculateChange(processedStats.dayOff, prevStats.dayOff),
-      totalWorkHours: calculateChange(processedStats.totalWorkHours, prevStats.totalWorkHours)
+      totalWorkHours: calculateChange(
+        processedStats.totalWorkHours,
+        prevStats.totalWorkHours
+      ),
     };
 
     // Get previous month's employee count
     const prevMonthTotalEmployees = await Employee.countDocuments({
       ...employeeQuery,
-      updatedAt: { $lte: prevPeriodEnd }
+      updatedAt: { $lte: prevPeriodEnd },
     });
 
     // Sort records by date
     processedStats.records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         stats: processedStats,
         totalEmployees,
         changes: {
           ...changes,
-          employees: calculateChange(totalEmployees, prevMonthTotalEmployees)
+          employees: calculateChange(totalEmployees, prevMonthTotalEmployees),
         },
         dateRange: {
-          current: { 
-            startDate: validStartDate.toISOString(), 
-            endDate: validEndDate.toISOString() 
+          current: {
+            startDate: validStartDate.toISOString(),
+            endDate: validEndDate.toISOString(),
           },
-          previous: { 
-            startDate: prevPeriodStart.toISOString(), 
-            endDate: prevPeriodEnd.toISOString() 
-          }
-        }
-      }
+          previous: {
+            startDate: prevPeriodStart.toISOString(),
+            endDate: prevPeriodEnd.toISOString(),
+          },
+        },
+      },
     });
   } catch (error) {
-    console.error('Stats calculation error:', error);
+    console.error("Stats calculation error:", error);
     throw error;
   }
 });
@@ -929,15 +1058,15 @@ exports.getAttendanceStats = catchAsync(async (req, res) => {
 // Update attendance record
 exports.updateAttendance = catchAsync(async (req, res) => {
   const { date, checkIn, checkOut, status, notes, shift } = req.body;
-  
+
   const attendance = await Attendance.findById(req.params.id);
-  
+
   if (!attendance) {
-    throw createError(404, 'No attendance record found with that ID');
+    throw createError(404, "No attendance record found with that ID");
   }
 
   const isAttendanceRequired = (status) => {
-    return !['Holiday', 'Absent', 'On-Leave', 'Day-Off'].includes(status);
+    return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
   };
 
   // Calculate work hours if both checkIn and checkOut are provided and status requires attendance
@@ -956,7 +1085,7 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     status: status || attendance.status,
     notes: notes !== undefined ? notes : attendance.notes,
     shift: shift || attendance.shift,
-    workHours
+    workHours,
   };
 
   // Only include check-in/check-out data if status requires attendance
@@ -964,15 +1093,15 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     if (checkIn) {
       updateData.checkIn = {
         time: new Date(checkIn.time),
-        device: checkIn.device || 'Web',
-        ipAddress: checkIn.ipAddress
+        device: checkIn.device || "Web",
+        ipAddress: checkIn.ipAddress,
       };
     }
     if (checkOut) {
       updateData.checkOut = {
         time: new Date(checkOut.time),
-        device: checkOut.device || 'Web',
-        ipAddress: checkOut.ipAddress
+        device: checkOut.device || "Web",
+        ipAddress: checkOut.ipAddress,
       };
     }
   } else {
@@ -986,20 +1115,20 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     updateData,
     {
       new: true,
-      runValidators: true
+      runValidators: true,
     }
   ).populate({
-    path: 'employee',
-    select: 'firstName lastName department position',
+    path: "employee",
+    select: "firstName lastName department position",
     populate: [
-      { path: 'department', select: 'name' },
-      { path: 'position', select: 'title' }
-    ]
+      { path: "department", select: "name" },
+      { path: "position", select: "title" },
+    ],
   });
 
   res.status(200).json({
-    status: 'success',
-    data: { attendance: updatedAttendance }
+    status: "success",
+    data: { attendance: updatedAttendance },
   });
 });
 
@@ -1007,10 +1136,10 @@ exports.updateAttendance = catchAsync(async (req, res) => {
 exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     // Get employee ID from user object
     let employeeId;
-    
+
     // If user has department, they are an Employee model instance
     if (req.user.department) {
       employeeId = req.user._id;
@@ -1018,34 +1147,34 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
       // Try to find associated employee by email
       const employee = await Employee.findOne({ email: req.user.email });
       if (!employee) {
-        return next(createError(404, 'No employee record found for this user'));
+        return next(createError(404, "No employee record found for this user"));
       }
       employeeId = employee._id;
     }
-    
-    let query = { 
+
+    let query = {
       employee: employeeId,
-      isDeleted: false 
+      isDeleted: false,
     };
-    
+
     // Add date range filter if provided
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     }
 
     const attendance = await Attendance.find(query)
       .populate({
-        path: 'employee',
-        select: 'firstName lastName department position email',
+        path: "employee",
+        select: "firstName lastName department position email",
         populate: [
-          { path: 'department', select: 'name' },
-          { path: 'position', select: 'title' }
-        ]
+          { path: "department", select: "name" },
+          { path: "position", select: "title" },
+        ],
       })
-      .sort('-date')
+      .sort("-date")
       .lean();
 
     // Get employee details
@@ -1054,29 +1183,52 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
     // Calculate overall statistics
     const overallStats = {
       total: attendance.length,
-      present: attendance.filter(a => a.status === 'Present').length,
-      absent: attendance.filter(a => a.status === 'Absent').length,
-      late: attendance.filter(a => a.status === 'Late').length,
-      halfDay: attendance.filter(a => a.status === 'Half-Day').length,
-      earlyLeave: attendance.filter(a => a.status === 'Early-Leave').length,
-      onLeave: attendance.filter(a => a.status === 'On-Leave').length,
-      totalWorkHours: Math.round(attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) * 100) / 100,
-      averageWorkHours: Math.round((attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) / (attendance.length || 1)) * 100) / 100
+      present: attendance.filter((a) => a.status === "Present").length,
+      absent: attendance.filter((a) => a.status === "Absent").length,
+      late: attendance.filter((a) => a.status === "Late").length,
+      halfDay: attendance.filter((a) => a.status === "Half-Day").length,
+      earlyLeave: attendance.filter((a) => a.status === "Early-Leave").length,
+      onLeave: attendance.filter((a) => a.status === "On-Leave").length,
+      totalWorkHours:
+        Math.round(
+          attendance.reduce((sum, record) => sum + (record.workHours || 0), 0) *
+            100
+        ) / 100,
+      averageWorkHours:
+        Math.round(
+          (attendance.reduce(
+            (sum, record) => sum + (record.workHours || 0),
+            0
+          ) /
+            (attendance.length || 1)) *
+            100
+        ) / 100,
     };
 
     // Format attendance records with proper date strings
-    const formattedAttendance = attendance.map(record => ({
+    const formattedAttendance = attendance.map((record) => ({
       ...record,
       date: new Date(record.date).toISOString(),
-      checkIn: record.checkIn ? {
-        ...record.checkIn,
-        time: record.checkIn.time ? new Date(record.checkIn.time).toISOString() : null
-      } : null,
-      checkOut: record.checkOut ? {
-        ...record.checkOut,
-        time: record.checkOut.time ? new Date(record.checkOut.time).toISOString() : null
-      } : null,
-      monthYear: new Date(record.date).toLocaleString('default', { month: 'long', year: 'numeric' })
+      checkIn: record.checkIn
+        ? {
+            ...record.checkIn,
+            time: record.checkIn.time
+              ? new Date(record.checkIn.time).toISOString()
+              : null,
+          }
+        : null,
+      checkOut: record.checkOut
+        ? {
+            ...record.checkOut,
+            time: record.checkOut.time
+              ? new Date(record.checkOut.time).toISOString()
+              : null,
+          }
+        : null,
+      monthYear: new Date(record.date).toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      }),
     }));
 
     // Group by month for statistics
@@ -1092,20 +1244,24 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
           earlyLeave: 0,
           onLeave: 0,
           totalWorkHours: 0,
-          averageWorkHours: 0
+          averageWorkHours: 0,
         };
       }
-      
+
       acc[monthYear].total++;
-      acc[monthYear][record.status.toLowerCase()] = (acc[monthYear][record.status.toLowerCase()] || 0) + 1;
+      acc[monthYear][record.status.toLowerCase()] =
+        (acc[monthYear][record.status.toLowerCase()] || 0) + 1;
       acc[monthYear].totalWorkHours += record.workHours || 0;
-      acc[monthYear].averageWorkHours = Math.round((acc[monthYear].totalWorkHours / acc[monthYear].total) * 100) / 100;
-      
+      acc[monthYear].averageWorkHours =
+        Math.round(
+          (acc[monthYear].totalWorkHours / acc[monthYear].total) * 100
+        ) / 100;
+
       return acc;
     }, {});
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
         employee: employeeDetails,
         attendance: formattedAttendance,
@@ -1113,13 +1269,13 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
         overallStats,
         dateRange: {
           startDate,
-          endDate
-        }
-      }
+          endDate,
+        },
+      },
     });
   } catch (error) {
-    console.error('Error in getEmployeeAttendance:', error);
-    return next(createError(500, 'Error retrieving attendance records'));
+    console.error("Error in getEmployeeAttendance:", error);
+    return next(createError(500, "Error retrieving attendance records"));
   }
 });
 
@@ -1127,18 +1283,18 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
 exports.getAttendanceByEmployeeId = catchAsync(async (req, res) => {
   const { employeeId } = req.params;
   const { startDate, endDate, status } = req.query;
-  
+
   // Build query
-  let query = { 
+  let query = {
     employee: employeeId,
-    isDeleted: false 
+    isDeleted: false,
   };
-  
+
   // Add date range filter if provided
   if (startDate && endDate) {
     query.date = {
       $gte: new Date(startDate),
-      $lte: new Date(endDate)
+      $lte: new Date(endDate),
     };
   }
 
@@ -1149,35 +1305,38 @@ exports.getAttendanceByEmployeeId = catchAsync(async (req, res) => {
 
   const attendance = await Attendance.find(query)
     .populate({
-      path: 'employee',
-      select: 'firstName lastName department position',
+      path: "employee",
+      select: "firstName lastName department position",
       populate: [
-        { path: 'department', select: 'name' },
-        { path: 'position', select: 'title' }
-      ]
+        { path: "department", select: "name" },
+        { path: "position", select: "title" },
+      ],
     })
-    .sort('-date');
+    .sort("-date");
 
   // Calculate statistics
   const stats = {
     total: attendance.length,
-    present: attendance.filter(a => a.status === 'Present').length,
-    absent: attendance.filter(a => a.status === 'Absent').length,
-    late: attendance.filter(a => a.status === 'Late').length,
-    halfDay: attendance.filter(a => a.status === 'Half-Day').length,
-    earlyLeave: attendance.filter(a => a.status === 'Early-Leave').length,
-    onLeave: attendance.filter(a => a.status === 'On-Leave').length,
-    totalWorkHours: attendance.reduce((sum, record) => sum + (record.workHours || 0), 0)
+    present: attendance.filter((a) => a.status === "Present").length,
+    absent: attendance.filter((a) => a.status === "Absent").length,
+    late: attendance.filter((a) => a.status === "Late").length,
+    halfDay: attendance.filter((a) => a.status === "Half-Day").length,
+    earlyLeave: attendance.filter((a) => a.status === "Early-Leave").length,
+    onLeave: attendance.filter((a) => a.status === "On-Leave").length,
+    totalWorkHours: attendance.reduce(
+      (sum, record) => sum + (record.workHours || 0),
+      0
+    ),
   };
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       attendance,
-      stats
-    }
+      stats,
+    },
   });
-}); 
+});
 
 // Get unique departments and positions from attendance data
 exports.getAttendanceFilters = catchAsync(async (req, res) => {
@@ -1187,29 +1346,29 @@ exports.getAttendanceFilters = catchAsync(async (req, res) => {
       { $match: { isDeleted: false } },
       {
         $lookup: {
-          from: 'employees',
-          localField: 'employee',
-          foreignField: '_id',
-          as: 'employeeDetails'
-        }
+          from: "employees",
+          localField: "employee",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
       },
-      { $unwind: '$employeeDetails' },
+      { $unwind: "$employeeDetails" },
       {
         $lookup: {
-          from: 'departments',
-          localField: 'employeeDetails.department',
-          foreignField: '_id',
-          as: 'departmentDetails'
-        }
+          from: "departments",
+          localField: "employeeDetails.department",
+          foreignField: "_id",
+          as: "departmentDetails",
+        },
       },
-      { $unwind: '$departmentDetails' },
+      { $unwind: "$departmentDetails" },
       {
         $group: {
-          _id: '$departmentDetails._id',
-          name: { $first: '$departmentDetails.name' }
-        }
+          _id: "$departmentDetails._id",
+          name: { $first: "$departmentDetails.name" },
+        },
       },
-      { $sort: { name: 1 } }
+      { $sort: { name: 1 } },
     ]);
 
     // Get unique positions from attendance records
@@ -1217,46 +1376,46 @@ exports.getAttendanceFilters = catchAsync(async (req, res) => {
       { $match: { isDeleted: false } },
       {
         $lookup: {
-          from: 'employees',
-          localField: 'employee',
-          foreignField: '_id',
-          as: 'employeeDetails'
-        }
+          from: "employees",
+          localField: "employee",
+          foreignField: "_id",
+          as: "employeeDetails",
+        },
       },
-      { $unwind: '$employeeDetails' },
+      { $unwind: "$employeeDetails" },
       {
         $lookup: {
-          from: 'positions',
-          localField: 'employeeDetails.position',
-          foreignField: '_id',
-          as: 'positionDetails'
-        }
+          from: "positions",
+          localField: "employeeDetails.position",
+          foreignField: "_id",
+          as: "positionDetails",
+        },
       },
-      { $unwind: '$positionDetails' },
+      { $unwind: "$positionDetails" },
       {
         $group: {
-          _id: '$positionDetails._id',
-          title: { $first: '$positionDetails.title' }
-        }
+          _id: "$positionDetails._id",
+          title: { $first: "$positionDetails.title" },
+        },
       },
-      { $sort: { title: 1 } }
+      { $sort: { title: 1 } },
     ]);
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
-        departments: departments.map(dept => ({
+        departments: departments.map((dept) => ({
           _id: dept._id,
-          name: dept.name
+          name: dept.name,
         })),
-        positions: positions.map(pos => ({
+        positions: positions.map((pos) => ({
           _id: pos._id,
-          title: pos.title
-        }))
-      }
+          title: pos.title,
+        })),
+      },
     });
   } catch (error) {
-    console.error('Error getting attendance filters:', error);
+    console.error("Error getting attendance filters:", error);
     throw error;
   }
-}); 
+});

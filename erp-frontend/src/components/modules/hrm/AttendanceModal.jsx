@@ -9,6 +9,7 @@ import {
   SunIcon,
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XCircleIcon } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-hot-toast";
@@ -19,7 +20,9 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
   const [activeEmployees, setActiveEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [dayAttendanceMap, setDayAttendanceMap] = useState({});
-  const { createBulkAttendance, fetchEmployees} = useHrmStore();
+  const { createBulkAttendance, fetchEmployees, updateSundayDayOffState } =
+    useHrmStore();
+  const [automateSundayDayOff, setAutomateSundayDayOff] = useState("");
   // Add status icons mapping
   const statusIcons = {
     Present: <SunIcon className="h-5 w-5 text-green-500" />,
@@ -117,7 +120,15 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
       /* mount and when date changes via formik change handler below */
     ]
   );
-
+  useEffect(() => {
+    const fetchSundayDayOff = async () => {
+      const result = await hrmService.getSundayDayOff();
+      console.log(result);
+      setAutomateSundayDayOff(result?.data?.sundayData?.sundayDayOff);
+    };
+    //sundayDayoff
+    fetchSundayDayOff();
+  }, []);
   const formik = useFormik({
     initialValues: {
       date: new Date().toISOString().split("T")[0],
@@ -204,8 +215,7 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
             notes: values.notes,
           }));
           console.log("Attendance data to be sent:", attendanceData); // Debug log
-          console.log(val);
-          await createBulkAttendance(attendanceData, val);
+          await createBulkAttendance(attendanceData);
           toast.success("Attendance recorded successfully");
           try {
             const startDate = new Date(
@@ -395,6 +405,22 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
     formik.setFieldValue("selectedEmployees", newSelected);
   };
 
+  const updateSundayDayOff = async () => {
+    try {
+      if (automateSundayDayOff === false) {
+        console.log("called");
+        const result = await updateSundayDayOffState(true);
+        console.log(result?.data?.updatedData?.sundayDayOff);
+        setAutomateSundayDayOff(result?.data?.updatedData?.sundayDayOff);
+      } else {
+        const result = await updateSundayDayOffState(false);
+        console.log(result?.data?.updatedData?.sundayDayOff);
+        setAutomateSundayDayOff(result?.data?.updatedData?.sundayDayOff);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
   return (
     <Transition.Root show={true} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -603,6 +629,35 @@ const AttendanceModal = ({ onClose, onSuccess }) => {
                               {formik.errors.shift}
                             </p>
                           )}
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="sunday"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Mark Sunday as DayOff
+                          </label>
+                          <button
+                            onClick={() => updateSundayDayOff()}
+                            className={`flex items-center gap-2 px-8 py-2 mt-1 text-md rounded-lg transition shadow-sm
+        ${
+          automateSundayDayOff
+            ? "bg-green-500 text-white"
+            : "bg-gray-300 text-gray-700"
+        }
+      `}
+                          >
+                            {automateSundayDayOff ? (
+                              <>
+                                <CheckCircleIcon className="h-5 w-5" /> Active
+                              </>
+                            ) : (
+                              <>
+                                <XCircleIcon className="h-5 w-5" /> Non Active
+                              </>
+                            )}
+                          </button>
                         </div>
 
                         <div className="col-span-2">

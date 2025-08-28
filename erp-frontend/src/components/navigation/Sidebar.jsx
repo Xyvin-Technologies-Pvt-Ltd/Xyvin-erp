@@ -121,7 +121,7 @@ const Sidebar = ({ open, setOpen }) => {
     : userFromStorage?.role
     ? [userFromStorage.role]
     : [];
-  console.log("Sidebar - Current user roles:", userRolesArray);
+  // console.log("Sidebar - Current user roles:", userRolesArray);
 
   // Define role-based navigation permissions
   const navigationPermissions = {
@@ -154,7 +154,7 @@ const Sidebar = ({ open, setOpen }) => {
     });
   });
 
-  console.log("Sidebar - Allowed sections:", allowedSections);
+  // console.log("Sidebar - Allowed sections:", allowedSections);
 
   // Build navigation array
   const navigation = allowedSections.includes("base")
@@ -166,7 +166,7 @@ const Sidebar = ({ open, setOpen }) => {
   if (allowedSections.includes("projects")) navigation.push(projectsNavigation);
   if (allowedSections.includes("frm")) navigation.push(frmNavigation);
 
-  console.log("Sidebar - Final navigation:", navigation);
+  // console.log("Sidebar - Final navigation:", navigation);
 
   const toggleMenu = (menuName) => {
     setOpenMenu(openMenu === menuName ? null : menuName);

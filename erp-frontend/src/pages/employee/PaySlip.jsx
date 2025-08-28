@@ -496,14 +496,14 @@ const PaySlip = () => {
                           .replace(/([A-Z])/g, " $1")
                           .replace(/^./, (str) => str.toUpperCase())}
                       </span>
-                      <span className="text-right">${value.toFixed(2)}</span>
+                      <span className="text-right">₹{value.toFixed(2)}</span>
                     </div>
                   ))}
                   <div className="pt-3 border-t">
                     <div className="flex flex-col sm:flex-row justify-between gap-2 font-semibold">
                       <span>Total Earnings</span>
                       <span className="text-right">
-                        ${totalEarnings.toFixed(2)}
+                        ₹{totalEarnings.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -526,7 +526,7 @@ const PaySlip = () => {
                             .replace(/([A-Z])/g, " $1")
                             .replace(/^./, (str) => str.toUpperCase())}
                         </span>
-                        <span className="text-right">${value.toFixed(2)}</span>
+                        <span className="text-right">₹{value.toFixed(2)}</span>
                       </div>
                     )
                   )}
@@ -534,7 +534,7 @@ const PaySlip = () => {
                     <div className="flex flex-col sm:flex-row justify-between gap-2 font-semibold">
                       <span>Total Deductions</span>
                       <span className="text-right">
-                        ${totalDeductions.toFixed(2)}
+                        ₹{totalDeductions.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -546,7 +546,7 @@ const PaySlip = () => {
               <div className="flex flex-col sm:flex-row justify-between gap-2">
                 <span className="text-xl font-bold">Net Pay</span>
                 <span className="text-xl font-bold text-blue-600 text-right">
-                  ${netPay.toFixed(2)}
+                  ₹{netPay.toFixed(2)}
                 </span>
               </div>
             </div>

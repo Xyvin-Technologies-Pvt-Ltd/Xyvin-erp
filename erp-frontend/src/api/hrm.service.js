@@ -11,6 +11,15 @@ export const getEmployees = async () => {
   return response.data?.data?.employees || [];
 };
 
+export const updateSundayDayOffState = async (state) => {
+  console.log(state);
+  const response = await api.post("hrm/attendance/sundayOff", { state });
+  return response;
+};
+export const getSundayDayOff = async () => {
+  const response = await api.get("hrm/attendance/sundayOff");
+  return response;
+};
 export const getEmployee = async (id) => {
   const response = await api.get(`hrm/employees/${id}`);
   return response.data;

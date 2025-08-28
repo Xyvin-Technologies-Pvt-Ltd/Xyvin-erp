@@ -2,17 +2,18 @@
  * Database configuration
  * Handles database connection and related operations
  */
-
-const mongoose = require('mongoose');
-const clc = require('cli-color');
-const { logger } = require('../middleware/logger');
-const { NODE_ENV, MONGO_URL } = require('./env');
+const mongoose = require("mongoose");
+const clc = require("cli-color");
+const { logger } = require("../middleware/logger");
+const { NODE_ENV, MONGO_URL } = require("./env");
+const Sunday = require("../modules/hrm/SundayModel");
+const { job } = require("./cronJob");
 
 // MongoDB connection options
 const connectionOptions = {
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 };
 
 /**
@@ -20,28 +21,47 @@ const connectionOptions = {
  * @returns {Promise} Resolves when connection is established
  */
 async function connectDatabase() {
-    try {
-        // Connect to MongoDB
-        await mongoose.connect(MONGO_URL, connectionOptions);
-
-        // Log success
-        logger.info('Database connection established successfully');
-        console.log(clc.greenBright("✅ Database linked successfully! 🚀"+MONGO_URL));
-
-        return Promise.resolve();
-    } catch (error) {
-        // Log error
-        logger.error(`Database connection error: ${error.message}`, { stack: error.stack });
-        console.log(clc.redBright("❌ Database connection failed! Check the logs below:"));
-        console.log(clc.bgYellowBright.black(error.message || error));
-
-        // In production, we might want to exit the process on database connection failure
-        if (NODE_ENV === 'production') {
-            process.exit(1);
-        }
-
-        return Promise.reject(error);
+  try {
+    // Connect to MongoDB
+    await mongoose.connect(MONGO_URL, connectionOptions);
+    const sundaydata = await Sunday.findOne({ sundayLeaveAvailable: true });
+    console.log(sundaydata);
+    if (sundaydata !== null) {
+      console.log("NOT NULL");
+      if (sundaydata.sundayDayOff === true) {
+        job.start();
+      } else {
+        console.log("failed");
+        job.stop();
+      }
+    } else {
+      console.log("NULL");
+           job.stop();
     }
+    // Log success
+    logger.info("Database connection established successfully");
+    console.log(
+      clc.greenBright("✅ Database linked successfully! 🚀" + MONGO_URL)
+    );
+
+    return Promise.resolve();
+  } catch (error) {
+    // Log error
+    logger.error(`Database connection error: ${error.message}`, {
+      stack: error.stack,
+    });
+    console.log(
+      clc.redBright("❌ Database connection failed! Check the logs below:")
+    );
+    console.log(clc.bgYellowBright.black(error.message || error));
+
+    // In production, we might want to exit the process on database connection failure
+    if (NODE_ENV === "production") {
+      process.exit(1);
+    }
+
+    return Promise.reject(error);
+  }
 }
 
 /**
@@ -49,14 +69,16 @@ async function connectDatabase() {
  * @returns {Promise} Resolves when disconnected
  */
 async function disconnectDatabase() {
-    try {
-        await mongoose.disconnect();
-        logger.info('Database disconnected successfully');
-        return Promise.resolve();
-    } catch (error) {
-        logger.error(`Database disconnection error: ${error.message}`, { stack: error.stack });
-        return Promise.reject(error);
-    }
+  try {
+    await mongoose.disconnect();
+    logger.info("Database disconnected successfully");
+    return Promise.resolve();
+  } catch (error) {
+    logger.error(`Database disconnection error: ${error.message}`, {
+      stack: error.stack,
+    });
+    return Promise.reject(error);
+  }
 }
 
 /**
@@ -64,7 +86,7 @@ async function disconnectDatabase() {
  * @returns {Boolean} True if connected, false otherwise
  */
 function isDatabaseConnected() {
-    return mongoose.connection.readyState === 1;
+  return mongoose.connection.readyState === 1;
 }
 
 /**
@@ -72,19 +94,19 @@ function isDatabaseConnected() {
  * @returns {Object} Database connection information
  */
 function getDatabaseInfo() {
-    return {
-        connected: isDatabaseConnected(),
-        host: mongoose.connection.host,
-        name: mongoose.connection.name,
-        port: mongoose.connection.port,
-        models: Object.keys(mongoose.models)
-    };
+  return {
+    connected: isDatabaseConnected(),
+    host: mongoose.connection.host,
+    name: mongoose.connection.name,
+    port: mongoose.connection.port,
+    models: Object.keys(mongoose.models),
+  };
 }
 
 // Export database functions
 module.exports = {
-    connectDatabase,
-    disconnectDatabase,
-    isDatabaseConnected,
-    getDatabaseInfo
-}; 
+  connectDatabase,
+  disconnectDatabase,
+  isDatabaseConnected,
+  getDatabaseInfo,
+};

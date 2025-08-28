@@ -76,7 +76,14 @@ const useHrmStore = create(
           throw error;
         }
       },
-
+     updateSundayDayOffState:async(state)=>{
+        try {
+          const res=await hrmService.updateSundayDayOffState(state)
+          return res
+        } catch (error) {
+          console.log(error)
+        }
+      },
       fetchManagerEmployees: async () => {
         set({ employeesLoading: true, employeesError: null });
         try {
