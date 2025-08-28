@@ -141,9 +141,9 @@ leaveSchema.pre("save", function (next) {
   const startDate = new Date(this.startDate);
   startDate.setHours(0, 0, 0, 0);
 
-  if (startDate < today) {
-    throw new Error("Cannot apply for leave in the past");
-  }
+  // if (startDate < today) {
+  //   throw new Error("Cannot apply for leave in the past");
+  // }
   next();
 });
 

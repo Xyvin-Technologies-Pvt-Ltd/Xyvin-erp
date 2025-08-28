@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
 import useHrmStore from "@/stores/useHrmStore";
@@ -130,23 +132,65 @@ const MyAttendance = () => {
     );
     setSelectedDayAttendance(dayAttendance);
   }, [selectedDate, monthlyAttendance]);
+  const generatePDF = async () => {
+    const element = document.getElementById("attendance-content");
+    if (!element) {
+      setError("PDF generation failed: Element not found");
+      return;
+    }
 
-  const handleDownload = () => {
-    const monthAttendanceData = {
-      month: format(currentMonth, "MMMM yyyy"),
-      attendance: monthlyAttendance,
-    };
-    const blob = new Blob([JSON.stringify(monthAttendanceData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendance-${format(currentMonth, "yyyy-MM")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      setLoading(true);
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        scrollY: -window.scrollY,
+        windowWidth: document.documentElement.offsetWidth,
+      });
+
+      const imgData = canvas.toDataURL("image/png", 1.0);
+
+      const pdf = new jsPDF("p", "pt", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Scale image to fit PDF width
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add more pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      return pdf;
+    } catch (err) {
+      setError("PDF generation failed");
+      console.error("PDF generation error:", err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleDownload = async () => {
+    try {
+      const pdf = await generatePDF();
+      if (pdf) {
+        pdf.save(`payslip-${selectedDate || "current"}.pdf`);
+      }
+    } catch (err) {
+      console.error("Download failed:", err);
+      setError("Failed to download PDF");
+    }
   };
 
   const totalPages = Math.ceil(monthlyAttendance.length / ITEMS_PER_PAGE);
@@ -213,7 +257,10 @@ const MyAttendance = () => {
   ];
 
   return (
-    <div className="container max-w-7xl mx-auto p-2 sm:p-4">
+    <div
+      id="attendance-content"
+      className="container max-w-7xl mx-auto p-2 sm:p-4"
+    >
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-semibold">My Attendance</h1>
         <Button onClick={handleDownload} className="flex items-center gap-2">
@@ -379,9 +426,7 @@ const MyAttendance = () => {
                         ? format(parseISO(record.checkOut.time), "hh:mm a")
                         : "-"}
                     </td>
-                    <td className="p-2">
-                      {formatHoursToHM(record.workHours)}
-                    </td>
+                    <td className="p-2">{formatHoursToHM(record.workHours)}</td>
                     <td className="p-2">
                       {(() => {
                         const workHrs = Number(record.workHours || 0);
