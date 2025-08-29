@@ -330,7 +330,7 @@ const PaySlip = () => {
                     crossOrigin="anonymous"
                   />
                   <div className="text-center sm:text-left">
-                    <h1 className="text-2xl font-bold text-[#2563eb]">Xyvin Technologies</h1>
+                    <h1 className="text-2xl font-bold text-[#2563eb]">Xyvin Technologies Private Limited</h1>
                     <p className="text-gray-500">PaySlip for {paySlipData.paymentDetails.payPeriod}</p>
                   </div>
                 </div>
