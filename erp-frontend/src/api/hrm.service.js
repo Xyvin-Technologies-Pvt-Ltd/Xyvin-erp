@@ -250,6 +250,7 @@ export const checkOut = async (id) => {
 
 export const createBulkAttendance = async (data) => {
   const response = await api.post("hrm/attendance/bulk", data);
+  console.log(response);
   return response.data;
 };
 
