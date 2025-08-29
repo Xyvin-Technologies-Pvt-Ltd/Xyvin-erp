@@ -93,7 +93,6 @@ const MyAttendance = () => {
       const { attendance, overallStats, monthlyStats } = response.data;
       console.log(response.data);
       setMonthlyAttendance(attendance);
-
       // Use the current month and year to get the correct monthly stats
       const currentMonthYear = format(currentMonth, "MMMM yyyy");
       const currentMonthStats = monthlyStats[currentMonthYear] || overallStats;
@@ -107,8 +106,8 @@ const MyAttendance = () => {
         earlyLeave: currentMonthStats.earlyLeave || 0,
         onLeave:
           currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
-        holiday: attendance.filter((a) => a.isHoliday).length,
-        dayOff: attendance.filter((a) => a.isWeekend).length,
+        holiday: attendance.filter((a) => a.status === "Holiday").length,
+        dayOff: attendance.filter(a => a.status === "Day-Off").length,
         totalWorkHours: currentMonthStats.totalWorkHours || 0,
       });
 
