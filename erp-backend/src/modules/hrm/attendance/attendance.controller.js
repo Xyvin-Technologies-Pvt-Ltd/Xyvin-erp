@@ -352,7 +352,7 @@ exports.updateSundayDayoffState = catchAsync(async (req, res) => {
 // Create bulk attendance records
 exports.createBulkAttendance = catchAsync(async (req, res) => {
   const attendanceRecords = req.body;
-  
+
   // Validate input
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
     throw createError(400, "Please provide an array of attendance records");

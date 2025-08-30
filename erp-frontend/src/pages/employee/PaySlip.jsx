@@ -277,7 +277,7 @@ const PaySlip = () => {
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full sm:w-auto rounded-md border border-gray-300 px-3 py-2"
+          className="w-full sm:w-auto rounded-md border border-gray-300 px-9 py-2"
         >
           {months.map((month) => (
             <option key={month} value={month}>{month}</option>
