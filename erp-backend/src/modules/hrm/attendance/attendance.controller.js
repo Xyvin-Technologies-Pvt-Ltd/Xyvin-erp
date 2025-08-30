@@ -1164,7 +1164,17 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
         $lte: new Date(endDate),
       };
     }
-
+  const attendanceAllDate = await Attendance.find(query)
+      .populate({
+        path: "employee",
+        select: "firstName lastName department position email",
+        populate: [
+          { path: "department", select: "name" },
+          { path: "position", select: "title" },
+        ],
+      })
+      .sort("date")
+      .lean();
     const attendance = await Attendance.find(query)
       .populate({
         path: "employee",
@@ -1264,6 +1274,7 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
       status: "success",
       data: {
         employee: employeeDetails,
+        attendanceAllDate,
         attendance: formattedAttendance,
         monthlyStats,
         overallStats,

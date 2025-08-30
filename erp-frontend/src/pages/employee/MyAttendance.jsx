@@ -58,6 +58,14 @@ const MyAttendance = () => {
   const [selectedDayAttendance, setSelectedDayAttendance] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [allAttendanceData, setallAttendanceData] = useState([]);
+  const [firstpageData, setfirstpageData] = useState([]);
+  const [secondPagedata, setsecondPagedata] = useState([]);
+  const [thirdPagedata, setthirdPagedata] = useState([]);
+  const [fourthPageData, setfourthPageData] = useState([]);
+  const [pdfTotalPages, setpdfTotalPages] = useState(0);
+  const [startMonthPdf, setstartMonthPdf] = useState("");
+  const [endMonthPdf, setendMonthPdf] = useState("");
   const [downloadAttendanceData, setDownloadAttendanceData] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -88,10 +96,75 @@ const MyAttendance = () => {
       setLoading(true);
       const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
       const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
+      setstartMonthPdf(startDate);
+      setendMonthPdf(endDate);
       const store = useHrmStore.getState();
       const response = await store.getMyAttendance({ startDate, endDate });
-      const { attendance, overallStats, monthlyStats } = response.data;
+      const { attendance, overallStats, monthlyStats, attendanceAllDate } =
+        response.data;
       console.log(response.data);
+      if (attendanceAllDate.length === 31) {
+        setfourthPageData([attendanceAllDate[30]]);
+        setthirdPagedata(attendanceAllDate.slice(20, 30));
+        setsecondPagedata(attendanceAllDate.slice(10, 20));
+        setfirstpageData(attendanceAllDate.slice(0, 10));
+        setpdfTotalPages(4);
+      } else if (
+        attendanceAllDate.length <= 30 &&
+        attendanceAllDate.length >= 21
+      ) {
+        if (attendanceAllDate.length === 30) {
+          setthirdPagedata(attendanceAllDate.slice(20, 30));
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setfourthPageData([])
+          setpdfTotalPages(3);
+        } else {
+          setthirdPagedata(
+            attendanceAllDate.slice(20, attendanceAllDate.length)
+          );
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setfourthPageData([])
+          setpdfTotalPages(3);
+        }
+      } else if (
+        attendanceAllDate.length <= 20 &&
+        attendanceAllDate.length >= 11
+      ) {
+        if (attendanceAllDate.length === 20) {
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setpdfTotalPages(2);
+          setfourthPageData([])
+          setthirdPagedata([])
+        } else {
+          setsecondPagedata(
+            attendanceAllDate.slice(10, attendanceAllDate.length)
+          );
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(2);
+        }
+      } else {
+        if (attendanceAllDate.length === 10) {
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setsecondPagedata([])
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(1);
+        } else {
+          setfirstpageData(
+            attendanceAllDate.slice(0, attendanceAllDate.length)
+          );
+          setsecondPagedata([])
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(1);
+        }
+      }
+      setallAttendanceData(attendanceAllDate);
       setMonthlyAttendance(attendance);
       // Use the current month and year to get the correct monthly stats
       const currentMonthYear = format(currentMonth, "MMMM yyyy");
@@ -107,7 +180,7 @@ const MyAttendance = () => {
         onLeave:
           currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
         holiday: attendance.filter((a) => a.status === "Holiday").length,
-        dayOff: attendance.filter(a => a.status === "Day-Off").length,
+        dayOff: attendance.filter((a) => a.status === "Day-Off").length,
         totalWorkHours: currentMonthStats.totalWorkHours || 0,
       });
 
@@ -195,6 +268,14 @@ const MyAttendance = () => {
         root.render(
           <DownloadMonthlydata
             loading={loading}
+            firstpageData={firstpageData}
+            secondPagedata={secondPagedata}
+            thirdPagedata={thirdPagedata}
+            fourthPageData={fourthPageData}
+            pdfTotalPages={pdfTotalPages}
+            startMonthPdf={startMonthPdf}
+            endMonthPdf={endMonthPdf}
+            allAttendanceData={allAttendanceData}
             paginatedData={paginatedData}
             totalPages={totalPages}
             currentMonth={currentMonth}
@@ -479,7 +560,7 @@ const MyAttendance = () => {
                     </td>
                     <td className="flex justify-center text-center">
                       {statsCards.map(({ icon: Icon, title, color }) => {
-                        console.log(title, record.status);
+                        // console.log(title, record.status);
                         if (title === record.status) {
                           return (
                             <h2

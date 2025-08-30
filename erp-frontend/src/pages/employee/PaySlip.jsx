@@ -326,18 +326,18 @@ const PaySlip = () => {
                   <img
                     src="https://www.xyvin.com/_next/static/media/logo.6f54e6f8.svg"
                     alt="Xyvin Technologies Logo"
-                    className="w-32 h-10 object-contain"
+                    className="w-12 h-10 object-contain mt-2"
                     crossOrigin="anonymous"
                   />
                   <div className="text-center sm:text-left">
-                    <h1 className="text-2xl font-bold text-[#2563eb]">Xyvin Technologies Private Limited</h1>
-                    <p className="text-gray-500">PaySlip for {paySlipData.paymentDetails.payPeriod}</p>
+                    <h1 className="text-lg font-bold text-[#2563eb]">Xyvin Technologies Private Limited</h1>
+                    <p className="text-gray-500 text-sm">PaySlip for {paySlipData.paymentDetails.payPeriod}</p>
                   </div>
                 </div>
               </div>
               <div className="text-center sm:text-right w-full sm:w-auto">
-                <p className="font-medium">PaySlip #{paySlipData.employeeDetails.employeeId}-{paySlipData.paymentDetails.payPeriod?.split(' ')[0].substring(0, 3)}</p>
-                <p className="text-gray-500">Payment Date: {paySlipData.paymentDetails.paymentDate}</p>
+                <p className="font-medium text-lg">PaySlip #{paySlipData.employeeDetails.employeeId}-{paySlipData.paymentDetails.payPeriod?.split(' ')[0].substring(0, 3)}</p>
+                <p className="text-gray-500 text-sm">Payment Date: {paySlipData.paymentDetails.paymentDate}</p>
               </div>
             </div>
 
