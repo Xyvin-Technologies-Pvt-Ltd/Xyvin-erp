@@ -229,6 +229,7 @@ export const getAttendanceStats = async ({ startDate, endDate }) => {
 };
 
 export const getMyAttendance = async (params) => {
+  console.log(params)
   const response = await api.get("hrm/attendance/my-attendance", { params });
   return response.data;
 };

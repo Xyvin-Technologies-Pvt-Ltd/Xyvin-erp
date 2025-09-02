@@ -14,7 +14,16 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { TrendingUp, Calendar, Clock, Heart, Users, Award, Target, BarChart3 } from "lucide-react";
+import {
+  TrendingUp,
+  Calendar,
+  Clock,
+  Heart,
+  Users,
+  Award,
+  Target,
+  BarChart3,
+} from "lucide-react";
 
 import useHrmStore from "@/stores/useHrmStore";
 import useAuthStore from "@/stores/auth.store";
@@ -25,7 +34,7 @@ const COLORS = ["#6366F1", "#F59E0B", "#EF4444"]; // Indigo, Amber, Red
 function EmployeeDashboard() {
   const { getMyAttendance, getMyLeave, getMyPayroll } = useHrmStore();
   const { user } = useAuthStore();
-  
+
   const [attendanceStats, setAttendanceStats] = useState({
     present: 0,
     absent: 0,
@@ -64,30 +73,115 @@ function EmployeeDashboard() {
 
   const fetchAttendanceStats = async () => {
     try {
-      const startDate = startOfMonth(new Date());
-      const endDate = endOfMonth(new Date());
+      // const startDate = startOfMonth(new Date());
+      // const endDate = endOfMonth(new Date());
+      const now = new Date();
 
-      const response = await getMyAttendance(startDate, endDate);
+      // start of this month
+      const startDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+      );
 
+      // end of this month
+      const endDate = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        )
+      );
+      const response = await getMyAttendance({ startDate, endDate });
+      console.log(response);
       if (response?.data?.attendance) {
         const attendance = response.data.attendance;
-        const presentDays = attendance.filter(
-          (a) => a.status.toLowerCase() === "present"
-        ).length;
-        const lateDays = attendance.filter(
-          (a) => a.status.toLowerCase() === "late"
-        ).length;
-        const absentDays = attendance.filter(
-          (a) => a.status.toLowerCase() === "absent"
-        ).length;
-        const workingDays = attendance.length || 22;
 
+        // Calculate different attendance types
+        const presentDays = attendance.filter(
+          (a) => a.status === "Present"
+        ).length;
+        const leaveDays = attendance.filter(
+          (a) =>
+            a.status === "On-Leave" ||
+            (a.isLeave === true &&
+              [
+                "Annual",
+                "Sick",
+                "Personal",
+                "Maternity",
+                "Paternity",
+                "Halfday",
+                "Emergency",
+                "Unpaid",
+              ].includes(a.leaveType))
+        ).length;
+        console.log(leaveDays);
+        const absentDays = attendance.filter(
+          (a) => a.status === "Absent"
+        ).length;
+        const halfDays = attendance.filter(
+          (a) => a.status === "Halfday"
+        ).length;
+        const lateDays = attendance.filter((a) => a.status === "Late").length;
+        const earlyLeaveDays = attendance.filter(
+          (a) => a.status === "Early-Leave"
+        ).length;
+
+        // Calculate working days (excluding weekends and holidays)
+        const workingDays = attendance.filter(
+          (a) => !a.isHoliday && !a.isWeekend
+        ).length;
+
+        // Calculate effective present days (including half days as 0.5)
+        const effectivePresentDays =
+          presentDays + halfDays * 0.5 + lateDays + earlyLeaveDays;
+        console.log(effectivePresentDays, workingDays, leaveDays);
+        // Calculate attendance percentage based on working days (excluding leave days)
+        // const attendancePercentage =
+        //   workingDays - leaveDays > 0
+        //     ? Math.round(
+        //         (effectivePresentDays / (workingDays - leaveDays)) * 100
+        //       )
+        //     : 0;
+        const attendancePercentage =
+          workingDays > 0
+            ? Math.round((effectivePresentDays / workingDays) * 100)
+            : 0;
+        console.log(attendancePercentage);
         setAttendanceStats({
-          present: presentDays,
+          present: effectivePresentDays,
           absent: absentDays,
-          late: lateDays,
           total: workingDays,
-          percentage: Math.round((presentDays / workingDays) * 100) || 0,
+          percentage: attendancePercentage,
+          leaveCount: leaveDays,
+        });
+
+        console.log("Attendance Statistics:", {
+          totalRecords: attendance.length,
+          workingDays,
+          presentDays,
+          effectivePresentDays,
+          leaveDays,
+          absentDays,
+          halfDays,
+          lateDays,
+          earlyLeaveDays,
+          percentage: attendancePercentage,
+          leaveDetails: attendance.filter(
+            (a) => a.status === "On-Leave" || a.isLeave === true
+          ),
+        });
+      } else {
+        // If no attendance data available, keep default values
+        setAttendanceStats({
+          present: 0,
+          absent: 0,
+          total: 0,
+          percentage: 0,
+          leaveCount: 0,
         });
       }
     } catch (error) {
@@ -142,7 +236,13 @@ function EmployeeDashboard() {
       const res = await getMyPayroll();
       let payrollData = [];
 
-      const candidates = [res?.data, res?.data?.data, res?.payroll, res?.payrolls, res?.items];
+      const candidates = [
+        res?.data,
+        res?.data?.data,
+        res?.payroll,
+        res?.payrolls,
+        res?.items,
+      ];
       for (const candidate of candidates) {
         if (Array.isArray(candidate)) {
           payrollData = candidate;
@@ -207,7 +307,7 @@ function EmployeeDashboard() {
         gradient: "from-emerald-500 to-teal-600",
         bgGradient: "from-emerald-50 to-teal-50",
         iconBg: "bg-emerald-100",
-        iconColor: "text-emerald-600"
+        iconColor: "text-emerald-600",
       },
       {
         title: "Leave Balance",
@@ -217,7 +317,7 @@ function EmployeeDashboard() {
         gradient: "from-blue-500 to-indigo-600",
         bgGradient: "from-blue-50 to-indigo-50",
         iconBg: "bg-blue-100",
-        iconColor: "text-blue-600"
+        iconColor: "text-blue-600",
       },
       {
         title: "Late Arrivals",
@@ -227,7 +327,7 @@ function EmployeeDashboard() {
         gradient: "from-amber-500 to-orange-600",
         bgGradient: "from-amber-50 to-orange-50",
         iconBg: "bg-amber-100",
-        iconColor: "text-amber-600"
+        iconColor: "text-amber-600",
       },
       {
         title: "Sick Leave",
@@ -237,14 +337,17 @@ function EmployeeDashboard() {
         gradient: "from-purple-500 to-pink-600",
         bgGradient: "from-purple-50 to-pink-50",
         iconBg: "bg-purple-100",
-        iconColor: "text-purple-600"
-      }
+        iconColor: "text-purple-600",
+      },
     ];
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {cards.map((card, index) => (
-          <Card key={index} className={`relative overflow-hidden bg-gradient-to-br ${card.bgGradient} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}>
+          <Card
+            key={index}
+            className={`relative overflow-hidden bg-gradient-to-br ${card.bgGradient} border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}
+          >
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -254,15 +357,17 @@ function EmployeeDashboard() {
                   <p className="text-3xl font-bold text-gray-900 mb-1">
                     {card.value}
                   </p>
-                  <p className="text-sm text-gray-500">
-                    {card.subtitle}
-                  </p>
+                  <p className="text-sm text-gray-500">{card.subtitle}</p>
                 </div>
-                <div className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+                <div
+                  className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}
+                >
                   <card.icon className={`h-6 w-6 ${card.iconColor}`} />
                 </div>
               </div>
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient}`}></div>
+              <div
+                className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient}`}
+              ></div>
             </div>
           </Card>
         ))}
@@ -280,17 +385,17 @@ function EmployeeDashboard() {
       {
         name: "Present",
         value: present,
-        percentage: total > 0 ? Math.round((present / (total)) * 100) : 0,
+        percentage: total > 0 ? Math.round((present / total) * 100) : 0,
       },
       {
         name: "Late",
         value: late,
-        percentage: total > 0 ? Math.round((late / (total)) * 100) : 0,
+        percentage: total > 0 ? Math.round((late / total) * 100) : 0,
       },
       {
         name: "Absent",
         value: absent,
-        percentage: total > 0 ? Math.round((absent / (total)) * 100) : 0,
+        percentage: total > 0 ? Math.round((absent / total) * 100) : 0,
       },
     ];
 
@@ -331,15 +436,13 @@ function EmployeeDashboard() {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+              <PieChart>
                 <Pie
                   data={filteredData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percentage }) => 
-                    `${name} ${percentage}%`
-                  }
+                  label={({ name, percentage }) => `${name} ${percentage}%`}
                   outerRadius={120}
                   fill="#8884d8"
                   dataKey="value"
@@ -355,22 +458,24 @@ function EmployeeDashboard() {
                 </Pie>
                 <Tooltip
                   formatter={(value, name) => [
-                    `${value} days (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
+                    `${value} days (${
+                      total > 0 ? Math.round((value / total) * 100) : 0
+                    }%)`,
                     name,
                   ]}
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '12px',
-                    color: '#111827',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "12px",
+                    color: "#111827",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                   }}
                 />
                 <Legend
                   formatter={(value, entry) => {
                     const { payload } = entry;
                     return (
-                      <span style={{ color: '#111827', fontWeight: 500 }}>
+                      <span style={{ color: "#111827", fontWeight: 500 }}>
                         {value} - {payload.value} days ({payload.percentage}%)
                       </span>
                     );
@@ -405,28 +510,25 @@ function EmployeeDashboard() {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="#F3F4F6"
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
+                  tickLine={{ stroke: "#D1D5DB" }}
+                  axisLine={{ stroke: "#D1D5DB" }}
                 />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
-                  tickLine={{ stroke: '#D1D5DB' }}
-                  axisLine={{ stroke: '#D1D5DB' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
-                  tickLine={{ stroke: '#D1D5DB' }}
-                  axisLine={{ stroke: '#D1D5DB' }}
+                <YAxis
+                  tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
+                  tickLine={{ stroke: "#D1D5DB" }}
+                  axisLine={{ stroke: "#D1D5DB" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '12px',
-                    color: '#111827',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "12px",
+                    color: "#111827",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                   }}
                 />
                 <Legend />
@@ -436,8 +538,8 @@ function EmployeeDashboard() {
                   stroke="#6366F1"
                   strokeWidth={3}
                   name="Used Days"
-                  dot={{ fill: '#6366F1', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: '#6366F1' }}
+                  dot={{ fill: "#6366F1", strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 8, fill: "#6366F1" }}
                 />
                 <Line
                   type="monotone"
@@ -445,8 +547,8 @@ function EmployeeDashboard() {
                   stroke="#10B981"
                   strokeWidth={3}
                   name="Remaining Days"
-                  dot={{ fill: '#10B981', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: '#10B981' }}
+                  dot={{ fill: "#10B981", strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 8, fill: "#10B981" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -470,55 +572,55 @@ function EmployeeDashboard() {
               Salary Trend Analysis
             </h2>
           </div>
-          {(!chartData || chartData.length === 0) ? (
+          {!chartData || chartData.length === 0 ? (
             <div className="h-40 flex items-center justify-center text-gray-500">
               No salary data available
             </div>
           ) : (
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="#F3F4F6"
-                />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
-                  tickLine={{ stroke: '#D1D5DB' }}
-                  axisLine={{ stroke: '#D1D5DB' }}
-                />
-                <YAxis
-                  tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
-                  tickLine={{ stroke: '#D1D5DB' }}
-                  axisLine={{ stroke: '#D1D5DB' }}
-                  tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                />
-                <Tooltip
-                  formatter={(value) => [`₹${value.toLocaleString()}`, "Amount"]}
-                  contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '12px',
-                    color: '#111827',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="amount"
-                  name="Net Salary"
-                  stroke="#3B82F6"
-                  strokeWidth={3}
-                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: '#3B82F6' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
+                    tickLine={{ stroke: "#D1D5DB" }}
+                    axisLine={{ stroke: "#D1D5DB" }}
+                  />
+                  <YAxis
+                    tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
+                    tickLine={{ stroke: "#D1D5DB" }}
+                    axisLine={{ stroke: "#D1D5DB" }}
+                    tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
+                  />
+                  <Tooltip
+                    formatter={(value) => [
+                      `₹${value.toLocaleString()}`,
+                      "Amount",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "12px",
+                      color: "#111827",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    name="Net Salary"
+                    stroke="#3B82F6"
+                    strokeWidth={3}
+                    dot={{ fill: "#3B82F6", strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 8, fill: "#3B82F6" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
       </Card>
@@ -556,7 +658,13 @@ function EmployeeDashboard() {
                 Dashboard Overview
               </h1>
               <p className="text-lg text-gray-600 font-medium">
-                Welcome back, {(user?.fullName || user?.name || user?.firstName && user?.lastName ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim() : user?.email?.split("@")[0]) || 'Employee'}! Here's your performance summary.
+                Welcome back,{" "}
+                {(user?.fullName ||
+                user?.name ||
+                (user?.firstName && user?.lastName)
+                  ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
+                  : user?.email?.split("@")[0]) || "Employee"}
+                ! Here's your performance summary.
               </p>
             </div>
           </div>
@@ -569,9 +677,7 @@ function EmployeeDashboard() {
           {renderLeaveBalanceChart()}
         </div>
 
-        <div className="grid grid-cols-1 gap-8">
-          {renderPayrollChart()}
-        </div>
+        <div className="grid grid-cols-1 gap-8">{renderPayrollChart()}</div>
       </div>
     </div>
   );

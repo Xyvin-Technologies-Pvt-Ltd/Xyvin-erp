@@ -7,7 +7,7 @@ const clc = require("cli-color");
 const { logger } = require("../middleware/logger");
 const { NODE_ENV, MONGO_URL } = require("./env");
 const Sunday = require("../modules/hrm/SundayModel");
-const { job } = require("./cronJob");
+const { job, updateAbsents } = require("./cronJob");
 
 // MongoDB connection options
 const connectionOptions = {
@@ -36,8 +36,9 @@ async function connectDatabase() {
       }
     } else {
       console.log("NULL");
-           job.stop();
+      job.stop();
     }
+    updateAbsents.start();
     // Log success
     logger.info("Database connection established successfully");
     console.log(

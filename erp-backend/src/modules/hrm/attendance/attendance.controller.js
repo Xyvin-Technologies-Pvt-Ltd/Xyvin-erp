@@ -352,7 +352,61 @@ exports.updateSundayDayoffState = catchAsync(async (req, res) => {
 // Create bulk attendance records
 exports.createBulkAttendance = catchAsync(async (req, res) => {
   const attendanceRecords = req.body;
+  console.log("vinu:", req.body);
 
+  for (const record of attendanceRecords) {
+    let now = new Date();
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(now);
+    dayEnd.setHours(23, 59, 59, 999);
+    let istStartDate = new Date(dayStart.getTime() + (5 * 60 + 30) * 60 * 1000);
+    let istEndDate = new Date(dayEnd.getTime() + (5 * 60 + 30) * 60 * 1000);
+    console.log(istStartDate, istEndDate);
+    const data = await Attendance.findOne({
+      employee: record.employee,
+      date: { $gte: istStartDate, $lte: istEndDate },
+      isDeleted: false,
+    });
+    console.log(data);
+    if (data !== null) {
+      if (data.status === "Absent") {
+        console.log("ODKDK");
+        const sessionStart = new Date(record.checkIn.time || new Date());
+        const result = await Attendance.findOneAndUpdate(
+          { _id: data._id },
+          {
+            $set: {
+              lastSessionCheckIn: sessionStart,
+              "checkIn.time": sessionStart,
+              status: "Present",
+              notes: "",
+              "checkIn.device": record?.checkIn?.device || "Web",
+              "checkIn.ipAddress": record?.checkIn?.ipAddress || undefined,
+              updatedBy: req.user._id,
+            },
+          },
+          { new: true }
+        ).populate({
+          path: "employee",
+          select: "firstName lastName department position",
+          populate: [
+            { path: "department", select: "name" },
+            { path: "position", select: "title" },
+          ],
+        });
+        res.status(200).json({
+          status: "success",
+          results: 1,
+          data: {
+            attendance: result,
+          },
+        });
+      }
+    }
+  }
+
+  // return;
   // Validate input
   if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
     throw createError(400, "Please provide an array of attendance records");
@@ -501,39 +555,154 @@ exports.createBulkAttendance = catchAsync(async (req, res) => {
 
           const checkOutTime = new Date(record.checkOut.time || new Date());
           const increment = calculateWorkHours(sessionStart, checkOutTime);
-
-          const updatedAttendance = await Attendance.findByIdAndUpdate(
-            existingAttendance._id,
-            {
-              $set: {
-                // Keep the last checkout of the day
-                checkOut: {
-                  time: checkOutTime,
-                  device: record.checkOut.device || "Web",
-                  ipAddress: record.checkOut.ipAddress,
+          console.log("inc:", increment);
+          if (increment >= 4 && increment < 6) {
+            console.log("YES");
+            const updatedAttendance = await Attendance.findByIdAndUpdate(
+              existingAttendance._id,
+              {
+                $set: {
+                  // Keep the last checkout of the day
+                  checkOut: {
+                    time: checkOutTime,
+                    device: record.checkOut.device || "Web",
+                    ipAddress: record.checkOut.ipAddress,
+                  },
+                  $push: {
+                    sessions: {
+                      startTime: sessionStart,
+                      endTime: checkOutTime,
+                    },
+                  },
+                  updatedBy: req.user._id,
+                  lastSessionCheckIn: null,
                 },
-                $push: {
-                  sessions: { startTime: sessionStart, endTime: checkOutTime },
+                status: "Halfday",
+                $inc: {
+                  workHours: increment,
                 },
-                updatedBy: req.user._id,
-                lastSessionCheckIn: null,
               },
-              $inc: {
-                workHours: increment,
-              },
-            },
-            { new: true }
-          ).populate({
-            path: "employee",
-            select: "firstName lastName department position",
-            populate: [
-              { path: "department", select: "name" },
-              { path: "position", select: "title" },
-            ],
-          });
+              { new: true }
+            ).populate({
+              path: "employee",
+              select: "firstName lastName department position",
+              populate: [
+                { path: "department", select: "name" },
+                { path: "position", select: "title" },
+              ],
+            });
 
-          results.push(updatedAttendance);
-          continue;
+            results.push(updatedAttendance);
+            continue;
+          } else if (increment >= 6) {
+            console.log("NO");
+            const updatedAttendance = await Attendance.findByIdAndUpdate(
+              existingAttendance._id,
+              {
+                $set: {
+                  // Keep the last checkout of the day
+                  checkOut: {
+                    time: checkOutTime,
+                    device: record.checkOut.device || "Web",
+                    ipAddress: record.checkOut.ipAddress,
+                  },
+                  $push: {
+                    sessions: {
+                      startTime: sessionStart,
+                      endTime: checkOutTime,
+                    },
+                  },
+                  updatedBy: req.user._id,
+                  lastSessionCheckIn: null,
+                },
+                status: "Present",
+                $inc: {
+                  workHours: increment,
+                },
+              },
+              { new: true }
+            ).populate({
+              path: "employee",
+              select: "firstName lastName department position",
+              populate: [
+                { path: "department", select: "name" },
+                { path: "position", select: "title" },
+              ],
+            });
+
+            results.push(updatedAttendance);
+            continue;
+          } else if (increment < 4) {
+            const updatedAttendance = await Attendance.findByIdAndUpdate(
+              existingAttendance._id,
+              {
+                $set: {
+                  // Keep the last checkout of the day
+                  checkOut: {
+                    time: checkOutTime,
+                    device: record.checkOut.device || "Web",
+                    ipAddress: record.checkOut.ipAddress,
+                  },
+                  $push: {
+                    sessions: {
+                      startTime: sessionStart,
+                      endTime: checkOutTime,
+                    },
+                  },
+                  updatedBy: req.user._id,
+                  lastSessionCheckIn: null,
+                },
+                status: "Early-Leave",
+                $inc: {
+                  workHours: increment,
+                },
+              },
+              { new: true }
+            ).populate({
+              path: "employee",
+              select: "firstName lastName department position",
+              populate: [
+                { path: "department", select: "name" },
+                { path: "position", select: "title" },
+              ],
+            });
+
+            results.push(updatedAttendance);
+            continue;
+          }
+          // return;
+          // const updatedAttendance = await Attendance.findByIdAndUpdate(
+          //   existingAttendance._id,
+          //   {
+          //     $set: {
+          //       // Keep the last checkout of the day
+          //       checkOut: {
+          //         time: checkOutTime,
+          //         device: record.checkOut.device || "Web",
+          //         ipAddress: record.checkOut.ipAddress,
+          //       },
+          //       $push: {
+          //         sessions: { startTime: sessionStart, endTime: checkOutTime },
+          //       },
+          //       updatedBy: req.user._id,
+          //       lastSessionCheckIn: null,
+          //     },
+          //     $inc: {
+          //       workHours: increment,
+          //     },
+          //   },
+          //   { new: true }
+          // ).populate({
+          //   path: "employee",
+          //   select: "firstName lastName department position",
+          //   populate: [
+          //     { path: "department", select: "name" },
+          //     { path: "position", select: "title" },
+          //   ],
+          // });
+
+          // results.push(updatedAttendance);
+          // continue;
         }
 
         // If neither checkIn nor checkOut provided properly
@@ -698,7 +867,14 @@ exports.checkOut = catchAsync(async (req, res) => {
 
   // Calculate work hours
   const increment = calculateWorkHours(checkInTime, checkOutTime);
-
+  let attendanceStatus = "";
+  if (increment > 4) {
+    attendanceStatus = "Early-Leave";
+  } else if (increment >= 4 && increment < 6) {
+    attendanceStatus = "Halfday";
+  } else if (increment > 6) {
+    attendanceStatus = "Present";
+  }
   // Update the attendance record with checkout and accumulated work hours
   const updatedAttendance = await Attendance.findByIdAndUpdate(
     id,
@@ -743,14 +919,14 @@ exports.checkOut = catchAsync(async (req, res) => {
 // Helper function to determine attendance status
 const determineStatus = (checkInTime, checkOutTime, workHours) => {
   // You can customize these thresholds based on your requirements
-  const fullDayHours = 8; // Standard work hours for a full day
+  const fullDayHours = 6; // Standard work hours for a full day
   const halfDayHours = 4; // Standard work hours for a half day
-
+  console.log(workHours);
   if (workHours >= fullDayHours) {
     return "Present";
   } else if (workHours >= halfDayHours) {
-    return "Half-Day";
-  } else if (workHours > 0) {
+    return "Halfday";
+  } else if (workHours < 4) {
     return "Early-Leave";
   } else {
     return "Absent";
@@ -1075,11 +1251,10 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     const checkInTime = new Date(checkIn.time);
     const checkOutTime = new Date(checkOut.time);
     workHours = calculateWorkHours(checkInTime, checkOutTime);
+    console.log(workHours);
   } else if (!isAttendanceRequired(status)) {
     workHours = 0;
   }
-
-  // Prepare update data
   let updateData = {
     date: date ? new Date(date) : attendance.date,
     status: status || attendance.status,
@@ -1087,7 +1262,21 @@ exports.updateAttendance = catchAsync(async (req, res) => {
     shift: shift || attendance.shift,
     workHours,
   };
-
+  if (workHours >= 6) {
+    updateData.status = "Present";
+  } else if (workHours >= 4 && workHours < 6) {
+    updateData.status = "Halfday";
+  }else if(workHours<4){
+    updateData.status="Early-Leave"
+  }
+  // Prepare update data
+  // let updateData = {
+  //   date: date ? new Date(date) : attendance.date,
+  //   status: status || attendance.status,
+  //   notes: notes !== undefined ? notes : attendance.notes,
+  //   shift: shift || attendance.shift,
+  //   workHours,
+  // };
   // Only include check-in/check-out data if status requires attendance
   if (isAttendanceRequired(status)) {
     if (checkIn) {
@@ -1136,7 +1325,8 @@ exports.updateAttendance = catchAsync(async (req, res) => {
 exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-
+    console.log(req.query);
+    console.log("DateVinu:", startDate, endDate);
     // Get employee ID from user object
     let employeeId;
 
@@ -1164,7 +1354,7 @@ exports.getEmployeeAttendance = catchAsync(async (req, res, next) => {
         $lte: new Date(endDate),
       };
     }
-  const attendanceAllDate = await Attendance.find(query)
+    const attendanceAllDate = await Attendance.find(query)
       .populate({
         path: "employee",
         select: "firstName lastName department position email",
