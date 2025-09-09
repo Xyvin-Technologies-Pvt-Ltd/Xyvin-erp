@@ -229,6 +229,7 @@ export const getAttendanceStats = async ({ startDate, endDate }) => {
 };
 
 export const getMyAttendance = async (params) => {
+  console.log(params)
   const response = await api.get("hrm/attendance/my-attendance", { params });
   return response.data;
 };
@@ -250,6 +251,7 @@ export const checkOut = async (id) => {
 
 export const createBulkAttendance = async (data) => {
   const response = await api.post("hrm/attendance/bulk", data);
+  console.log(response);
   return response.data;
 };
 

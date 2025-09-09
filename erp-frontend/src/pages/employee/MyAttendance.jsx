@@ -4,6 +4,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
 import useHrmStore from "@/stores/useHrmStore";
@@ -31,6 +33,7 @@ import {
   PaperAirplaneIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import DownloadMonthlydata from "./DownloadMonthlydata";
 
 const StatsCard = ({ icon: Icon, title, value, color }) => (
   <div className="bg-white rounded-lg p-3 shadow-sm border">
@@ -55,6 +58,15 @@ const MyAttendance = () => {
   const [selectedDayAttendance, setSelectedDayAttendance] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [allAttendanceData, setallAttendanceData] = useState([]);
+  const [firstpageData, setfirstpageData] = useState([]);
+  const [secondPagedata, setsecondPagedata] = useState([]);
+  const [thirdPagedata, setthirdPagedata] = useState([]);
+  const [fourthPageData, setfourthPageData] = useState([]);
+  const [pdfTotalPages, setpdfTotalPages] = useState(0);
+  const [startMonthPdf, setstartMonthPdf] = useState("");
+  const [endMonthPdf, setendMonthPdf] = useState("");
+  const [downloadAttendanceData, setDownloadAttendanceData] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     present: 0,
@@ -84,12 +96,76 @@ const MyAttendance = () => {
       setLoading(true);
       const startDate = format(startOfMonth(currentMonth), "yyyy-MM-dd");
       const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
+      setstartMonthPdf(startDate);
+      setendMonthPdf(endDate);
       const store = useHrmStore.getState();
       const response = await store.getMyAttendance({ startDate, endDate });
-      const { attendance, overallStats, monthlyStats } = response.data;
+      const { attendance, overallStats, monthlyStats, attendanceAllDate } =
+        response.data;
       console.log(response.data);
+      if (attendanceAllDate.length === 31) {
+        setfourthPageData([attendanceAllDate[30]]);
+        setthirdPagedata(attendanceAllDate.slice(20, 30));
+        setsecondPagedata(attendanceAllDate.slice(10, 20));
+        setfirstpageData(attendanceAllDate.slice(0, 10));
+        setpdfTotalPages(4);
+      } else if (
+        attendanceAllDate.length <= 30 &&
+        attendanceAllDate.length >= 21
+      ) {
+        if (attendanceAllDate.length === 30) {
+          setthirdPagedata(attendanceAllDate.slice(20, 30));
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setfourthPageData([])
+          setpdfTotalPages(3);
+        } else {
+          setthirdPagedata(
+            attendanceAllDate.slice(20, attendanceAllDate.length)
+          );
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setfourthPageData([])
+          setpdfTotalPages(3);
+        }
+      } else if (
+        attendanceAllDate.length <= 20 &&
+        attendanceAllDate.length >= 11
+      ) {
+        if (attendanceAllDate.length === 20) {
+          setsecondPagedata(attendanceAllDate.slice(10, 20));
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setpdfTotalPages(2);
+          setfourthPageData([])
+          setthirdPagedata([])
+        } else {
+          setsecondPagedata(
+            attendanceAllDate.slice(10, attendanceAllDate.length)
+          );
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(2);
+        }
+      } else {
+        if (attendanceAllDate.length === 10) {
+          setfirstpageData(attendanceAllDate.slice(0, 10));
+          setsecondPagedata([])
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(1);
+        } else {
+          setfirstpageData(
+            attendanceAllDate.slice(0, attendanceAllDate.length)
+          );
+          setsecondPagedata([])
+          setthirdPagedata([])
+          setfourthPageData([])
+          setpdfTotalPages(1);
+        }
+      }
+      setallAttendanceData(attendanceAllDate);
       setMonthlyAttendance(attendance);
-
       // Use the current month and year to get the correct monthly stats
       const currentMonthYear = format(currentMonth, "MMMM yyyy");
       const currentMonthStats = monthlyStats[currentMonthYear] || overallStats;
@@ -103,8 +179,8 @@ const MyAttendance = () => {
         earlyLeave: currentMonthStats.earlyLeave || 0,
         onLeave:
           currentMonthStats.onLeave || currentMonthStats["on-leave"] || 0,
-        holiday: attendance.filter((a) => a.isHoliday).length,
-        dayOff: attendance.filter((a) => a.isWeekend).length,
+        holiday: attendance.filter((a) => a.status === "Holiday").length,
+        dayOff: attendance.filter((a) => a.status === "Day-Off").length,
         totalWorkHours: currentMonthStats.totalWorkHours || 0,
       });
 
@@ -132,50 +208,47 @@ const MyAttendance = () => {
     );
     setSelectedDayAttendance(dayAttendance);
   }, [selectedDate, monthlyAttendance]);
-  const generatePDF = async () => {
-    const element = document.getElementById("attendance-content");
+  const generatePDF = async (element) => {
     if (!element) {
       setError("PDF generation failed: Element not found");
-      return;
+      return null;
     }
 
     try {
       setLoading(true);
+
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
-        scrollY: -window.scrollY,
-        windowWidth: document.documentElement.offsetWidth,
       });
 
       const imgData = canvas.toDataURL("image/png", 1.0);
-
       const pdf = new jsPDF("p", "pt", "a4");
 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Scale image to fit PDF width
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       let heightLeft = imgHeight;
       let position = 0;
+
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
-      // Add more pages if needed
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
+
       return pdf;
     } catch (err) {
-      setError("PDF generation failed");
       console.error("PDF generation error:", err);
+      setError("PDF generation failed");
       return null;
     } finally {
       setLoading(false);
@@ -183,10 +256,51 @@ const MyAttendance = () => {
   };
   const handleDownload = async () => {
     try {
-      const pdf = await generatePDF();
-      if (pdf) {
-        pdf.save(`payslip-${selectedDate || "current"}.pdf`);
+      // ✅ Create hidden container
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.left = "-9999px"; // keep it off-screen (better than display:none)
+      document.body.appendChild(container);
+
+      // ✅ Render your hidden component
+      const root = createRoot(container);
+      flushSync(() => {
+        root.render(
+          <DownloadMonthlydata
+            loading={loading}
+            firstpageData={firstpageData}
+            secondPagedata={secondPagedata}
+            thirdPagedata={thirdPagedata}
+            fourthPageData={fourthPageData}
+            pdfTotalPages={pdfTotalPages}
+            startMonthPdf={startMonthPdf}
+            endMonthPdf={endMonthPdf}
+            allAttendanceData={allAttendanceData}
+            paginatedData={paginatedData}
+            totalPages={totalPages}
+            currentMonth={currentMonth}
+          />
+        );
+      });
+
+      // ✅ Wait a tick so DOM is ready
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const element = container.querySelector("#monthly-report-content");
+
+      if (!element) {
+        throw new Error("Element not found in hidden container");
       }
+
+      const pdf = await generatePDF(element);
+
+      if (pdf) {
+        pdf.save("monthly-report.pdf");
+      }
+
+      // ✅ Cleanup
+      root.unmount();
+      document.body.removeChild(container);
     } catch (err) {
       console.error("Download failed:", err);
       setError("Failed to download PDF");
@@ -446,7 +560,7 @@ const MyAttendance = () => {
                     </td>
                     <td className="flex justify-center text-center">
                       {statsCards.map(({ icon: Icon, title, color }) => {
-                        console.log(title,record.status)
+                        // console.log(title, record.status);
                         if (title === record.status) {
                           return (
                             <h2

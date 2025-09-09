@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { UserIcon, BuildingOfficeIcon, PhoneIcon, EnvelopeIcon, CalendarIcon, IdentificationIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import {
+  UserIcon,
+  BuildingOfficeIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  CalendarIcon,
+  IdentificationIcon,
+  LockClosedIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 import useAuthStore from "@/stores/auth.store";
 import useHrmStore from "@/stores/useHrmStore";
 import { toast } from "react-hot-toast";
@@ -8,7 +18,8 @@ import { Loader2 } from "lucide-react";
 import api from "@/api/api";
 
 // Get the backend URL without the API path
-const BACKEND_URL = api.defaults.baseURL?.replace('/api/v1', '') || 'http://localhost:8080';
+const BACKEND_URL =
+  api.defaults.baseURL?.replace("/api/v1", "") || "http://localhost:8080";
 const DUMMY_SVG = `data:image/svg+xml;utf8,
   <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'  fill='%23CBD5E1'>
     <circle cx='16' cy='10' r='6'/>
@@ -20,7 +31,7 @@ const Profile = () => {
   const { getMyAttendance, getCurrentEmployee, updateProfile } = useHrmStore();
 
   const [currentUser, setCurrentUser] = useState(user);
-  const [profilePicUrl, setProfilePicUrl] = useState('');
+  const [profilePicUrl, setProfilePicUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [attendanceStats, setAttendanceStats] = useState({
     present: 0,
@@ -31,14 +42,14 @@ const Profile = () => {
   });
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
-    confirm: false
+    confirm: false,
   });
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
@@ -58,26 +69,26 @@ const Profile = () => {
         // Handle profile picture URL
         if (userData.profilePicture) {
           let picturePath = userData.profilePicture;
-          
+
           // If it's a full URL, use it as is
-          if (picturePath.startsWith('http')) {
+          if (picturePath.startsWith("http")) {
             setProfilePicUrl(picturePath);
           } else {
             // Clean up the path and construct the full URL
             picturePath = picturePath
-              .replace(/^\/public/, '')
-              .replace(/^public/, '')
-              .replace(/\/+/g, '/');
-            
-            if (!picturePath.startsWith('/')) {
-              picturePath = '/' + picturePath;
+              .replace(/^\/public/, "")
+              .replace(/^public/, "")
+              .replace(/\/+/g, "/");
+
+            if (!picturePath.startsWith("/")) {
+              picturePath = "/" + picturePath;
             }
-            
+
             setProfilePicUrl(`${BACKEND_URL}${picturePath}`);
           }
         } else {
-  setProfilePicUrl(DUMMY_SVG); // fallback if no picture
-}
+          setProfilePicUrl(DUMMY_SVG); // fallback if no picture
+        }
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -90,15 +101,33 @@ const Profile = () => {
   const fetchAttendanceStats = async () => {
     try {
       // Get the first day of the current month
-      const startDate = new Date();
-      startDate.setDate(1);
-      startDate.setHours(0, 0, 0, 0);
+      // const startDate = new Date();
+      // startDate.setDate(1);
+      // startDate.setHours(0, 0, 0, 0);
 
-      // Get the current date as end date
-      const endDate = new Date();
+      // // Get the current date as end date
+      // const endDate = new Date();
+      const now = new Date();
 
-      const response = await getMyAttendance(startDate, endDate);
+      // start of this month
+      const startDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)
+      );
 
+      // end of this month
+      const endDate = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        )
+      );
+      const response = await getMyAttendance({ startDate, endDate });
+      console.log(response);
       if (response?.data?.attendance) {
         const attendance = response.data.attendance;
 
@@ -116,6 +145,8 @@ const Profile = () => {
                 "Personal",
                 "Maternity",
                 "Paternity",
+                "Halfday",
+                "Emergency",
                 "Unpaid",
               ].includes(a.leaveType))
         ).length;
@@ -123,7 +154,7 @@ const Profile = () => {
           (a) => a.status === "Absent"
         ).length;
         const halfDays = attendance.filter(
-          (a) => a.status === "Half-Day"
+          (a) => a.status === "Halfday"
         ).length;
         const lateDays = attendance.filter((a) => a.status === "Late").length;
         const earlyLeaveDays = attendance.filter(
@@ -140,13 +171,16 @@ const Profile = () => {
           presentDays + halfDays * 0.5 + lateDays + earlyLeaveDays;
 
         // Calculate attendance percentage based on working days (excluding leave days)
+        // const attendancePercentage =
+        //   workingDays - leaveDays > 0
+        //     ? Math.round(
+        //         (effectivePresentDays / (workingDays - leaveDays)) * 100
+        //       )
+        //     : 0;
         const attendancePercentage =
-          workingDays - leaveDays > 0
-            ? Math.round(
-                (effectivePresentDays / (workingDays - leaveDays)) * 100
-              )
+          workingDays > 0
+            ? Math.round((effectivePresentDays / workingDays) * 100)
             : 0;
-
         setAttendanceStats({
           present: effectivePresentDays,
           absent: absentDays,
@@ -187,31 +221,30 @@ const Profile = () => {
   };
 
   const handlePasswordChange = (field, value) => {
-    setPasswordData(prev => ({
+    setPasswordData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
   const validatePasswordForm = () => {
-    
     if (!passwordData.newPassword) {
-      toast.error('New password is required');
+      toast.error("New password is required");
       return false;
     }
     if (passwordData.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long');
+      toast.error("New password must be at least 6 characters long");
       return false;
     }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error("New passwords do not match");
       return false;
     }
     return true;
@@ -219,31 +252,31 @@ const Profile = () => {
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
-    
+
     if (!validatePasswordForm()) {
       return;
     }
 
     try {
       setIsResettingPassword(true);
-      
+
       const response = await updateProfile({
         currentPassword: passwordData.currentPassword,
-        password: passwordData.newPassword
+        password: passwordData.newPassword,
       });
 
       if (response) {
-        toast.success('Password updated successfully');
+        toast.success("Password updated successfully");
         setShowPasswordReset(false);
         setPasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
         });
       }
     } catch (error) {
-      console.error('Error updating password:', error);
-      toast.error(error.response?.data?.message || 'Failed to update password');
+      console.error("Error updating password:", error);
+      toast.error(error.response?.data?.message || "Failed to update password");
     } finally {
       setIsResettingPassword(false);
     }
@@ -263,7 +296,9 @@ const Profile = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           My Profile
         </h1>
-        <p className="text-gray-600 mt-2">View your personal information and attendance statistics</p>
+        <p className="text-gray-600 mt-2">
+          View your personal information and attendance statistics
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -273,19 +308,19 @@ const Profile = () => {
             <div className="relative">
               <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
                 <img
-  src={profilePicUrl || DUMMY_SVG}
-  alt="Profile"
-  className="w-full h-full object-cover"
-  onError={(e) => {
-    e.target.onerror = null;
-    e.target.src = DUMMY_SVG;
-  }}
-/>
-
-
+                  src={profilePicUrl || DUMMY_SVG}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = DUMMY_SVG;
+                  }}
+                />
               </div>
             </div>
-            <h2 className="text-2xl font-bold mt-4 text-gray-900">{`${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`}</h2>
+            <h2 className="text-2xl font-bold mt-4 text-gray-900">{`${
+              currentUser?.firstName || ""
+            } ${currentUser?.lastName || ""}`}</h2>
             <div className="flex items-center mt-2 text-gray-600">
               <BuildingOfficeIcon className="w-4 h-4 mr-2" />
               <p>{currentUser?.position?.title || "No Position"}</p>
@@ -294,11 +329,15 @@ const Profile = () => {
             {/* Attendance Stats */}
             <div className="w-full mt-6 grid grid-cols-2 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl text-center">
-                <p className="text-2xl font-bold text-blue-600">{attendanceStats.percentage}%</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {attendanceStats.percentage}%
+                </p>
                 <p className="text-sm text-gray-600">Attendance</p>
               </div>
               <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl text-center">
-                <p className="text-2xl font-bold text-emerald-600">{attendanceStats.leaveCount}</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {attendanceStats.leaveCount}
+                </p>
                 <p className="text-sm text-gray-600">Leave Days</p>
               </div>
             </div>
@@ -316,17 +355,41 @@ const Profile = () => {
               </h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <InfoField label="Employee ID" value={currentUser?.employeeId} icon={<IdentificationIcon className="w-4 h-4" />} />
-                  <InfoField label="Email" value={currentUser?.email} icon={<EnvelopeIcon className="w-4 h-4" />} />
-                  <InfoField label="Phone" value={currentUser?.phone} icon={<PhoneIcon className="w-4 h-4" />} />
+                  <InfoField
+                    label="Employee ID"
+                    value={currentUser?.employeeId}
+                    icon={<IdentificationIcon className="w-4 h-4" />}
+                  />
+                  <InfoField
+                    label="Email"
+                    value={currentUser?.email}
+                    icon={<EnvelopeIcon className="w-4 h-4" />}
+                  />
+                  <InfoField
+                    label="Phone"
+                    value={currentUser?.phone}
+                    icon={<PhoneIcon className="w-4 h-4" />}
+                  />
                 </div>
                 <div className="space-y-4">
-                  <InfoField label="Department" value={currentUser?.department?.name} icon={<BuildingOfficeIcon className="w-4 h-4" />} />
-                  <InfoField label="Position" value={currentUser?.position?.title} icon={<UserIcon className="w-4 h-4" />} />
-                  <InfoField 
-                    label="Join Date" 
-                    value={currentUser?.joiningDate ? new Date(currentUser.joiningDate).toLocaleDateString() : "Not set"} 
-                    icon={<CalendarIcon className="w-4 h-4" />} 
+                  <InfoField
+                    label="Department"
+                    value={currentUser?.department?.name}
+                    icon={<BuildingOfficeIcon className="w-4 h-4" />}
+                  />
+                  <InfoField
+                    label="Position"
+                    value={currentUser?.position?.title}
+                    icon={<UserIcon className="w-4 h-4" />}
+                  />
+                  <InfoField
+                    label="Join Date"
+                    value={
+                      currentUser?.joiningDate
+                        ? new Date(currentUser.joiningDate).toLocaleDateString()
+                        : "Not set"
+                    }
+                    icon={<CalendarIcon className="w-4 h-4" />}
                   />
                 </div>
               </div>
@@ -340,12 +403,26 @@ const Profile = () => {
               </h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <InfoField label="Contact Name" value={currentUser?.emergencyContact?.name} />
-                  <InfoField label="Relationship" value={currentUser?.emergencyContact?.relationship} />
+                  <InfoField
+                    label="Contact Name"
+                    value={currentUser?.emergencyContact?.name}
+                  />
+                  <InfoField
+                    label="Relationship"
+                    value={currentUser?.emergencyContact?.relationship}
+                  />
                 </div>
                 <div className="space-y-4">
-                  <InfoField label="Contact Phone" value={currentUser?.emergencyContact?.phone} icon={<PhoneIcon className="w-4 h-4" />} />
-                  <InfoField label="Contact Email" value={currentUser?.emergencyContact?.email} icon={<EnvelopeIcon className="w-4 h-4" />} />
+                  <InfoField
+                    label="Contact Phone"
+                    value={currentUser?.emergencyContact?.phone}
+                    icon={<PhoneIcon className="w-4 h-4" />}
+                  />
+                  <InfoField
+                    label="Contact Email"
+                    value={currentUser?.emergencyContact?.email}
+                    icon={<EnvelopeIcon className="w-4 h-4" />}
+                  />
                 </div>
               </div>
             </div>
@@ -362,13 +439,16 @@ const Profile = () => {
                   onClick={() => setShowPasswordReset(!showPasswordReset)}
                   className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200"
                 >
-                  {showPasswordReset ? 'Cancel' : 'Change Password'}
+                  {showPasswordReset ? "Cancel" : "Change Password"}
                 </button>
               </div>
 
               {showPasswordReset && (
-                <form onSubmit={handlePasswordReset} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <form
+                  onSubmit={handlePasswordReset}
+                  className="bg-gray-50 rounded-lg p-4 space-y-4"
+                >
+                  <div className="grid md:grid-cols-2 gap-4">
                     {/* <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
                         Current Password
@@ -404,14 +484,16 @@ const Profile = () => {
                         <input
                           type={showPasswords.new ? "text" : "password"}
                           value={passwordData.newPassword}
-                          onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                          onChange={(e) =>
+                            handlePasswordChange("newPassword", e.target.value)
+                          }
                           className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
                           placeholder="Enter new password"
                           required
                         />
                         <button
                           type="button"
-                          onClick={() => togglePasswordVisibility('new')}
+                          onClick={() => togglePasswordVisibility("new")}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                         >
                           {showPasswords.new ? (
@@ -423,33 +505,38 @@ const Profile = () => {
                       </div>
                     </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Confirm New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.confirm ? "text" : "password"}
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
-                        placeholder="Confirm new password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('confirm')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPasswords.confirm ? (
-                          <EyeSlashIcon className="w-4 h-4" />
-                        ) : (
-                          <EyeIcon className="w-4 h-4" />
-                        )}
-                      </button>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Confirm New Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.confirm ? "text" : "password"}
+                          value={passwordData.confirmPassword}
+                          onChange={(e) =>
+                            handlePasswordChange(
+                              "confirmPassword",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="Confirm new password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility("confirm")}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPasswords.confirm ? (
+                            <EyeSlashIcon className="w-4 h-4" />
+                          ) : (
+                            <EyeIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-gray-500">
@@ -466,7 +553,7 @@ const Profile = () => {
                           Updating...
                         </>
                       ) : (
-                        'Update Password'
+                        "Update Password"
                       )}
                     </button>
                   </div>
@@ -482,7 +569,9 @@ const Profile = () => {
 
 const InfoField = ({ label, value, icon }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-500 mb-1">{label}</label>
+    <label className="block text-sm font-medium text-gray-500 mb-1">
+      {label}
+    </label>
     <div className="flex items-center space-x-2">
       {icon && <span className="text-gray-400">{icon}</span>}
       <p className="text-gray-900">{value || "Not set"}</p>

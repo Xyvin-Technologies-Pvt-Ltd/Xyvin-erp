@@ -64,7 +64,7 @@ const AttendanceEditModal = ({ attendance, onClose, onSuccess }) => {
 
       if (checkIn > startTime) status = "Late";
       else if (workHours >= 8) status = "Present";
-      else if (workHours >= 4) status = "Half-Day";
+      else if (workHours >= 4) status = "Halfday";
       else if (workHours > 0) status = "Early-Leave";
 
       setValue("status", status);
@@ -259,7 +259,7 @@ const AttendanceEditModal = ({ attendance, onClose, onSuccess }) => {
                     options={[
                       "Present",
                       "Absent",
-                      "Half-Day",
+                      "Halfday",
                       "Late",
                       "Early-Leave",
                     ]}
