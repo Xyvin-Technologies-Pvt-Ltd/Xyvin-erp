@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import moment from "moment";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -166,10 +167,10 @@ const LeaveApplication = () => {
         return;
       }
 
-      // Prepare leave request payload
+      // Prepare leave request payload (preserve local timezone using moment)
       const leaveRequest = {
-        startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to.toISOString(),
+        startDate: moment(dateRange.from).startOf("day").format(),
+        endDate: moment(dateRange.to).endOf("day").format(),
         reason: reason.trim(),
         employee: user._id || user.id || user.employeeId,
         leaveType: leaveType.charAt(0).toUpperCase() + leaveType.slice(1),
