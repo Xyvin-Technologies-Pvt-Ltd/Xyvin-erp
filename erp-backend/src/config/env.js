@@ -4,9 +4,9 @@ module.exports = {
   PORT: process.env.PORT || 8080,
   BASE_PATH: process.env.BASE_PATH || "/api/v1",
   NODE_ENV: process.env.NODE_ENV || "development",
-  MONGO_URL: process.env.MONGO_URL || 'mongodb+srv://admin:QOUTdL5uXqbE67rv@xyvin.6p93v.mongodb.net/xyvin-erp',
+  // MONGO_URL: process.env.MONGO_URL || 'mongodb+srv://admin:QOUTdL5uXqbE67rv@xyvin.6p93v.mongodb.net/xyvin-erp',
 
-  // MONGO_URL: process.env.MONGO_URL || "mongodb://localhost:27017/xyvin-erp",
+  MONGO_URL: process.env.MONGO_URL || "mongodb://localhost:27017/Xyvin-ERP",
   JWT_SECRET: process.env.JWT_SECRET || "your-secret-key",
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "1d",
   NODE_ENV: process.env.NODE_ENV || "development",

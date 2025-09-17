@@ -1,4 +1,5 @@
 import { Fragment, useEffect } from "react";
+import moment from "moment";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useFormik } from "formik";
@@ -31,10 +32,10 @@ const LeaveModal = ({ leave, onClose, onSuccess }) => {
     initialValues: {
       leaveType: leave?.leaveType || "",
       startDate: leave?.startDate
-        ? new Date(leave.startDate).toISOString().split("T")[0]
+        ? moment(leave.startDate).format("YYYY-MM-DD")
         : "",
       endDate: leave?.endDate
-        ? new Date(leave.endDate).toISOString().split("T")[0]
+        ? moment(leave.endDate).format("YYYY-MM-DD")
         : "",
       reason: leave?.reason || "",
       status: leave?.status || "Pending",

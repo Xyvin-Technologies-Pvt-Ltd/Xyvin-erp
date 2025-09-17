@@ -262,22 +262,32 @@ exports.createAttendance = catchAsync(async (req, res) => {
     return !["Holiday", "Absent", "On-Leave", "Day-Off"].includes(status);
   };
 
+  const isSunday = providedDate.getDay() === 0;
+  let derivedStatus = status || (isSunday ? "Day-Off" : "Present");
+
   let attendanceData = {
     employee,
     date: providedDate,
-    status: status || "Present",
+    status: derivedStatus,
     notes,
     shift,
     workHours: 0,
   };
 
-  if (isAttendanceRequired(status)) {
+  if (isAttendanceRequired(derivedStatus)) {
+    const actualCheckInTime = checkIn?.time ? new Date(checkIn.time) : new Date();
     attendanceData.checkIn = {
-      time: checkIn?.time || new Date(),
+      time: actualCheckInTime,
       device: checkIn?.device || "Web",
       ipAddress: checkIn?.ipAddress,
     };
-    attendanceData.lastSessionCheckIn = new Date(attendanceData.checkIn.time);
+    attendanceData.lastSessionCheckIn = new Date(actualCheckInTime);
+
+    const lateThreshold = new Date(providedDate);
+    lateThreshold.setHours(10, 20, 0, 0);
+    if (actualCheckInTime > lateThreshold) {
+      attendanceData.status = "Late";
+    }
   }
 
   const attendance = await Attendance.create(attendanceData);
