@@ -436,18 +436,14 @@ exports.reviewLeave = catchAsync(async (req, res) => {
       console.log("\n=== STARTING ATTENDANCE CREATION ===");
 
       try {
-        // Calculate date range
-        const startDate = new Date(leave.startDate);
-        const endDate = new Date(leave.endDate);
+        const moment = require('moment');
+        const startDate = moment(leave.startDate).startOf('day').toDate();
+        const endDate = moment(leave.endDate).startOf('day').toDate();
         console.log("Original dates:", { startDate, endDate });
 
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           throw createError(400, "Invalid leave dates");
         }
-
-        // Set time to start and end of days
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
 
         console.log("Processed dates:", {
           startDate: startDate.toISOString(),
@@ -486,12 +482,13 @@ exports.reviewLeave = catchAsync(async (req, res) => {
           });
         }
 
-        // Create array of dates
         const dates = [];
-        const currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          dates.push(new Date(currentDate));
-          currentDate.setDate(currentDate.getDate() + 1);
+        const currentDate = moment(startDate);
+        const endMoment = moment(endDate);
+        
+        while (currentDate.isSameOrBefore(endMoment, 'day')) {
+          dates.push(currentDate.toDate());
+          currentDate.add(1, 'day');
         }
 
         console.log(`Will create ${dates.length} attendance records`);
@@ -500,9 +497,7 @@ exports.reviewLeave = catchAsync(async (req, res) => {
         const createdRecords = [];
         for (const currentDate of dates) {
           try {
-            // Remove unnecessary time settings since it's a leave day
-            const attendanceDate = new Date(currentDate);
-            attendanceDate.setHours(0, 0, 0, 0);
+            const attendanceDate = moment(currentDate).startOf('day').toDate();
 
             console.log(
               `Creating attendance for date: ${attendanceDate.toISOString()}`

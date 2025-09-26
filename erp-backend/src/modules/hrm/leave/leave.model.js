@@ -122,8 +122,10 @@ const leaveSchema = new mongoose.Schema(
 
 // Calculate duration before saving
 leaveSchema.pre("save", function (next) {
-  const oneDay = 24 * 60 * 60 * 1000; // milliseconds in one day
-  this.duration = Math.round((this.endDate - this.startDate) / oneDay) + 1;
+  const moment = require('moment');
+  const start = moment(this.startDate).startOf('day');
+  const end = moment(this.endDate).startOf('day');
+  this.duration = end.diff(start, 'days') + 1;
   next();
 });
 

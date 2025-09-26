@@ -167,10 +167,9 @@ const LeaveApplication = () => {
         return;
       }
 
-      // Prepare leave request payload (preserve local timezone using moment)
       const leaveRequest = {
-        startDate: moment(dateRange.from).startOf("day").format(),
-        endDate: moment(dateRange.to).endOf("day").format(),
+        startDate: moment(dateRange.from).format("YYYY-MM-DD"),
+        endDate: moment(dateRange.to).format("YYYY-MM-DD"),
         reason: reason.trim(),
         employee: user._id || user.id || user.employeeId,
         leaveType: leaveType.charAt(0).toUpperCase() + leaveType.slice(1),

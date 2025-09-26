@@ -52,11 +52,9 @@ const LeaveModal = ({ leave, onClose, onSuccess }) => {
           }
         });
 
-        // Calculate duration in days
-        const start = new Date(values.startDate);
-        const end = new Date(values.endDate);
-        const durationInDays =
-          Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        const start = moment(values.startDate);
+        const end = moment(values.endDate);
+        const durationInDays = end.diff(start, 'days') + 1;
         formData.append("duration", durationInDays);
 
         if (leave) {
@@ -91,10 +89,9 @@ const LeaveModal = ({ leave, onClose, onSuccess }) => {
   // Update duration when dates change
   useEffect(() => {
     if (formik.values.startDate && formik.values.endDate) {
-      const start = new Date(formik.values.startDate);
-      const end = new Date(formik.values.endDate);
-      const durationInDays =
-        Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      const start = moment(formik.values.startDate);
+      const end = moment(formik.values.endDate);
+      const durationInDays = end.diff(start, 'days') + 1;
       formik.setFieldValue("duration", durationInDays);
     }
   }, [formik.values.startDate, formik.values.endDate]);
